@@ -1,0 +1,34 @@
+#ifndef HOME_H
+#define HOME_H
+
+#include <QWidget>
+
+using namespace std;
+
+namespace Ui {
+class Home;
+}
+
+class Home : public QWidget
+{
+    Q_OBJECT
+
+public:
+    explicit Home(QWidget *parent = nullptr);
+    ~Home();
+
+    void onInMeeting();
+
+private slots:
+    void onMyProfile();
+    void onJoinMeeting();
+    void onQuickMeeting();
+    void onBookMeeting();
+    void onShareScreen();
+    void onSettings();
+
+private:
+    Ui::Home *ui;
+};
+
+#endif // HOME_H

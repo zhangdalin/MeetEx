@@ -1,0 +1,35 @@
+#ifndef MEDIA_ENGINE_H
+#define MEDIA_ENGINE_H
+
+#include "media_mgr.h"
+
+class MediaMgr;
+
+class MediaEngine {
+public:
+    static MediaEngine &instance() {
+        static MediaEngine instance;
+        return instance;
+    }
+
+    static void printLiveKitVersion();
+
+    bool init();
+    bool fini();
+    bool startLocalAudio(livekit::LocalParticipant* participant, std::string& sid);
+    void stopLocalAudio(livekit::LocalParticipant* participant, const std::string& sid);
+    bool startLocalVideo(livekit::LocalParticipant* participant, std::string& sid);
+    void stopLocalVideo(livekit::LocalParticipant* participant, const std::string& sid);
+    bool startShareLocalScreen(livekit::LocalParticipant* participant, std::string& sid);
+    void stopShareLocalScreen(livekit::LocalParticipant* participant, const std::string& sid);
+    void stopRemoteAudio();
+    void stopRemoteVideo();
+
+private:
+    explicit MediaEngine();
+    ~MediaEngine() = default;
+
+    std::shared_ptr<MediaMgr> media_mgr_;
+};
+
+#endif // MEDIA_ENGINE_H

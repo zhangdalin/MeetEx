@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>InMeeting</class>
+ <widget class="QWidget" name="InMeeting">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1020</width>
+    <height>653</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>您的会议</string>
+  </property>
+  <widget class="QWidget" name="layoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>600</y>
+     <width>981</width>
+     <height>32</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QLineEdit" name="msgEdit">
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="placeholderText">
+       <string>说点什么...</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="muteBtn">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>静音</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="videoBtn">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>开启视频</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="sharingBtn">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>共享屏幕</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="inviteBtn">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>邀请</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="memberBtn">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>成员</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="chatBtn">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>聊天</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="recordBtn">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>录制</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="appBtn">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>应用</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="endBtn">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>30</height>
+       </size>
+      </property>
+      <property name="text">
+       <string>结束会议</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWidget" name="gridLayoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>20</y>
+     <width>981</width>
+     <height>571</height>
+    </rect>
+   </property>
+   <layout class="QGridLayout" name="gridLayout"/>
+  </widget>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>msgEdit</sender>
+   <signal>returnPressed()</signal>
+   <receiver>InMeeting</receiver>
+   <slot>sendMsg()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>165</x>
+     <y>616</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>164</x>
+     <y>670</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>muteBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>InMeeting</receiver>
+   <slot>toggleMute()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>268</x>
+     <y>617</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>254</x>
+     <y>701</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>videoBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>InMeeting</receiver>
+   <slot>toggleVideo()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>355</x>
+     <y>610</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>355</x>
+     <y>687</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sharingBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>InMeeting</receiver>
+   <slot>startShare()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>445</x>
+     <y>615</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>436</x>
+     <y>790</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>inviteBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>InMeeting</receiver>
+   <slot>inviteUser()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>534</x>
+     <y>619</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>527</x>
+     <y>734</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>memberBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>InMeeting</receiver>
+   <slot>showMember()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>614</x>
+     <y>621</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>608</x>
+     <y>744</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>chatBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>InMeeting</receiver>
+   <slot>openChat()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>696</x>
+     <y>615</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>691</x>
+     <y>725</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>recordBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>InMeeting</receiver>
+   <slot>toggleRecord()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>787</x>
+     <y>617</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>786</x>
+     <y>739</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>appBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>InMeeting</receiver>
+   <slot>openApps()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>871</x>
+     <y>620</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>864</x>
+     <y>733</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>endBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>InMeeting</receiver>
+   <slot>endMeeting()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>966</x>
+     <y>618</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>967</x>
+     <y>711</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>sendMsg()</slot>
+  <slot>toggleMute()</slot>
+  <slot>toggleVideo()</slot>
+  <slot>startShare()</slot>
+  <slot>inviteUser()</slot>
+  <slot>showMember()</slot>
+  <slot>openChat()</slot>
+  <slot>toggleRecord()</slot>
+  <slot>openApps()</slot>
+  <slot>endMeeting()</slot>
+ </slots>
+</ui>

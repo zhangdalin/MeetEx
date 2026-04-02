@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Home</class>
+ <widget class="QWidget" name="Home">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>712</width>
+    <height>430</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>主页</string>
+  </property>
+  <property name="layoutDirection">
+   <enum>Qt::LayoutDirection::LeftToRight</enum>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="styleSheet">
+      <string notr="true">QTabBar::tab { width: 50px; height: 50px; }</string>
+     </property>
+     <property name="tabPosition">
+      <enum>QTabWidget::TabPosition::West</enum>
+     </property>
+     <property name="tabShape">
+      <enum>QTabWidget::TabShape::Rounded</enum>
+     </property>
+     <property name="currentIndex">
+      <number>1</number>
+     </property>
+     <widget class="QWidget" name="avatar">
+      <attribute name="title">
+       <string>头像</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="meeting">
+      <attribute name="title">
+       <string>会议</string>
+      </attribute>
+      <widget class="QWidget" name="layoutWidget">
+       <property name="geometry">
+        <rect>
+         <x>50</x>
+         <y>50</y>
+         <width>271</width>
+         <height>191</height>
+        </rect>
+       </property>
+       <layout class="QGridLayout" name="gridLayout">
+        <property name="spacing">
+         <number>20</number>
+        </property>
+        <item row="0" column="0">
+         <widget class="QPushButton" name="joinmeetingBtn">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>加入会议</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QPushButton" name="quickmeetingBtn">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>快速会议</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QPushButton" name="bookmeetingBtn">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>预定会议</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QPushButton" name="sharescreenBtn">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>共享屏幕</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="addrbook">
+      <attribute name="title">
+       <string>地址簿</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="mail">
+      <attribute name="title">
+       <string>邮箱</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="settings">
+      <attribute name="title">
+       <string>设置</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="account">
+      <attribute name="title">
+       <string>账号</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="record">
+      <attribute name="title">
+       <string>录制</string>
+      </attribute>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>joinmeetingBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Home</receiver>
+   <slot>onJoinMeeting()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>169</x>
+     <y>95</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>138</x>
+     <y>-6</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>quickmeetingBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Home</receiver>
+   <slot>onQuickMeeting()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>301</x>
+     <y>101</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>311</x>
+     <y>-7</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>bookmeetingBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Home</receiver>
+   <slot>onBookMeeting()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>179</x>
+     <y>189</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>233</x>
+     <y>-7</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sharescreenBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Home</receiver>
+   <slot>onShareScreen()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>282</x>
+     <y>179</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>271</x>
+     <y>-31</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>onJoinMeeting()</slot>
+  <slot>onQuickMeeting()</slot>
+  <slot>onBookMeeting()</slot>
+  <slot>onShareScreen()</slot>
+ </slots>
+</ui>

@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>assets/icon_mail.png</file>
+        <file>assets/icon_phone.png</file>
+        <file>assets/icon_sso.png</file>
+        <file>assets/icon_wecom.png</file>
+    </qresource>
+</RCC>
