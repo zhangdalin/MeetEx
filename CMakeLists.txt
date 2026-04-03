@@ -112,6 +112,7 @@ target_include_directories(MeetEx PRIVATE
 )
 
 target_link_libraries(MeetEx PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
+    mediaengine
     meetingengine
 )
 
