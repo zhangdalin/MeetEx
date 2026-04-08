@@ -2,6 +2,7 @@
 #include "meeting_def.h"
 #include "local_user.h"
 #include "remote_user.h"
+#include "media_engine.h"
 
 #include <QDebug>
 
@@ -134,12 +135,9 @@ void MeetingRoom::onParticipantConnected(livekit::Room &room, const livekit::Par
 }
 
 void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSubscribedEvent &ev) {
-    const char *participant_identity =
-        ev.participant ? ev.participant->identity().c_str() : "<unknown>";
-    const std::string track_sid =
-        ev.publication ? ev.publication->sid() : "<unknown>";
-    const std::string track_name =
-        ev.publication ? ev.publication->name() : "<unknown>";
+    const char *participant_identity = ev.participant ? ev.participant->identity().c_str() : "<unknown>";
+    const std::string track_sid = ev.publication ? ev.publication->sid() : "<unknown>";
+    const std::string track_name = ev.publication ? ev.publication->name() : "<unknown>";
     qDebug() << "[Room] track subscribed: participant_identity="
         << QString::fromStdString(participant_identity)
         << " track_sid=" << QString::fromStdString(track_sid)
@@ -161,23 +159,20 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
             return;
         }
 
-        // todo:
-        // MainThreadDispatcher::dispatch([this, video_stream] {
-        //     if (!media_mgr_->initRenderer(video_stream)) {
-        //         qCritical("SDLMediaManager::startRenderer failed for track");
-        //     }
-        // });
+        if (!MediaEngine::instance().startVideoRender(video_stream)) {
+            qCritical("SDLMediaManager::startRenderer failed for track");
+        }
     }
 
     else if (ev.track && ev.track->kind() == livekit::TrackKind::KIND_AUDIO) {
         livekit::AudioStream::Options opts;
         auto audio_stream = livekit::AudioStream::fromTrack(ev.track, opts);
-
-        // todo:
-        // MainThreadDispatcher::dispatch([this, audio_stream] {
-        //     if (!media_mgr_->startSpeaker(audio_stream)) {
-        //         qCritical("SDLMediaManager::startSpeaker failed for track");
-        //     }
-        // });
+        if (!audio_stream) {
+            qCritical() << "Failed to create AudioStream for track " << QString::fromStdString(track_sid);
+            return;
+        }
+        if (!MediaEngine::instance().startAudioSpeaker(audio_stream)) {
+            qCritical("startAudioSpeaker failed for track");
+        }
     }
 }

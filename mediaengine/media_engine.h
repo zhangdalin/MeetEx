@@ -22,8 +22,10 @@ public:
     void stopLocalVideo(livekit::LocalParticipant* participant, const std::string& sid);
     bool startShareLocalScreen(livekit::LocalParticipant* participant, std::string& sid);
     void stopShareLocalScreen(livekit::LocalParticipant* participant, const std::string& sid);
-    void stopRemoteAudio();
-    void stopRemoteVideo();
+    bool startAudioSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream);
+    bool startVideoRender(const std::shared_ptr<livekit::VideoStream> &video_stream);
+    void stopAudioSpeaker();
+    void stopVideoRender();
 
 private:
     explicit MediaEngine();

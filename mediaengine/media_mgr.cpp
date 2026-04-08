@@ -16,6 +16,7 @@
 
 #include "media_mgr.h"
 
+#include "media_def.h"
 #include "media.h"
 #include "video_renderer.h"
 #include "fallback_capture.h"
@@ -45,8 +46,7 @@ bool MediaMgr::ensureSDLInit(Uint32 flags) {
 
 // ---------- Mic control ----------
 
-bool MediaMgr::startMic(
-    const std::shared_ptr<livekit::AudioSource> &audio_source) {
+bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_source) {
     stopMic();
 
     if (!audio_source) {
@@ -61,8 +61,7 @@ bool MediaMgr::startMic(
     if (!ensureSDLInit(SDL_INIT_AUDIO)) {
         qWarning() << "No SDL audio, falling back to noise loop.";
         mic_using_ = false;
-        mic_thread_ =
-            std::thread(runNoiseCaptureLoop, mic_source_, std::ref(mic_running_));
+        mic_thread_ = std::thread(runNoiseCaptureLoop, mic_source_, std::ref(mic_running_));
         return true;
     }
 
@@ -73,27 +72,30 @@ bool MediaMgr::startMic(
         if (recDevs)
             SDL_free(recDevs);
         mic_using_ = false;
-        mic_thread_ =
-            std::thread(runNoiseCaptureLoop, mic_source_, std::ref(mic_running_));
+        mic_thread_ = std::thread(runNoiseCaptureLoop, mic_source_, std::ref(mic_running_));
         return true;
     }
+
     SDL_free(recDevs);
 
     // We have at least one mic; use SDL
     mic_using_ = true;
 
     mic_ = std::make_unique<MicSource>(
-        mic_source_->sample_rate(), mic_source_->num_channels(),
+        mic_source_->sample_rate(),
+        mic_source_->num_channels(),
         mic_source_->sample_rate() / 100, // ~10ms
-        [src = mic_source_](const int16_t *samples, int num_samples_per_channel,
+        [src = mic_source_](const int16_t *samples,
+                            int num_samples_per_channel,
                             int sample_rate, int num_channels) {
             livekit::AudioFrame frame = livekit::AudioFrame::create(sample_rate, num_channels,
-                                                  num_samples_per_channel);
+                                                                    num_samples_per_channel);
             std::memcpy(frame.data().data(), samples,
                         num_samples_per_channel * num_channels * sizeof(int16_t));
             try {
                 src->captureFrame(frame);
-            } catch (const std::exception &e) {
+            }
+            catch (const std::exception &e) {
                 qCritical() << "Error in captureFrame (SDL mic):" << e.what();
             }
         });
@@ -102,8 +104,7 @@ bool MediaMgr::startMic(
         qWarning() << "Failed to init SDL mic, falling back to noise loop.";
         mic_using_ = false;
         mic_.reset();
-        mic_thread_ =
-            std::thread(runNoiseCaptureLoop, mic_source_, std::ref(mic_running_));
+        mic_thread_ = std::thread(runNoiseCaptureLoop, mic_source_, std::ref(mic_running_));
         return true;
     }
 
@@ -129,8 +130,7 @@ void MediaMgr::stopMic() {
 
 // ---------- Camera control ----------
 
-bool MediaMgr::startCamera(
-    const std::shared_ptr<livekit::VideoSource> &video_source) {
+bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_source) {
     stopCamera();
 
     if (!video_source) {
@@ -145,8 +145,7 @@ bool MediaMgr::startCamera(
     if (!ensureSDLInit(SDL_INIT_CAMERA)) {
         qWarning() << "No SDL camera subsystem, using fake video loop.";
         cam_using_ = false;
-        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_,
-                                  std::ref(cam_running_));
+        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, std::ref(cam_running_));
         return true;
     }
 
@@ -157,10 +156,10 @@ bool MediaMgr::startCamera(
         if (cams)
             SDL_free(cams);
         cam_using_ = false;
-        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_,
-                                  std::ref(cam_running_));
+        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, std::ref(cam_running_));
         return true;
     }
+
     SDL_free(cams);
 
     cam_using_ = true;
@@ -180,8 +179,7 @@ bool MediaMgr::startCamera(
             }
 
             try {
-                src->captureFrame(frame, timestampNS / 1000,
-                                  livekit::VideoRotation::VIDEO_ROTATION_0);
+                src->captureFrame(frame, timestampNS / 1000, livekit::VideoRotation::VIDEO_ROTATION_0);
             } catch (const std::exception &e) {
                 qCritical() << "Error in captureFrame (SDL cam):" << e.what();
             }
@@ -191,8 +189,7 @@ bool MediaMgr::startCamera(
         qWarning() << "Failed to init SDL camera, using fake video loop.";
         cam_using_ = false;
         cam_.reset();
-        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_,
-                                  std::ref(cam_running_));
+        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, std::ref(cam_running_));
         return true;
     }
 
@@ -218,8 +215,7 @@ void MediaMgr::stopCamera() {
 
 // ---------- Speaker control (placeholder) ----------
 
-bool MediaMgr::startSpeaker(
-    const std::shared_ptr<livekit::AudioStream> &audio_stream) {
+bool MediaMgr::startSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream) {
     stopSpeaker();
 
     if (!audio_stream) {
@@ -241,8 +237,7 @@ bool MediaMgr::startSpeaker(
     try {
         speaker_thread_ = std::thread(&MediaMgr::speakerLoopSDL, this);
     } catch (const std::exception &e) {
-        qCritical() << "startSpeaker: failed to start speaker thread:"
-                    << e.what();
+        qCritical() << "startSpeaker: failed to start speaker thread:" << e.what();
         speaker_running_.store(false, std::memory_order_relaxed);
         speaker_stream_.reset();
         return false;
@@ -280,8 +275,7 @@ void MediaMgr::speakerLoopSDL() {
             want.channels = static_cast<Uint8>(frame.num_channels());
             want.freq = frame.sample_rate();
 
-            localStream =
-                SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &want,
+            localStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &want,
                                           /*callback=*/nullptr,
                                           /*userdata=*/nullptr);
 
@@ -344,8 +338,7 @@ void MediaMgr::stopSpeaker() {
 
 // ---------- Renderer control (placeholder) ----------
 
-bool MediaMgr::initRenderer(
-    const std::shared_ptr<livekit::VideoStream> &video_stream) {
+bool MediaMgr::initRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream) {
     if (!video_stream) {
         qCritical() << "startRenderer: videoStream is null";
         return false;
@@ -362,7 +355,7 @@ bool MediaMgr::initRenderer(
     if (!renderer_) {
         renderer_ = std::make_unique<VideoRenderer>();
         // You can tune these dimensions or even make them options
-        if (!renderer_->init("LiveKit Remote Video", 1280, 720)) {
+        if (!renderer_->init("MeetEx Remote Video", VIDEO_WIDTH, VIDEO_HEIGHT)) {
             qCritical() << "startRenderer: SDLVideoRenderer::init failed";
             renderer_.reset();
             renderer_stream_.reset();
@@ -373,6 +366,16 @@ bool MediaMgr::initRenderer(
 
     // Start the SDL renderer's own render thread
     renderer_->setStream(renderer_stream_);
+
+    try {
+        renderer_thread_ = std::thread(&MediaMgr::renderLoopSDL, this);
+    } catch (const std::exception &e) {
+        qCritical() << "startRenderer: failed to start renderer thread:" << e.what();
+        renderer_running_.store(false, std::memory_order_relaxed);
+        renderer_->shutdown();
+        renderer_stream_.reset();
+        return false;
+    }
 
     return true;
 }
@@ -393,8 +396,11 @@ void MediaMgr::shutdownRenderer() {
     renderer_stream_.reset();
 }
 
-void MediaMgr::render() {
-    if (renderer_running_.load(std::memory_order_relaxed) && renderer_) {
-        renderer_->render();
+void MediaMgr::renderLoopSDL() {
+    while (renderer_running_.load(std::memory_order_relaxed)) {
+        if (renderer_) {
+            renderer_->render();
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10)); // ~100 FPS
     }
 }

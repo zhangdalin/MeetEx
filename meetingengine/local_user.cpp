@@ -17,8 +17,8 @@ LocalUser::LocalUser(livekit::LocalParticipant* participant)
 LocalUser::~LocalUser() {
     closeAudio();
     closeVideo();
-    closeRemoteAudio();
-    closeRemoteVideo();
+    closeAudioSpeaker();
+    closeVideoRender();
 }
 
 std::string LocalUser::identity() const {
@@ -51,10 +51,10 @@ void LocalUser::closeVideo(){
     video_sid_.clear();
 }
 
-void LocalUser::closeRemoteAudio() {
-    MediaEngine::instance().stopRemoteAudio();
+void LocalUser::closeAudioSpeaker() {
+    MediaEngine::instance().stopAudioSpeaker();
 }
 
-void LocalUser::closeRemoteVideo() {
-    MediaEngine::instance().stopRemoteVideo();
+void LocalUser::closeVideoRender() {
+    MediaEngine::instance().stopVideoRender();
 }

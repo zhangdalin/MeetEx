@@ -122,10 +122,18 @@ bool MediaEngine::startShareLocalScreen(livekit::LocalParticipant* participant, 
 void MediaEngine::stopShareLocalScreen(livekit::LocalParticipant* participant, const std::string& sid) {
 }
 
-void MediaEngine::stopRemoteAudio() {
+bool MediaEngine::startAudioSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream) {
+    return media_mgr_->startSpeaker(audio_stream);
+}
+
+bool MediaEngine::startVideoRender(const std::shared_ptr<livekit::VideoStream> &video_stream) {
+    return media_mgr_->initRenderer(video_stream);
+}
+
+void MediaEngine::stopAudioSpeaker() {
     media_mgr_->stopSpeaker();
 }
 
-void MediaEngine::stopRemoteVideo() {
+void MediaEngine::stopVideoRender() {
     media_mgr_->shutdownRenderer();
 }

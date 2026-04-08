@@ -20,6 +20,11 @@ InMeeting::InMeeting(QWidget *parent)
 {
     ui->setupUi(this);
     meetingEngine_->launchMeeting();
+    // default unmuted and video on
+    meetingEngine_->startAudio();
+    ui->btnMute->setText("静音");
+    meetingEngine_->startVideo();
+    ui->btnVideo->setText("关闭视频");
 }
 
 InMeeting::~InMeeting()

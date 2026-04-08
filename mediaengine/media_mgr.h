@@ -62,7 +62,6 @@ public:
     // Following APIs must be called on main thread
     bool initRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream);
     void shutdownRenderer();
-    void render();
 
 private:
     // ---- SDL bootstrap helpers ----
@@ -78,6 +77,8 @@ private:
 
     // ---- Speaker helpers (TODO: wire AudioStream -> SDL audio) ----
     void speakerLoopSDL();
+
+    void renderLoopSDL();
 
     // Mic
     std::shared_ptr<livekit::AudioSource> mic_source_;

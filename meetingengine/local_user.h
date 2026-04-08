@@ -16,8 +16,8 @@ public:
     void closeAudio();
     bool openVideo();
     void closeVideo();
-    void closeRemoteAudio();
-    void closeRemoteVideo();
+    void closeAudioSpeaker();
+    void closeVideoRender();
 
 private:
     livekit::LocalParticipant* participant_;
