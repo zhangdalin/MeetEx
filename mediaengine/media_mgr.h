@@ -68,11 +68,11 @@ public:
 
     // Renderer (remote video rendering)
     // Following APIs must be called on main thread
-    bool startRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream,
-                       const std::string &renderer_id = "default");
-    void stopAllRenderers();
+    bool startRender(const std::shared_ptr<livekit::VideoStream> &video_stream,
+                       const std::string &render_id = "default");
+    void stopAllRenders();
     bool copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height);
-    bool copyLatestVideoFrame(const std::string &renderer_id,
+    bool copyLatestVideoFrame(const std::string &render_id,
                               std::vector<std::uint8_t> &rgba, int &width, int &height);
 
 private:
@@ -90,7 +90,7 @@ private:
     // ---- Speaker helpers (TODO: wire AudioStream -> SDL audio) ----
     void speakerLoopSDL();
 
-    struct RendererWorker {
+    struct RenderWorker {
         std::shared_ptr<livekit::VideoStream> stream;
         std::thread thread;
         std::atomic<bool> running{false};
@@ -100,8 +100,8 @@ private:
         int latest_height = 0;
     };
 
-    void renderLoop(const std::string &renderer_id,
-                    const std::shared_ptr<RendererWorker> &worker);
+    void renderLoop(const std::string &render_id,
+                    const std::shared_ptr<RenderWorker> &worker);
 
     // Mic
     std::shared_ptr<livekit::AudioSource> mic_source_;
@@ -124,7 +124,7 @@ private:
     SDL_AudioStream *audio_stream_ = nullptr;
 
     // Renderer (remote video)
-    std::mutex renderers_mutex_;
-    std::unordered_map<std::string, std::shared_ptr<RendererWorker>> renderers_;
-    std::string latest_renderer_id_;
+    std::mutex renders_mutex_;
+    std::unordered_map<std::string, std::shared_ptr<RenderWorker>> renders_;
+    std::string latest_render_id_;
 };

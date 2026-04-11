@@ -29,7 +29,7 @@ MediaMgr::~MediaMgr() {
     stopMic();
     stopCamera();
     stopSpeaker();
-    stopAllRenderers();
+    stopAllRenders();
 }
 
 bool MediaMgr::ensureSDLInit(Uint32 flags) {
@@ -338,25 +338,25 @@ void MediaMgr::stopSpeaker() {
 
 // ---------- Renderer control (placeholder) ----------
 
-bool MediaMgr::startRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream,
-                             const std::string &renderer_id) {
+bool MediaMgr::startRender(const std::shared_ptr<livekit::VideoStream> &video_stream,
+                             const std::string &render_id) {
     if (!video_stream) {
-        qCritical() << "startRenderer: videoStream is null";
+        qCritical() << "startRender: videoStream is null";
         return false;
     }
 
-    auto worker = std::make_shared<RendererWorker>();
+    auto worker = std::make_shared<RenderWorker>();
     worker->stream = video_stream;
     worker->running.store(true, std::memory_order_relaxed);
 
-    std::shared_ptr<RendererWorker> old_worker = nullptr;
+    std::shared_ptr<RenderWorker> old_worker = nullptr;
     {
-        std::lock_guard<std::mutex> lock(renderers_mutex_);
-        auto it = renderers_.find(renderer_id);
-        if (it != renderers_.end()) {
+        std::lock_guard<std::mutex> lock(renders_mutex_);
+        auto it = renders_.find(render_id);
+        if (it != renders_.end()) {
             old_worker = it->second;
         }
-        renderers_[renderer_id] = worker;
+        renders_[render_id] = worker;
     }
 
     if (old_worker) {
@@ -366,20 +366,20 @@ bool MediaMgr::startRenderer(const std::shared_ptr<livekit::VideoStream> &video_
         }
     }
 
-    const std::string id_for_thread = renderer_id;
+    const std::string id_for_thread = render_id;
 
     try {
         worker->thread = std::thread(&MediaMgr::renderLoop, this, id_for_thread, worker);
     } catch (const std::exception &e) {
-        qCritical() << "startRenderer: failed to start renderer id:" << QString::fromStdString(renderer_id) << " thread:" << e.what();
+        qCritical() << "startRender: failed to start render id:" << QString::fromStdString(render_id) << " thread:" << e.what();
 
         {
-            std::lock_guard<std::mutex> lock(renderers_mutex_);
-            auto it = renderers_.find(renderer_id);
-            if (it != renderers_.end() && it->second == worker) {
-                renderers_.erase(it);
-                if (latest_renderer_id_ == renderer_id) {
-                    latest_renderer_id_.clear();
+            std::lock_guard<std::mutex> lock(renders_mutex_);
+            auto it = renders_.find(render_id);
+            if (it != renders_.end() && it->second == worker) {
+                renders_.erase(it);
+                if (latest_render_id_ == render_id) {
+                    latest_render_id_.clear();
                 }
             }
         }
@@ -390,15 +390,15 @@ bool MediaMgr::startRenderer(const std::shared_ptr<livekit::VideoStream> &video_
     return true;
 }
 
-void MediaMgr::stopAllRenderers() {
-    std::vector<std::shared_ptr<RendererWorker>> workers;
+void MediaMgr::stopAllRenders() {
+    std::vector<std::shared_ptr<RenderWorker>> workers;
     {
-        std::lock_guard<std::mutex> lock(renderers_mutex_);
-        for (auto &entry : renderers_) {
+        std::lock_guard<std::mutex> lock(renders_mutex_);
+        for (auto &entry : renders_) {
             workers.push_back(entry.second);
         }
-        renderers_.clear();
-        latest_renderer_id_.clear();
+        renders_.clear();
+        latest_render_id_.clear();
     }
 
     for (auto &worker : workers) {
@@ -413,8 +413,8 @@ void MediaMgr::stopAllRenderers() {
     }
 }
 
-void MediaMgr::renderLoop(const std::string &renderer_id,
-                          const std::shared_ptr<RendererWorker> &worker) {
+void MediaMgr::renderLoop(const std::string &render_id,
+                          const std::shared_ptr<RenderWorker> &worker) {
     while (worker->running.load(std::memory_order_relaxed)) {
         if (!worker->stream) {
             break;
@@ -453,8 +453,8 @@ void MediaMgr::renderLoop(const std::string &renderer_id,
         }
 
         {
-            std::lock_guard<std::mutex> lock(renderers_mutex_);
-            latest_renderer_id_ = renderer_id;
+            std::lock_guard<std::mutex> lock(renders_mutex_);
+            latest_render_id_ = render_id;
         }
     }
 
@@ -462,29 +462,29 @@ void MediaMgr::renderLoop(const std::string &renderer_id,
 }
 
 bool MediaMgr::copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height) {
-    std::string renderer_id;
+    std::string render_id;
     {
-        std::lock_guard<std::mutex> lock(renderers_mutex_);
-        if (latest_renderer_id_.empty()) {
-            if (renderers_.empty()) {
+        std::lock_guard<std::mutex> lock(renders_mutex_);
+        if (latest_render_id_.empty()) {
+            if (renders_.empty()) {
                 return false;
             }
-            renderer_id = renderers_.begin()->first;
+            render_id = renders_.begin()->first;
         } else {
-            renderer_id = latest_renderer_id_;
+            render_id = latest_render_id_;
         }
     }
 
-    return copyLatestVideoFrame(renderer_id, rgba, width, height);
+    return copyLatestVideoFrame(render_id, rgba, width, height);
 }
 
-bool MediaMgr::copyLatestVideoFrame(const std::string &renderer_id,
+bool MediaMgr::copyLatestVideoFrame(const std::string &render_id,
                                     std::vector<std::uint8_t> &rgba, int &width, int &height) {
-    std::shared_ptr<RendererWorker> worker;
+    std::shared_ptr<RenderWorker> worker;
     {
-        std::lock_guard<std::mutex> lock(renderers_mutex_);
-        auto it = renderers_.find(renderer_id);
-        if (it == renderers_.end()) {
+        std::lock_guard<std::mutex> lock(renders_mutex_);
+        auto it = renders_.find(render_id);
+        if (it == renders_.end()) {
             return false;
         }
         worker = it->second;
