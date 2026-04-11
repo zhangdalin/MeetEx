@@ -5,6 +5,7 @@
 #include <memory>
 
 class MeetingEngine;
+class GLVideoWidget;
 
 namespace Ui {
 class InMeeting;
@@ -39,6 +40,7 @@ protected:
 private:
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
+    GLVideoWidget *videoView_ = nullptr;
 };
 
 #endif // INMEETING_H

@@ -13,8 +13,8 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS
     ${CMAKE_CURRENT_SOURCE_DIR}/ui
 )
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets OpenGLWidgets LinguistTools)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets OpenGLWidgets LinguistTools)
 
 set(TS_FILES
     i18n/MeetEx_zh_CN.ts)
@@ -40,6 +40,7 @@ set(PROJECT_HEADERS
     src/bookmeeting.h
     src/joinmeeting.h
     src/inmeeting.h
+    src/glvideowidget.h
     src/settings.h
     src/settingaudio.h
     src/settingvideo.h
@@ -56,6 +57,7 @@ set(PROJECT_SOURCES
     src/bookmeeting.cpp
     src/joinmeeting.cpp
     src/inmeeting.cpp
+    src/glvideowidget.cpp
     src/settings.cpp
     src/settingaudio.cpp
     src/settingvideo.cpp
@@ -112,6 +114,7 @@ target_include_directories(MeetEx PRIVATE
 )
 
 target_link_libraries(MeetEx PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::OpenGLWidgets
     mediaengine
     meetingengine
 )

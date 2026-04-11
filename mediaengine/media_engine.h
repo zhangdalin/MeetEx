@@ -3,6 +3,9 @@
 
 #include "media_mgr.h"
 
+#include <cstdint>
+#include <vector>
+
 class MediaMgr;
 
 class MediaEngine {
@@ -26,6 +29,7 @@ public:
     bool startVideoRender(const std::shared_ptr<livekit::VideoStream> &video_stream);
     void stopAudioSpeaker();
     void stopVideoRender();
+    bool copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height);
 
 private:
     explicit MediaEngine();

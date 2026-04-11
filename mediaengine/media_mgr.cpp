@@ -16,12 +16,12 @@
 
 #include "media_mgr.h"
 
-#include "media_def.h"
 #include "media.h"
-#include "video_renderer.h"
 #include "fallback_capture.h"
 
 #include <QDebug>
+
+#include <livekit/livekit.h>
 
 MediaMgr::MediaMgr() = default;
 
@@ -343,36 +343,17 @@ bool MediaMgr::initRenderer(const std::shared_ptr<livekit::VideoStream> &video_s
         qCritical() << "startRenderer: videoStream is null";
         return false;
     }
-    // Ensure SDL video subsystem is initialized
-    if (!ensureSDLInit(SDL_INIT_VIDEO)) {
-        qCritical() << "startRenderer: SDL_INIT_VIDEO failed";
-        return false;
-    }
+
+    shutdownRenderer();
+
     renderer_stream_ = video_stream;
     renderer_running_.store(true, std::memory_order_relaxed);
-
-    // Lazily create the SDLVideoRenderer
-    if (!renderer_) {
-        renderer_ = std::make_unique<VideoRenderer>();
-        // You can tune these dimensions or even make them options
-        if (!renderer_->init("MeetEx Remote Video", VIDEO_WIDTH, VIDEO_HEIGHT)) {
-            qCritical() << "startRenderer: SDLVideoRenderer::init failed";
-            renderer_.reset();
-            renderer_stream_.reset();
-            renderer_running_.store(false, std::memory_order_relaxed);
-            return false;
-        }
-    }
-
-    // Start the SDL renderer's own render thread
-    renderer_->setStream(renderer_stream_);
 
     try {
         renderer_thread_ = std::thread(&MediaMgr::renderLoopSDL, this);
     } catch (const std::exception &e) {
         qCritical() << "startRenderer: failed to start renderer thread:" << e.what();
         renderer_running_.store(false, std::memory_order_relaxed);
-        renderer_->shutdown();
         renderer_stream_.reset();
         return false;
     }
@@ -383,24 +364,66 @@ bool MediaMgr::initRenderer(const std::shared_ptr<livekit::VideoStream> &video_s
 void MediaMgr::shutdownRenderer() {
     renderer_running_.store(false, std::memory_order_relaxed);
 
-    // Shut down SDL renderer thread if it exists
-    if (renderer_) {
-        renderer_->shutdown();
-    }
-
-    // Old renderer_thread_ is no longer used, but if you still have it:
     if (renderer_thread_.joinable()) {
         renderer_thread_.join();
     }
 
     renderer_stream_.reset();
+
+    std::lock_guard<std::mutex> lock(renderer_frame_mutex_);
+    latest_video_rgba_.clear();
+    latest_video_width_ = 0;
+    latest_video_height_ = 0;
 }
 
 void MediaMgr::renderLoopSDL() {
     while (renderer_running_.load(std::memory_order_relaxed)) {
-        if (renderer_) {
-            renderer_->render();
+        if (!renderer_stream_) {
+            break;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(10)); // ~100 FPS
+
+        livekit::VideoFrameEvent vfe;
+        if (!renderer_stream_->read(vfe)) {
+            break;
+        }
+
+        livekit::VideoFrame &frame = vfe.frame;
+        if (frame.type() != livekit::VideoBufferType::RGBA) {
+            try {
+                frame = frame.convert(livekit::VideoBufferType::RGBA, false);
+            } catch (const std::exception &ex) {
+                qCritical() << "renderLoopSDL: convert to RGBA failed:" << ex.what();
+                continue;
+            }
+        }
+
+        const int width = frame.width();
+        const int height = frame.height();
+        if (width <= 0 || height <= 0) {
+            continue;
+        }
+
+        const int rgba_size = width * height * 4;
+        std::vector<std::uint8_t> rgba(static_cast<size_t>(rgba_size));
+        std::memcpy(rgba.data(), frame.data(), static_cast<size_t>(rgba_size));
+
+        {
+            std::lock_guard<std::mutex> lock(renderer_frame_mutex_);
+            latest_video_rgba_ = std::move(rgba);
+            latest_video_width_ = width;
+            latest_video_height_ = height;
+        }
     }
+}
+
+bool MediaMgr::copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height) {
+    std::lock_guard<std::mutex> lock(renderer_frame_mutex_);
+    if (latest_video_rgba_.empty() || latest_video_width_ <= 0 || latest_video_height_ <= 0) {
+        return false;
+    }
+
+    rgba = latest_video_rgba_;
+    width = latest_video_width_;
+    height = latest_video_height_;
+    return true;
 }

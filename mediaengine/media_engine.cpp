@@ -137,3 +137,7 @@ void MediaEngine::stopAudioSpeaker() {
 void MediaEngine::stopVideoRender() {
     media_mgr_->shutdownRenderer();
 }
+
+bool MediaEngine::copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height) {
+    return media_mgr_->copyLatestVideoFrame(rgba, width, height);
+}

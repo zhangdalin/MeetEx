@@ -22,6 +22,10 @@
 
 #include "wav_audio_source.h"
 
+#include <cstdint>
+#include <mutex>
+#include <vector>
+
 namespace livekit
 {
 class AudioSource;
@@ -33,7 +37,6 @@ class VideoStream;
 // Forward-declared SDL helpers (you can also keep these separate if you like)
 class MicSource;
 class CamSource;
-class VideoRenderer;
 
 // SDLMediaManager gives you dedicated control over:
 // - mic capture  -> AudioSource
@@ -62,6 +65,7 @@ public:
     // Following APIs must be called on main thread
     bool initRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream);
     void shutdownRenderer();
+    bool copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height);
 
 private:
     // ---- SDL bootstrap helpers ----
@@ -100,9 +104,12 @@ private:
     std::atomic<bool> speaker_running_{false};
     SDL_AudioStream *audio_stream_ = nullptr;
 
-    // Renderer (remote video) – left mostly as a placeholder
-    std::unique_ptr<VideoRenderer> renderer_;
+    // Renderer (remote video)
     std::shared_ptr<livekit::VideoStream> renderer_stream_;
     std::thread renderer_thread_;
     std::atomic<bool> renderer_running_{false};
+    std::mutex renderer_frame_mutex_;
+    std::vector<std::uint8_t> latest_video_rgba_;
+    int latest_video_width_ = 0;
+    int latest_video_height_ = 0;
 };

@@ -1,6 +1,7 @@
 #include "inmeeting.h"
 #include "ui_inmeeting.h"
 
+#include "glvideowidget.h"
 #include "meeting_engine.h"
 
 using namespace std;
@@ -19,12 +20,14 @@ InMeeting::InMeeting(QWidget *parent)
     , meetingEngine_(std::make_unique<MeetingEngine>())
 {
     ui->setupUi(this);
+    videoView_ = new GLVideoWidget(this);
+    ui->gridLayout->addWidget(videoView_, 0, 0);
     meetingEngine_->launchMeeting();
     // default unmuted and video on
     meetingEngine_->startAudio();
-    ui->btnMute->setText("静音");
+    ui->muteBtn->setText("静音");
     meetingEngine_->startVideo();
-    ui->btnVideo->setText("关闭视频");
+    ui->videoBtn->setText("关闭视频");
 }
 
 InMeeting::~InMeeting()
@@ -37,10 +40,10 @@ void InMeeting::toggleMute()
     qInfo() << "toggleMute";
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (button->text() == "静音") {
-        meetingEngine_->startAudio();
+        meetingEngine_->stopAudio();
         button->setText("解除静音");
     } else {
-        meetingEngine_->stopAudio();
+        meetingEngine_->startAudio();
         button->setText("静音");
     }
 }
