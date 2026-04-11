@@ -22,8 +22,13 @@
 
 #include "wav_audio_source.h"
 
+#include <atomic>
 #include <cstdint>
+#include <memory>
 #include <mutex>
+#include <string>
+#include <thread>
+#include <unordered_map>
 #include <vector>
 
 namespace livekit
@@ -63,9 +68,12 @@ public:
 
     // Renderer (remote video rendering)
     // Following APIs must be called on main thread
-    bool startRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream);
-    void shutdownRenderer();
+    bool startRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream,
+                       const std::string &renderer_id = "default");
+    void stopAllRenderers();
     bool copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height);
+    bool copyLatestVideoFrame(const std::string &renderer_id,
+                              std::vector<std::uint8_t> &rgba, int &width, int &height);
 
 private:
     // ---- SDL bootstrap helpers ----
@@ -82,7 +90,18 @@ private:
     // ---- Speaker helpers (TODO: wire AudioStream -> SDL audio) ----
     void speakerLoopSDL();
 
-    void renderLoop();
+    struct RendererWorker {
+        std::shared_ptr<livekit::VideoStream> stream;
+        std::thread thread;
+        std::atomic<bool> running{false};
+        std::mutex frame_mutex;
+        std::vector<std::uint8_t> latest_rgba;
+        int latest_width = 0;
+        int latest_height = 0;
+    };
+
+    void renderLoop(const std::string &renderer_id,
+                    const std::shared_ptr<RendererWorker> &worker);
 
     // Mic
     std::shared_ptr<livekit::AudioSource> mic_source_;
@@ -105,11 +124,7 @@ private:
     SDL_AudioStream *audio_stream_ = nullptr;
 
     // Renderer (remote video)
-    std::shared_ptr<livekit::VideoStream> renderer_stream_;
-    std::thread renderer_thread_;
-    std::atomic<bool> renderer_running_{false};
-    std::mutex renderer_frame_mutex_;
-    std::vector<std::uint8_t> latest_video_rgba_;
-    int latest_video_width_ = 0;
-    int latest_video_height_ = 0;
+    std::mutex renderers_mutex_;
+    std::unordered_map<std::string, std::shared_ptr<RendererWorker>> renderers_;
+    std::string latest_renderer_id_;
 };

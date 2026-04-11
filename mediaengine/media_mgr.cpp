@@ -29,7 +29,7 @@ MediaMgr::~MediaMgr() {
     stopMic();
     stopCamera();
     stopSpeaker();
-    shutdownRenderer();
+    stopAllRenderers();
 }
 
 bool MediaMgr::ensureSDLInit(Uint32 flags) {
@@ -338,52 +338,90 @@ void MediaMgr::stopSpeaker() {
 
 // ---------- Renderer control (placeholder) ----------
 
-bool MediaMgr::startRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream) {
+bool MediaMgr::startRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream,
+                             const std::string &renderer_id) {
     if (!video_stream) {
         qCritical() << "startRenderer: videoStream is null";
         return false;
     }
 
-    shutdownRenderer();
+    auto worker = std::make_shared<RendererWorker>();
+    worker->stream = video_stream;
+    worker->running.store(true, std::memory_order_relaxed);
 
-    renderer_stream_ = video_stream;
-    renderer_running_.store(true, std::memory_order_relaxed);
+    std::shared_ptr<RendererWorker> old_worker = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(renderers_mutex_);
+        auto it = renderers_.find(renderer_id);
+        if (it != renderers_.end()) {
+            old_worker = it->second;
+        }
+        renderers_[renderer_id] = worker;
+    }
+
+    if (old_worker) {
+        old_worker->running.store(false, std::memory_order_relaxed);
+        if (old_worker->thread.joinable()) {
+            old_worker->thread.join();
+        }
+    }
+
+    const std::string id_for_thread = renderer_id;
 
     try {
-        renderer_thread_ = std::thread(&MediaMgr::renderLoop, this);
+        worker->thread = std::thread(&MediaMgr::renderLoop, this, id_for_thread, worker);
     } catch (const std::exception &e) {
-        qCritical() << "startRenderer: failed to start renderer thread:" << e.what();
-        renderer_running_.store(false, std::memory_order_relaxed);
-        renderer_stream_.reset();
+        qCritical() << "startRenderer: failed to start renderer id:" << QString::fromStdString(renderer_id) << " thread:" << e.what();
+
+        {
+            std::lock_guard<std::mutex> lock(renderers_mutex_);
+            auto it = renderers_.find(renderer_id);
+            if (it != renderers_.end() && it->second == worker) {
+                renderers_.erase(it);
+                if (latest_renderer_id_ == renderer_id) {
+                    latest_renderer_id_.clear();
+                }
+            }
+        }
+
         return false;
     }
 
     return true;
 }
 
-void MediaMgr::shutdownRenderer() {
-    renderer_running_.store(false, std::memory_order_relaxed);
-
-    if (renderer_thread_.joinable()) {
-        renderer_thread_.join();
+void MediaMgr::stopAllRenderers() {
+    std::vector<std::shared_ptr<RendererWorker>> workers;
+    {
+        std::lock_guard<std::mutex> lock(renderers_mutex_);
+        for (auto &entry : renderers_) {
+            workers.push_back(entry.second);
+        }
+        renderers_.clear();
+        latest_renderer_id_.clear();
     }
 
-    renderer_stream_.reset();
+    for (auto &worker : workers) {
+        worker->running.store(false, std::memory_order_relaxed);
+    }
 
-    std::lock_guard<std::mutex> lock(renderer_frame_mutex_);
-    latest_video_rgba_.clear();
-    latest_video_width_ = 0;
-    latest_video_height_ = 0;
+    for (auto &worker : workers) {
+        if (worker->thread.joinable()) {
+            worker->thread.join();
+        }
+        worker->stream.reset();
+    }
 }
 
-void MediaMgr::renderLoop() {
-    while (renderer_running_.load(std::memory_order_relaxed)) {
-        if (!renderer_stream_) {
+void MediaMgr::renderLoop(const std::string &renderer_id,
+                          const std::shared_ptr<RendererWorker> &worker) {
+    while (worker->running.load(std::memory_order_relaxed)) {
+        if (!worker->stream) {
             break;
         }
 
         livekit::VideoFrameEvent vfe;
-        if (!renderer_stream_->read(vfe)) {
+        if (!worker->stream->read(vfe)) {
             break;
         }
 
@@ -408,22 +446,57 @@ void MediaMgr::renderLoop() {
         std::memcpy(rgba.data(), frame.data(), static_cast<size_t>(rgba_size));
 
         {
-            std::lock_guard<std::mutex> lock(renderer_frame_mutex_);
-            latest_video_rgba_ = std::move(rgba);
-            latest_video_width_ = width;
-            latest_video_height_ = height;
+            std::lock_guard<std::mutex> lock(worker->frame_mutex);
+            worker->latest_rgba = std::move(rgba);
+            worker->latest_width = width;
+            worker->latest_height = height;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(renderers_mutex_);
+            latest_renderer_id_ = renderer_id;
         }
     }
+
+    worker->running.store(false, std::memory_order_relaxed);
 }
 
 bool MediaMgr::copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height) {
-    std::lock_guard<std::mutex> lock(renderer_frame_mutex_);
-    if (latest_video_rgba_.empty() || latest_video_width_ <= 0 || latest_video_height_ <= 0) {
+    std::string renderer_id;
+    {
+        std::lock_guard<std::mutex> lock(renderers_mutex_);
+        if (latest_renderer_id_.empty()) {
+            if (renderers_.empty()) {
+                return false;
+            }
+            renderer_id = renderers_.begin()->first;
+        } else {
+            renderer_id = latest_renderer_id_;
+        }
+    }
+
+    return copyLatestVideoFrame(renderer_id, rgba, width, height);
+}
+
+bool MediaMgr::copyLatestVideoFrame(const std::string &renderer_id,
+                                    std::vector<std::uint8_t> &rgba, int &width, int &height) {
+    std::shared_ptr<RendererWorker> worker;
+    {
+        std::lock_guard<std::mutex> lock(renderers_mutex_);
+        auto it = renderers_.find(renderer_id);
+        if (it == renderers_.end()) {
+            return false;
+        }
+        worker = it->second;
+    }
+
+    std::lock_guard<std::mutex> lock(worker->frame_mutex);
+    if (worker->latest_rgba.empty() || worker->latest_width <= 0 || worker->latest_height <= 0) {
         return false;
     }
 
-    rgba = latest_video_rgba_;
-    width = latest_video_width_;
-    height = latest_video_height_;
+    rgba = worker->latest_rgba;
+    width = worker->latest_width;
+    height = worker->latest_height;
     return true;
 }

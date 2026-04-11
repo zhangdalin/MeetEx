@@ -159,8 +159,8 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
             return;
         }
 
-        if (!MediaEngine::instance().startVideoRender(video_stream)) {
-            qCritical("SDLMediaManager::startRenderer failed for track");
+        if (!MediaEngine::instance().startVideoRender(video_stream, track_sid)) {
+            qCritical() << "MeetingRoom::startVideoRender failed for track " << QString::fromStdString(track_sid);
         }
     }
 
@@ -172,7 +172,7 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
             return;
         }
         if (!MediaEngine::instance().startAudioSpeaker(audio_stream)) {
-            qCritical("startAudioSpeaker failed for track");
+            qCritical() << "MeetingRoom::startAudioSpeaker failed for track " << QString::fromStdString(track_sid);
         }
     }
 }

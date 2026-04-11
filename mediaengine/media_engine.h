@@ -26,10 +26,13 @@ public:
     bool startShareLocalScreen(livekit::LocalParticipant* participant, std::string& sid);
     void stopShareLocalScreen(livekit::LocalParticipant* participant, const std::string& sid);
     bool startAudioSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream);
-    bool startVideoRender(const std::shared_ptr<livekit::VideoStream> &video_stream);
+    bool startVideoRender(const std::shared_ptr<livekit::VideoStream> &video_stream,
+                          const std::string &renderer_id = "default");
     void stopAudioSpeaker();
     void stopVideoRender();
     bool copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height);
+    bool copyLatestVideoFrame(const std::string &renderer_id,
+                              std::vector<std::uint8_t> &rgba, int &width, int &height);
 
 private:
     explicit MediaEngine();

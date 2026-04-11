@@ -50,11 +50,3 @@ void LocalUser::closeVideo(){
     MediaEngine::instance().stopLocalVideo(participant_, video_sid_);
     video_sid_.clear();
 }
-
-void LocalUser::closeAudioSpeaker() {
-    MediaEngine::instance().stopAudioSpeaker();
-}
-
-void LocalUser::closeVideoRender() {
-    MediaEngine::instance().stopVideoRender();
-}

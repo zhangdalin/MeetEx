@@ -126,8 +126,9 @@ bool MediaEngine::startAudioSpeaker(const std::shared_ptr<livekit::AudioStream> 
     return media_mgr_->startSpeaker(audio_stream);
 }
 
-bool MediaEngine::startVideoRender(const std::shared_ptr<livekit::VideoStream> &video_stream) {
-    return media_mgr_->startRenderer(video_stream);
+bool MediaEngine::startVideoRender(const std::shared_ptr<livekit::VideoStream> &video_stream,
+                                   const std::string &renderer_id) {
+    return media_mgr_->startRenderer(video_stream, renderer_id);
 }
 
 void MediaEngine::stopAudioSpeaker() {
@@ -135,9 +136,14 @@ void MediaEngine::stopAudioSpeaker() {
 }
 
 void MediaEngine::stopVideoRender() {
-    media_mgr_->shutdownRenderer();
+    media_mgr_->stopAllRenderers();
 }
 
 bool MediaEngine::copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height) {
     return media_mgr_->copyLatestVideoFrame(rgba, width, height);
+}
+
+bool MediaEngine::copyLatestVideoFrame(const std::string &renderer_id,
+                                       std::vector<std::uint8_t> &rgba, int &width, int &height) {
+    return media_mgr_->copyLatestVideoFrame(renderer_id, rgba, width, height);
 }
