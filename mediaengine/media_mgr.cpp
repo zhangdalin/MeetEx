@@ -338,7 +338,7 @@ void MediaMgr::stopSpeaker() {
 
 // ---------- Renderer control (placeholder) ----------
 
-bool MediaMgr::initRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream) {
+bool MediaMgr::startRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream) {
     if (!video_stream) {
         qCritical() << "startRenderer: videoStream is null";
         return false;
@@ -350,7 +350,7 @@ bool MediaMgr::initRenderer(const std::shared_ptr<livekit::VideoStream> &video_s
     renderer_running_.store(true, std::memory_order_relaxed);
 
     try {
-        renderer_thread_ = std::thread(&MediaMgr::renderLoopSDL, this);
+        renderer_thread_ = std::thread(&MediaMgr::renderLoop, this);
     } catch (const std::exception &e) {
         qCritical() << "startRenderer: failed to start renderer thread:" << e.what();
         renderer_running_.store(false, std::memory_order_relaxed);
@@ -376,7 +376,7 @@ void MediaMgr::shutdownRenderer() {
     latest_video_height_ = 0;
 }
 
-void MediaMgr::renderLoopSDL() {
+void MediaMgr::renderLoop() {
     while (renderer_running_.load(std::memory_order_relaxed)) {
         if (!renderer_stream_) {
             break;
@@ -392,7 +392,7 @@ void MediaMgr::renderLoopSDL() {
             try {
                 frame = frame.convert(livekit::VideoBufferType::RGBA, false);
             } catch (const std::exception &ex) {
-                qCritical() << "renderLoopSDL: convert to RGBA failed:" << ex.what();
+                qCritical() << "renderLoop: convert to RGBA failed:" << ex.what();
                 continue;
             }
         }

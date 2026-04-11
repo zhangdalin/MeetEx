@@ -63,7 +63,7 @@ public:
 
     // Renderer (remote video rendering)
     // Following APIs must be called on main thread
-    bool initRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream);
+    bool startRenderer(const std::shared_ptr<livekit::VideoStream> &video_stream);
     void shutdownRenderer();
     bool copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height);
 
@@ -82,7 +82,7 @@ private:
     // ---- Speaker helpers (TODO: wire AudioStream -> SDL audio) ----
     void speakerLoopSDL();
 
-    void renderLoopSDL();
+    void renderLoop();
 
     // Mic
     std::shared_ptr<livekit::AudioSource> mic_source_;
