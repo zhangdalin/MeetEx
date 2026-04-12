@@ -6,6 +6,7 @@
 #include <functional>
 
 #include <QString>
+#include <QObject>
 
 #include "livekit/livekit.h"
 
@@ -19,7 +20,9 @@ enum class RoomState {
 class LocalUser;
 class RemoteUser;
 
-class MeetingRoom : public livekit::Room, public livekit::RoomDelegate { 
+class MeetingRoom : public QObject, public livekit::Room, public livekit::RoomDelegate {
+    Q_OBJECT
+
 public:
     explicit MeetingRoom();
     ~MeetingRoom();
@@ -30,14 +33,15 @@ public:
     void onParticipantConnected(livekit::Room &room, const livekit::ParticipantConnectedEvent &ev) override;
     void onTrackSubscribed(livekit::Room &room, const livekit::TrackSubscribedEvent &ev) override;
 
-    void setParticipantJoinedCallback(std::function<void(const QString &, const QString &)> callback);
-    void setTrackSubscribedCallback(std::function<void(const QString &, const QString &, const QString &, int)> callback);
-
     bool connect();
     bool disconnect();
 
     std::shared_ptr<LocalUser>& getLocalUser();
     std::shared_ptr<RemoteUser> getRemoteUser(const std::string &identity);
+
+signals:
+    void sigParticipantJoined(const QString &participantId, const QString &participantName);
+    void sigTrackSubscribed(const QString &trackSid, const QString &trackName, const QString &participantIdentity, int trackKind);
 
 private:
     std::string url_;
@@ -46,8 +50,6 @@ private:
     livekit::RoomOptions options_;
     std::shared_ptr<LocalUser> localUser_;
     RoomState state_;
-    std::function<void(const QString &, const QString &)> participant_joined_callback_;
-    std::function<void(const QString &, const QString &, const QString &, int)> track_subscribed_callback_;
 };
 
 #endif // MEETING_ROOM_H

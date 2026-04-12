@@ -1,6 +1,7 @@
 #include "inmeeting.h"
 #include "ui_inmeeting.h"
 #include "meeting_engine.h"
+#include "meeting_room.h"
 
 #include <QTimer>
 
@@ -21,9 +22,9 @@ InMeeting::InMeeting(QWidget *parent)
 {
     ui->setupUi(this);
 
-    connect(meetingEngine_.get(), &MeetingEngine::sigParticipantJoined,
+    connect(meetingEngine_->room(), &MeetingRoom::sigParticipantJoined,
             this, &InMeeting::onParticipantJoined);
-        connect(meetingEngine_.get(), &MeetingEngine::sigTrackSubscribed,
+    connect(meetingEngine_->room(), &MeetingRoom::sigTrackSubscribed,
             this, &InMeeting::onTrackSubscribed);
 
     auto *timer = new QTimer(this);

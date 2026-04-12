@@ -11,7 +11,8 @@ static std::vector<uint8_t> toBytes(const std::string &s) {
 }
 
 MeetingRoom::MeetingRoom()
-    : livekit::Room()
+    : QObject(nullptr)
+    , livekit::Room()
     , url_(LIVEKIT_URL)
     , token_(LIVEKIT_TOKEN)
     , e2ee_key_(LIVEKIT_E2EE_KEY)
@@ -127,15 +128,6 @@ std::shared_ptr<RemoteUser> MeetingRoom::getRemoteUser(const std::string &identi
     return std::make_shared<RemoteUser>(remote_participant);
 }
 
-void MeetingRoom::setParticipantJoinedCallback(std::function<void(const QString &, const QString &)> callback) {
-    participant_joined_callback_ = std::move(callback);
-}
-
-void MeetingRoom::setTrackSubscribedCallback(std::function<void(const QString &, const QString &, const QString &, int)> callback) {
-    track_subscribed_callback_ = std::move(callback);
-}
-
-
 void MeetingRoom::onParticipantConnected(livekit::Room &room, const livekit::ParticipantConnectedEvent &ev) {
     Q_UNUSED(room);
     if (!ev.participant) {
@@ -149,9 +141,7 @@ void MeetingRoom::onParticipantConnected(livekit::Room &room, const livekit::Par
         << participant_identity
         << " name=" << participant_name;
 
-    if (participant_joined_callback_) {
-        participant_joined_callback_(participant_identity, participant_name);
-    }
+    emit sigParticipantJoined(participant_identity, participant_name);
 }
 
 void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSubscribedEvent &ev) {
@@ -177,9 +167,9 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
         qDebug() << " source=" << static_cast<int>(ev.publication->source());
     }
     
-    if (ev.track && track_subscribed_callback_) {
-        const int track_kind = ev.track ? static_cast<int>(ev.track->kind()) : 0;
-        track_subscribed_callback_(track_sid, track_name, participant_identity, track_kind);
+    if (ev.track) {
+        const int track_kind = static_cast<int>(ev.track->kind());
+        emit sigTrackSubscribed(track_sid, track_name, participant_identity, track_kind);
     }
 
     // If this is a VIDEO track, create a VideoStream and attach to renderer
