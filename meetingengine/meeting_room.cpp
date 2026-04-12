@@ -127,26 +127,59 @@ std::shared_ptr<RemoteUser> MeetingRoom::getRemoteUser(const std::string &identi
     return std::make_shared<RemoteUser>(remote_participant);
 }
 
+void MeetingRoom::setParticipantJoinedCallback(std::function<void(const QString &, const QString &)> callback) {
+    participant_joined_callback_ = std::move(callback);
+}
+
+void MeetingRoom::setTrackSubscribedCallback(std::function<void(const QString &, const QString &, const QString &, int)> callback) {
+    track_subscribed_callback_ = std::move(callback);
+}
+
 
 void MeetingRoom::onParticipantConnected(livekit::Room &room, const livekit::ParticipantConnectedEvent &ev) {
-    qDebug() << "[Room] participant connected: identity="
-        << QString::fromStdString(ev.participant->identity())
-        << " name=" << QString::fromStdString(ev.participant->name());
+    Q_UNUSED(room);
+    if (!ev.participant) {
+        qWarning() << "[MeetingRoom] participant connected event without participant";
+        return;
+    }
+
+    const QString participant_identity = QString::fromStdString(ev.participant->identity());
+    const QString participant_name = QString::fromStdString(ev.participant->name());
+    qDebug() << "[MeetingRoom] participant connected: identity="
+        << participant_identity
+        << " name=" << participant_name;
+
+    if (participant_joined_callback_) {
+        participant_joined_callback_(participant_identity, participant_name);
+    }
 }
 
 void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSubscribedEvent &ev) {
-    const char *participant_identity = ev.participant ? ev.participant->identity().c_str() : "<unknown>";
-    const std::string track_sid = ev.publication ? ev.publication->sid() : "<unknown>";
-    const std::string track_name = ev.publication ? ev.publication->name() : "<unknown>";
-    qDebug() << "[Room] track subscribed: participant_identity="
-        << QString::fromStdString(participant_identity)
-        << " track_sid=" << QString::fromStdString(track_sid)
-        << " name=" << QString::fromStdString(track_name);
+    Q_UNUSED(room);
+    const QString participant_identity = ev.participant
+        ? QString::fromStdString(ev.participant->identity())
+        : QStringLiteral("<unknown>");
+    const QString track_sid = ev.publication
+        ? QString::fromStdString(ev.publication->sid())
+        : QStringLiteral("<unknown>");
+    const QString track_name = ev.publication
+        ? QString::fromStdString(ev.publication->name())
+        : QStringLiteral("<unknown>");
+    qDebug() << "[MeetingRoom] track subscribed: participant_identity="
+        << participant_identity
+        << " track_sid=" << track_sid
+        << " name=" << track_name;
+
     if (ev.track) {
         qDebug() << " kind=" << static_cast<int>(ev.track->kind());
     }
     if (ev.publication) {
         qDebug() << " source=" << static_cast<int>(ev.publication->source());
+    }
+    
+    if (ev.track && track_subscribed_callback_) {
+        const int track_kind = ev.track ? static_cast<int>(ev.track->kind()) : 0;
+        track_subscribed_callback_(track_sid, track_name, participant_identity, track_kind);
     }
 
     // If this is a VIDEO track, create a VideoStream and attach to renderer
@@ -155,12 +188,12 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
         opts.format = livekit::VideoBufferType::RGBA;
         auto video_stream = livekit::VideoStream::fromTrack(ev.track, opts);
         if (!video_stream) {
-            qCritical() << "Failed to create VideoStream for track " << QString::fromStdString(track_sid);
+            qCritical() << "Failed to create VideoStream for track " << track_sid;
             return;
         }
 
-        if (!MediaEngine::instance().startVideoRender(video_stream, track_sid)) {
-            qCritical() << "MeetingRoom::startVideoRender failed for track " << QString::fromStdString(track_sid);
+        if (!MediaEngine::instance().startVideoRender(video_stream, track_sid.toStdString())) {
+            qCritical() << "MeetingRoom::startVideoRender failed for track " << track_sid;
         }
     }
 
@@ -168,11 +201,11 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
         livekit::AudioStream::Options opts;
         auto audio_stream = livekit::AudioStream::fromTrack(ev.track, opts);
         if (!audio_stream) {
-            qCritical() << "Failed to create AudioStream for track " << QString::fromStdString(track_sid);
+            qCritical() << "Failed to create AudioStream for track " << track_sid;
             return;
         }
         if (!MediaEngine::instance().startAudioSpeaker(audio_stream)) {
-            qCritical() << "MeetingRoom::startAudioSpeaker failed for track " << QString::fromStdString(track_sid);
+            qCritical() << "MeetingRoom::startAudioSpeaker failed for track " << track_sid;
         }
     }
 }

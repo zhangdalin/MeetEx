@@ -1,5 +1,5 @@
-#ifndef GLVIDEOWIDGET_H
-#define GLVIDEOWIDGET_H
+#ifndef VIDEOGLWIDGET_H
+#define VIDEOGLWIDGET_H
 
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
@@ -9,13 +9,13 @@
 #include <cstdint>
 #include <vector>
 
-class GLVideoWidget : public QOpenGLWidget, protected QOpenGLFunctions
+class VideoGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
 
 public:
-    explicit GLVideoWidget(QWidget *parent = nullptr);
-    ~GLVideoWidget() override;
+    explicit VideoGLWidget(QWidget *parent = nullptr);
+    ~VideoGLWidget() override;
 
 protected:
     void initializeGL() override;
@@ -33,4 +33,4 @@ private:
     std::vector<std::uint8_t> frame_rgba_;
 };
 
-#endif // GLVIDEOWIDGET_H
+#endif // VIDEOGLWIDGET_H

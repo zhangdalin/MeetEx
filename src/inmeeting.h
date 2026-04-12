@@ -2,6 +2,7 @@
 #define INMEETING_H
 
 #include <QWidget>
+#include <QString>
 #include <memory>
 
 class MeetingEngine;
@@ -33,14 +34,18 @@ public slots:
     void openChat();
     void openApps();
     void endMeeting();
+    void onParticipantJoined(const QString &participantId, const QString &participantName);
+    void onTrackSubscribed(const QString &trackSid, const QString &trackName, const QString &participantIdentity, int trackKind);
 
 protected:
     void closeEvent(QCloseEvent *event);
 
 private:
+    void onTimer();
+
+private:
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
-    GLVideoWidget *videoView_ = nullptr;
 };
 
 #endif // INMEETING_H

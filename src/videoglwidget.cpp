@@ -1,19 +1,13 @@
-#include "glvideowidget.h"
+#include "videoglwidget.h"
 
 #include "media_engine.h"
 
-#include <QTimer>
-
-GLVideoWidget::GLVideoWidget(QWidget *parent)
+VideoGLWidget::VideoGLWidget(QWidget *parent)
     : QOpenGLWidget(parent)
 {
-    auto *timer = new QTimer(this);
-    timer->setInterval(16);
-    connect(timer, &QTimer::timeout, this, QOverload<>::of(&GLVideoWidget::update));
-    timer->start();
 }
 
-GLVideoWidget::~GLVideoWidget()
+VideoGLWidget::~VideoGLWidget()
 {
     makeCurrent();
     delete texture_;
@@ -21,7 +15,7 @@ GLVideoWidget::~GLVideoWidget()
     doneCurrent();
 }
 
-void GLVideoWidget::initializeGL()
+void VideoGLWidget::initializeGL()
 {
     initializeOpenGLFunctions();
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
@@ -49,7 +43,7 @@ void GLVideoWidget::initializeGL()
     program_.link();
 }
 
-void GLVideoWidget::paintGL()
+void VideoGLWidget::paintGL()
 {
     std::vector<std::uint8_t> rgba;
     int width = 0;
@@ -108,11 +102,11 @@ void GLVideoWidget::paintGL()
     program_.release();
 }
 
-void GLVideoWidget::resizeGL(int, int)
+void VideoGLWidget::resizeGL(int, int)
 {
 }
 
-void GLVideoWidget::ensureTexture(int width, int height)
+void VideoGLWidget::ensureTexture(int width, int height)
 {
     if (width <= 0 || height <= 0) {
         return;
@@ -135,7 +129,7 @@ void GLVideoWidget::ensureTexture(int width, int height)
     }
 }
 
-void GLVideoWidget::updateViewportForAspect(int frameWidth, int frameHeight)
+void VideoGLWidget::updateViewportForAspect(int frameWidth, int frameHeight)
 {
     const int view_w = width();
     const int view_h = height();

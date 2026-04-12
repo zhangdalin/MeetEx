@@ -1,8 +1,8 @@
 #include "inmeeting.h"
 #include "ui_inmeeting.h"
-
-#include "glvideowidget.h"
 #include "meeting_engine.h"
+
+#include <QTimer>
 
 using namespace std;
 
@@ -20,8 +20,17 @@ InMeeting::InMeeting(QWidget *parent)
     , meetingEngine_(std::make_unique<MeetingEngine>())
 {
     ui->setupUi(this);
-    videoView_ = new GLVideoWidget(this);
-    ui->gridLayout->addWidget(videoView_, 0, 0);
+
+    connect(meetingEngine_.get(), &MeetingEngine::sigParticipantJoined,
+            this, &InMeeting::onParticipantJoined);
+        connect(meetingEngine_.get(), &MeetingEngine::sigTrackSubscribed,
+            this, &InMeeting::onTrackSubscribed);
+
+    auto *timer = new QTimer(this);
+    timer->setInterval(16);
+    connect(timer, &QTimer::timeout, this, &InMeeting::onTimer);
+    timer->start();
+
     meetingEngine_->launchMeeting();
     // default unmuted and video on
     meetingEngine_->startAudio();
@@ -106,9 +115,27 @@ void InMeeting::endMeeting()
     close();
 }
 
+void InMeeting::onParticipantJoined(const QString &participantId, const QString &participantName)
+{
+    qInfo() << "[InMeeting] new participant joined, name=" << participantName << " id=" << participantId;
+}
+
+void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackName, const QString &participantIdentity, int trackKind)
+{
+    qInfo() << "[InMeeting] track subscribed, track_sid=" << trackSid
+            << " track_name=" << trackName
+            << " participant_identity=" << participantIdentity
+            << " track_kind=" << trackKind;
+}
+
 void InMeeting::closeEvent(QCloseEvent *event)
 {
     meetingEngine_->endMeeting();
     emit sigClosing();
     QWidget::closeEvent(event);
 }
+
+void InMeeting::onTimer()
+{
+    // qInfo() << "onTimer";
+}   

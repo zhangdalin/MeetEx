@@ -5,8 +5,16 @@
 
 #include <QDebug>
 
-MeetingEngine::MeetingEngine()
-    : room_(std::make_unique<MeetingRoom>()) {
+MeetingEngine::MeetingEngine(QObject *parent)
+    : QObject(parent)
+    , room_(std::make_unique<MeetingRoom>()) {
+    room_->setParticipantJoinedCallback([this](const QString &participantId, const QString &participantName) {
+        emit sigParticipantJoined(participantId, participantName);
+    });
+    room_->setTrackSubscribedCallback([this](const QString &trackSid, const QString &trackName, const QString &participantIdentity, int trackKind) {
+        emit sigTrackSubscribed(trackSid, trackName, participantIdentity, trackKind);
+    });
+
     MediaEngine::instance().init();
 };
 

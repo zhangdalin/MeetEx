@@ -3,10 +3,15 @@
 
 #include <memory>
 
+#include <QObject>
+#include <QString>
+
 class MeetingRoom;
-class MeetingEngine {
+class MeetingEngine : public QObject {
+    Q_OBJECT
+
 public:
-    explicit MeetingEngine();
+    explicit MeetingEngine(QObject *parent = nullptr);
     ~MeetingEngine();
 
     bool launchMeeting();
@@ -17,6 +22,10 @@ public:
     void stopAudio();
     bool startVideo();
     void stopVideo();
+
+signals:
+    void sigParticipantJoined(const QString &participantId, const QString &participantName);
+    void sigTrackSubscribed(const QString &trackSid, const QString &trackName, const QString &participantIdentity, int trackKind);
 
 private:
     std::unique_ptr<MeetingRoom> room_;

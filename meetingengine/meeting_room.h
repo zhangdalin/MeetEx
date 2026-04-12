@@ -3,6 +3,9 @@
 
 #include <string>
 #include <memory>
+#include <functional>
+
+#include <QString>
 
 #include "livekit/livekit.h"
 
@@ -27,6 +30,9 @@ public:
     void onParticipantConnected(livekit::Room &room, const livekit::ParticipantConnectedEvent &ev) override;
     void onTrackSubscribed(livekit::Room &room, const livekit::TrackSubscribedEvent &ev) override;
 
+    void setParticipantJoinedCallback(std::function<void(const QString &, const QString &)> callback);
+    void setTrackSubscribedCallback(std::function<void(const QString &, const QString &, const QString &, int)> callback);
+
     bool connect();
     bool disconnect();
 
@@ -40,6 +46,8 @@ private:
     livekit::RoomOptions options_;
     std::shared_ptr<LocalUser> localUser_;
     RoomState state_;
+    std::function<void(const QString &, const QString &)> participant_joined_callback_;
+    std::function<void(const QString &, const QString &, const QString &, int)> track_subscribed_callback_;
 };
 
 #endif // MEETING_ROOM_H
