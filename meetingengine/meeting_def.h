@@ -6,25 +6,21 @@
 // get token
 /*
 
-lk token create --url wss://www.exrapid.cn:8443 --api-key APIbZ3hZTiHdPXN --api-secret tAkbkXLkKsAB2e1PCKj3t9EfSMJ8zWcps0phfXBFRP7B --join --room exmeet --identity darin --valid-for 168h
-valid for (mins):  10080
+lk token create --url wss://www.exrapid.cn:8443 --api-key APIbZ3hZTiHdPXN --api-secret tAkbkXLkKsAB2e1PCKj3t9EfSMJ8zWcps0phfXBFRP7B --join --room meetex --identity darin --valid-for 16800h
+valid for (mins):  1008000
 Token grants:
 {
-  "identity": "darin",
-  "name": "darin",
-  "video": {
-    "roomJoin": true,
-    "room": "exmeet"
-  }
+  "roomJoin": true,
+  "room": "meetex"
 }
 
 Project URL: wss://www.exrapid.cn:8443
-Access token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzYyMjk0NTYsImlkZW50aXR5IjoiZGFyaW4iLCJpc3MiOiJBUEliWjNoWlRpSGRQWE4iLCJuYW1lIjoiZGFyaW4iLCJuYmYiOjE3NzU2MjQ2NTYsInN1YiI6ImRhcmluIiwidmlkZW8iOnsicm9vbSI6ImV4bWVldCIsInJvb21Kb2luIjp0cnVlfX0.RIfGmM0x6ScSznztNyGuAFSnx5lym8KQnqHD0qG1DB4
+Access token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4MzY2MzgyNzEsImlkZW50aXR5IjoiZGFyaW4iLCJpc3MiOiJBUEliWjNoWlRpSGRQWE4iLCJuYW1lIjoiZGFyaW4iLCJuYmYiOjE3NzYxNTgyNzEsInN1YiI6ImRhcmluIiwidmlkZW8iOnsicm9vbSI6Im1lZXRleCIsInJvb21Kb2luIjp0cnVlfX0.Qe117UmfWEH2rZ7UhVRGjjV989SwoH-FDIw1F8SGgSA
 
 */
 
 #define LIVEKIT_URL "wss://www.exrapid.cn:8443"
-#define LIVEKIT_TOKEN "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzYyMjk0NTYsImlkZW50aXR5IjoiZGFyaW4iLCJpc3MiOiJBUEliWjNoWlRpSGRQWE4iLCJuYW1lIjoiZGFyaW4iLCJuYmYiOjE3NzU2MjQ2NTYsInN1YiI6ImRhcmluIiwidmlkZW8iOnsicm9vbSI6ImV4bWVldCIsInJvb21Kb2luIjp0cnVlfX0.RIfGmM0x6ScSznztNyGuAFSnx5lym8KQnqHD0qG1DB4"
+#define LIVEKIT_TOKEN "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4MzY2MzgyNzEsImlkZW50aXR5IjoiZGFyaW4iLCJpc3MiOiJBUEliWjNoWlRpSGRQWE4iLCJuYW1lIjoiZGFyaW4iLCJuYmYiOjE3NzYxNTgyNzEsInN1YiI6ImRhcmluIiwidmlkZW8iOnsicm9vbSI6Im1lZXRleCIsInJvb21Kb2luIjp0cnVlfX0.Qe117UmfWEH2rZ7UhVRGjjV989SwoH-FDIw1F8SGgSA"
 #define LIVEKIT_E2EE_KEY ""
 
 #endif // MEETING_DEF_H

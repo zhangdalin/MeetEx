@@ -1,5 +1,6 @@
 #include "media_engine.h"
 #include "media_def.h"
+#include "media_util.h"
 
 #include <QDebug>
 
@@ -9,7 +10,8 @@ MediaEngine::MediaEngine()
 }
 
 void MediaEngine::printLiveKitVersion() {
-    qInfo() << "LiveKit version:" << LIVEKIT_BUILD_VERSION_FULL << "("
+    qInfo() << __FUNCTION__ <<  __FUNCTION__
+            << "LiveKit version:" << LIVEKIT_BUILD_VERSION_FULL << "("
             << LIVEKIT_BUILD_FLAVOR << ", commit" << LIVEKIT_BUILD_COMMIT
             << ", built" << LIVEKIT_BUILD_DATE << ")";
 }
@@ -18,18 +20,18 @@ bool MediaEngine::init() {
     printLiveKitVersion();
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        qCritical() << "SDL_Init(SDL_INIT_VIDEO) failed:" << SDL_GetError();
+        qCritical() << __FUNCTION__ <<  __FUNCTION__ << "SDL_Init(SDL_INIT_VIDEO) failed:" << SDL_GetError();
         // You can choose to exit, or run in "headless" mode without renderer.
         return false;
     }
 
     if(!livekit::initialize()) {
-        qCritical() << "Failed to initialize LiveKit";
+        qCritical() << __FUNCTION__ <<  __FUNCTION__ << "Failed to initialize LiveKit";
         SDL_Quit();
         return false;
     }
 
-    qInfo() << "Media engine initialized successfully.";
+    qInfo() << __FUNCTION__ <<  __FUNCTION__ << "Media engine initialized successfully.";
 
     return true;
 }
@@ -37,7 +39,7 @@ bool MediaEngine::init() {
 bool MediaEngine::fini() {
     livekit::shutdown();
     SDL_Quit();
-    qInfo() << "Media engine finalized successfully.";
+    qInfo() << __FUNCTION__ <<  __FUNCTION__ << "Media engine finalized successfully.";
     return true;
 }
 
@@ -56,16 +58,16 @@ bool MediaEngine::startLocalAudio(livekit::LocalParticipant* participant, std::s
         // Track
         auto audioPub = participant->publishTrack(audioTrack, audioOpts);
         sid = audioPub->sid();
-        qInfo() << "Published track:\n"
-            << "  SID: " << audioPub->sid() << "\n"
-            << "  Name: " << audioPub->name() << "\n"
-            << "  Kind: " << static_cast<int>(audioPub->kind()) << "\n"
-            << "  Source: " << static_cast<int>(audioPub->source()) << "\n"
-            << "  Simulcasted: " << (audioPub->simulcasted() ? "enabled" : "disabled") << "\n"
-            << "  Muted: " << (audioPub->muted() ? "yes" : "no");
+        qInfo() << __FUNCTION__ << "Published track:"
+            << "SID: " << audioPub->sid()
+            << "Name: " << audioPub->name()
+            << "Kind: " << trackKindToString(audioPub->kind())
+            << "Source: " << trackSourceToString(audioPub->source())
+            << "Simulcasted: " << (audioPub->simulcasted() ? "enabled" : "disabled")
+            << "Muted: " << (audioPub->muted() ? "yes" : "no");
     }
     catch (const std::exception &e) {
-        qCritical() << "Failed to publish audio track: " << e.what();
+        qCritical() << __FUNCTION__ << "Failed to publish audio track: " << e.what();
     }
 
     return media_mgr_->startMic(audioSource);
@@ -93,16 +95,16 @@ bool MediaEngine::startLocalVideo(livekit::LocalParticipant* participant, std::s
         // Track
         auto videoPub = participant->publishTrack(videoTrack, videoOpts);
         sid = videoPub->sid();
-        qInfo() << "Published track:\n"
-            << "  SID: " << videoPub->sid() << "\n"
-            << "  Name: " << videoPub->name() << "\n"
-            << "  Kind: " << static_cast<int>(videoPub->kind()) << "\n"
-            << "  Source: " << static_cast<int>(videoPub->source()) << "\n"
-            << "  Simulcasted: " << (videoPub->simulcasted() ? "enabled" : "disabled") << "\n"
-            << "  Muted: " << (videoPub->muted() ? "yes" : "no");
+        qInfo() << __FUNCTION__ << "Published track:"
+            << "SID: " << videoPub->sid()
+            << "Name: " << videoPub->name()
+            << "Kind: " << trackKindToString(videoPub->kind())
+            << "Source: " << trackSourceToString(videoPub->source())
+            << "Simulcasted: " << (videoPub->simulcasted() ? "enabled" : "disabled")
+            << "Muted: " << (videoPub->muted() ? "yes" : "no");
     }
     catch (const std::exception &e) {
-        qCritical() << "Failed to publish video track: " << e.what();
+        qCritical() << __FUNCTION__ << "Failed to publish video track: " << e.what();
     }
 
     return media_mgr_->startCamera(videoSource);

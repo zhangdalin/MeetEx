@@ -1,10 +1,16 @@
 #include "videoglwidget.h"
-
 #include "media_engine.h"
+
+#include <QVBoxLayout>
+#include <QPushButton>
 
 VideoGLWidget::VideoGLWidget(QWidget *parent)
     : QOpenGLWidget(parent)
 {
+    QVBoxLayout *layout = new QVBoxLayout(this);
+    QPushButton *btn = new QPushButton("按钮");
+    layout->addWidget(btn);
+    layout->setAlignment(btn, Qt::AlignBottom | Qt::AlignCenter);
 }
 
 VideoGLWidget::~VideoGLWidget()

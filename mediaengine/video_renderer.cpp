@@ -33,13 +33,13 @@ bool VideoRenderer::init(const char *title, int width, int height) {
     // Assume SDL_Init(SDL_INIT_VIDEO) already called in main()
     window_ = SDL_CreateWindow(title, width_, height_, 0);
     if (!window_) {
-        qCritical() << "SDL_CreateWindow failed:" << SDL_GetError();
+        qCritical() << __FUNCTION__ << "SDL_CreateWindow failed:" << SDL_GetError();
         return false;
     }
 
     renderer_ = SDL_CreateRenderer(window_, nullptr);
     if (!renderer_) {
-        qCritical() << "SDL_CreateRenderer failed:" << SDL_GetError();
+        qCritical() << __FUNCTION__ << "SDL_CreateRenderer failed:" << SDL_GetError();
         return false;
     }
 
@@ -48,7 +48,7 @@ bool VideoRenderer::init(const char *title, int width, int height) {
     texture_ = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_RGBA8888,
                                  SDL_TEXTUREACCESS_STREAMING, width_, height_);
     if (!texture_) {
-        qCritical() << "SDL_CreateTexture failed:" << SDL_GetError();
+        qCritical() << __FUNCTION__ << "SDL_CreateTexture failed:" << SDL_GetError();
         return false;
     }
 
@@ -121,7 +121,7 @@ void VideoRenderer::render() {
         try {
             frame = frame.convert(livekit::VideoBufferType::RGBA, false);
         } catch (const std::exception &ex) {
-            qCritical() << "SDLVideoRenderer: convert to RGBA failed:"
+            qCritical() << __FUNCTION__ << "SDLVideoRenderer: convert to RGBA failed:"
                         << ex.what();
             return;
         }
@@ -142,7 +142,7 @@ void VideoRenderer::render() {
             // compatible with Livekit RGBA format.
             SDL_TEXTUREACCESS_STREAMING, width_, height_);
         if (!texture_) {
-            qCritical() << "SDLVideoRenderer: SDL_CreateTexture failed:"
+            qCritical() << __FUNCTION__ << "SDLVideoRenderer: SDL_CreateTexture failed:"
                         << SDL_GetError();
             return;
         }
@@ -152,7 +152,7 @@ void VideoRenderer::render() {
     void *pixels = nullptr;
     int pitch = 0;
     if (!SDL_LockTexture(texture_, nullptr, &pixels, &pitch)) {
-        qCritical() << "SDLVideoRenderer: SDL_LockTexture failed:"
+        qCritical() << __FUNCTION__ << "SDLVideoRenderer: SDL_LockTexture failed:"
                     << SDL_GetError();
         return;
     }

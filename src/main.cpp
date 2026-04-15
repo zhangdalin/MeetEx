@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
     }
 
     QObject::connect(&a, &QCoreApplication::aboutToQuit, []() {
-        // qInfo() << "If you have something to do before application quit, please add here.";
+        // qInfo() << __FUNCTION__ << "If you have something to do before application quit, please add here.";
     });
 
     auto login = std::make_unique<Login>();

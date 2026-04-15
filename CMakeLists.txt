@@ -32,7 +32,7 @@ set(PROJECT_FORMS
     ui/settingcommon.ui
     ui/sharescreen.ui
     ui/myprofile.ui
-    ui/videowidgit.ui
+    ui/videowidget.ui
 )
 
 set(PROJECT_HEADERS
@@ -49,7 +49,7 @@ set(PROJECT_HEADERS
     src/settingcommon.h
     src/sharescreen.h
     src/myprofile.h
-    src/videowidgit.h
+    src/videowidget.h
 )
 
 set(PROJECT_SOURCES
@@ -67,7 +67,7 @@ set(PROJECT_SOURCES
     src/settingcommon.cpp
     src/myprofile.cpp
     src/sharescreen.cpp
-    src/videowidgit.cpp
+    src/videowidget.cpp
     ${TS_FILES}
 )
 

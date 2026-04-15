@@ -48,12 +48,12 @@ bool MicSource::init() {
         nullptr);
 
     if (!stream_) {
-        qCritical() << "Failed to open recording stream:" << SDL_GetError();
+        qCritical() << __FUNCTION__ << "Failed to open recording stream:" << SDL_GetError();
         return false;
     }
 
     if (!SDL_ResumeAudioStreamDevice(stream_)) { // unpause device
-        qCritical() << "Failed to resume recording device:" << SDL_GetError();
+        qCritical() << __FUNCTION__ << "Failed to resume recording device:" << SDL_GetError();
         return false;
     }
 
@@ -124,12 +124,12 @@ bool SpeakerSink::init() {
                                         nullptr);
 
     if (!stream_) {
-        qCritical() << "Failed to open playback stream:" << SDL_GetError();
+        qCritical() << __FUNCTION__ << "Failed to open playback stream:" << SDL_GetError();
         return false;
     }
 
     if (!SDL_ResumeAudioStreamDevice(stream_)) {
-        qCritical() << "Failed to resume playback device:" << SDL_GetError();
+        qCritical() << __FUNCTION__ << "Failed to resume playback device:" << SDL_GetError();
         return false;
     }
 
@@ -146,7 +146,7 @@ void SpeakerSink::enqueue(const int16_t *samples,
 
     // SDL will resample / convert as needed on SDL_GetAudioStreamData() side.
     if (!SDL_PutAudioStreamData(stream_, samples, bytes)) {
-        qCritical() << "SDL_PutAudioStreamData failed:" << SDL_GetError();
+        qCritical() << __FUNCTION__ << "SDL_PutAudioStreamData failed:" << SDL_GetError();
     }
 }
 
@@ -181,7 +181,7 @@ bool CamSource::init() {
     int count = 0;
     SDL_CameraID *cams = SDL_GetCameras(&count); //
     if (!cams || count == 0) {
-        qCritical() << "No cameras available:" << SDL_GetError();
+        qCritical() << __FUNCTION__ << "No cameras available:" << SDL_GetError();
         if (cams)
             SDL_free(cams);
         return false;
@@ -200,7 +200,7 @@ bool CamSource::init() {
 
     camera_ = SDL_OpenCamera(camId, &spec_);
     if (!camera_) {
-        qCritical() << "Failed to open camera:" << SDL_GetError();
+        qCritical() << __FUNCTION__ << "Failed to open camera:" << SDL_GetError();
         return false;
     }
 

@@ -9,7 +9,6 @@ public:
     explicit MeetingEngine();
     ~MeetingEngine();
 
-    bool launchMeeting();
     bool joinMeeting();
     void endMeeting();
 

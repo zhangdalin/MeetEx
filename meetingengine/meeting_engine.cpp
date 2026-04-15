@@ -15,19 +15,10 @@ MeetingEngine::~MeetingEngine() {
     room_.reset();
 }
 
-bool MeetingEngine::launchMeeting() {
-    room_->setRoomOptions();
-    if (!room_->connect()) {
-        qCritical() << "Failed to connect to room";
-        return false;
-    }
-    return true;
-}
-
 bool MeetingEngine::joinMeeting() {
     room_->setRoomOptions();
     if (!room_->connect()) {
-        qCritical() << "Failed to connect to room";
+        qCritical() << __FUNCTION__ << "Failed to connect to room";
         return false;
     }
     return true;
@@ -42,7 +33,7 @@ bool MeetingEngine::startAudio() {
     if (localUser) {
         localUser->openAudio();
     } else {
-        qCritical() << "No local user available to start audio";
+        qCritical() << __FUNCTION__ << "No local user available to start audio";
         return false;
     }
     return true;
@@ -53,7 +44,7 @@ void MeetingEngine::stopAudio() {
     if (localUser) {
         localUser->closeAudio();
     } else {
-        qCritical() << "No local user available to stop audio";
+        qCritical() << __FUNCTION__ << "No local user available to stop audio";
     }
 }
 
@@ -62,7 +53,7 @@ bool MeetingEngine::startVideo() {
     if (localUser) {
         localUser->openVideo();
     } else {
-        qCritical() << "No local user available to start video";
+        qCritical() << __FUNCTION__ << "No local user available to start video";
         return false;
     }
     return true;
@@ -73,6 +64,6 @@ void MeetingEngine::stopVideo() {
     if (localUser) {
         localUser->closeVideo();
     } else {
-        qCritical() << "No local user available to stop video";
+        qCritical() << __FUNCTION__ << "No local user available to stop video";
     }
 }

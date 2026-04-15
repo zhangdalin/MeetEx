@@ -44,7 +44,7 @@ void runNoiseCaptureLoop(const std::shared_ptr<livekit::AudioSource> &source,
         try {
             source->captureFrame(frame);
         } catch (const std::exception &e) {
-            qCritical() << "Error in captureFrame (noise):" << e.what();
+            qCritical() << __FUNCTION__ << "Error in captureFrame (noise):" << e.what();
             break;
         }
 
@@ -56,7 +56,7 @@ void runNoiseCaptureLoop(const std::shared_ptr<livekit::AudioSource> &source,
     try {
         source->clearQueue();
     } catch (...) {
-        qWarning() << "Error in clearQueue (noise)";
+        qWarning() << __FUNCTION__ << "Error in clearQueue (noise)";
     }
 }
 
@@ -106,7 +106,7 @@ void runFakeVideoCaptureLoop(const std::shared_ptr<livekit::VideoSource> &source
             // If it expects I420, pass i420 instead.
             source->captureFrame(frame, 0, livekit::VideoRotation::VIDEO_ROTATION_0);
         } catch (const std::exception &e) {
-            qCritical() << "Error in captureFrame (fake video):" << e.what();
+            qCritical() << __FUNCTION__ << "Error in captureFrame (fake video):" << e.what();
             break;
         }
 

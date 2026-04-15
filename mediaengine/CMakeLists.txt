@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 add_library(mediaengine STATIC
+    media_util.cpp
     media_engine.cpp
     media_mgr.cpp
     media.cpp

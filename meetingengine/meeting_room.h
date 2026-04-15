@@ -31,6 +31,7 @@ public:
         bool e2ee = false, bool single_peer_connection = false);
 
     void onParticipantConnected(livekit::Room &room, const livekit::ParticipantConnectedEvent &ev) override;
+    void onParticipantsUpdated(livekit::Room &, const livekit::ParticipantsUpdatedEvent &ev) override;
     void onTrackSubscribed(livekit::Room &room, const livekit::TrackSubscribedEvent &ev) override;
 
     bool connect();
@@ -38,6 +39,7 @@ public:
 
     std::shared_ptr<LocalUser>& getLocalUser();
     std::shared_ptr<RemoteUser> getRemoteUser(const std::string &identity);
+    std::vector<std::shared_ptr<RemoteUser>> getRemoteUsers();
 
 signals:
     void sigParticipantJoined(const QString &participantId, const QString &participantName);

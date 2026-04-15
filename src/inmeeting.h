@@ -7,6 +7,7 @@
 
 class MeetingEngine;
 class GLVideoWidget;
+class VideoWidget;
 
 namespace Ui {
 class InMeeting;

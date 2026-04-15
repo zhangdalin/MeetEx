@@ -3,12 +3,9 @@
 #include "local_user.h"
 #include "remote_user.h"
 #include "media_engine.h"
+#include "media_util.h"
 
 #include <QDebug>
-
-static std::vector<uint8_t> toBytes(const std::string &s) {
-    return std::vector<uint8_t>(s.begin(), s.end());
-}
 
 MeetingRoom::MeetingRoom()
     : QObject(nullptr)
@@ -24,7 +21,7 @@ MeetingRoom::MeetingRoom()
 
 MeetingRoom::~MeetingRoom() {
     if (state_ == RoomState::CONNECTED) {
-        qInfo() << "MeetingRoom destructor: disconnecting from room...";
+        qInfo() << __FUNCTION__ << "MeetingRoom destructor: disconnecting from room...";
         disconnect();
     }
 }
@@ -45,27 +42,27 @@ void MeetingRoom::setRoomOptions(bool auto_subscribe, bool dynacast, bool e2ee, 
         }
         options_.encryption = encryption;
         if (!e2ee_key_.empty()) {
-            qDebug() << "[E2EE] enabled : (shared key length=" << e2ee_key_.size() << ")";
+            qDebug() << __FUNCTION__ << "[E2EE] enabled : (shared key length=" << e2ee_key_.size() << ")";
         } else {
-            qDebug() << "[E2EE] enabled: (no shared key set)";
+            qDebug() << __FUNCTION__ << "[E2EE] enabled: (no shared key set)";
         }
     }
 
-    qInfo() << "set room option with Url:" << QString::fromStdString(url_) << "\n"
-        << " Token:" << QString::fromStdString(token_) << "\n"
-        << " Auto Subscribe:" << (auto_subscribe ? "enabled" : "disabled") << "\n"
-        << " Dynacast:" << (dynacast ? "enabled" : "disabled") << "\n"
-        << " Single Peer Connection:" << (single_peer_connection ? "enabled" : "disabled") << "\n"
-        << " E2EE:" << (e2ee ? "enabled" : "disabled");
+    qInfo() << __FUNCTION__ << "set room option with Url:" << QString::fromStdString(url_) << "\n"
+        << "Token:" << QString::fromStdString(token_) << "\n"
+        << "Auto Subscribe:" << (auto_subscribe ? "enabled" : "disabled") << "\n"
+        << "Dynacast:" << (dynacast ? "enabled" : "disabled") << "\n"
+        << "Single Peer Connection:" << (single_peer_connection ? "enabled" : "disabled") << "\n"
+        << "E2EE:" << (e2ee ? "enabled" : "disabled");
 }
 
 bool MeetingRoom::connect(){
     state_ = RoomState::CONNECTING;
     bool res = Connect(url_, token_, options_);
-    qInfo() << "Connect result is " << (res ? "successful" : "failed");
+    qInfo() << __FUNCTION__ << "Connect result is " << (res ? "successful" : "failed");
     if ( !res ){
         state_ = RoomState::DISCONNECTED;
-        qCritical() << "Failed to connect to room";
+        qCritical() << __FUNCTION__ << "Failed to connect to room";
         livekit::shutdown();
         return false;
     }
@@ -73,30 +70,30 @@ bool MeetingRoom::connect(){
     state_ = RoomState::CONNECTED;
 
     auto info = room_info();
-    qInfo() << "Connected to room:\n"
-        << "  SID: " << (info.sid ? *info.sid : "(none)") << "\n"
-        << "  Name: " << info.name << "\n"
-        << "  Metadata: " << info.metadata << "\n"
-        << "  Max participants: " << info.max_participants << "\n"
-        << "  Num participants: " << info.num_participants << "\n"
-        << "  Num publishers: " << info.num_publishers << "\n"
-        << "  Active recording: " << (info.active_recording ? "yes" : "no") << "\n"
-        << "  Empty timeout (s): " << info.empty_timeout << "\n"
-        << "  Departure timeout (s): " << info.departure_timeout << "\n"
-        << "  Lossy DC low threshold: " << info.lossy_dc_buffered_amount_low_threshold << "\n"
-        << "  Reliable DC low threshold: " << info.reliable_dc_buffered_amount_low_threshold << "\n"
-        << "  Creation time (ms): " << info.creation_time << "\n";
+    qInfo() << __FUNCTION__ << "Connected to room:"
+        << "SID: " << (info.sid ? *info.sid : "(none)")
+        << "Name: " << info.name
+        << "Metadata: " << info.metadata
+        << "Max participants: " << info.max_participants
+        << "Num participants: " << info.num_participants
+        << "Num publishers: " << info.num_publishers
+        << "Active recording: " << (info.active_recording ? "yes" : "no")
+        << "Empty timeout (s): " << info.empty_timeout
+        << "Departure timeout (s): " << info.departure_timeout
+        << "Lossy DC low threshold: " << info.lossy_dc_buffered_amount_low_threshold
+        << "Reliable DC low threshold: " << info.reliable_dc_buffered_amount_low_threshold
+        << "Creation time (ms): " << info.creation_time;
 
     return res;
 }
 
 bool MeetingRoom::disconnect() {
     if (state_ == RoomState::DISCONNECTED) {
-        qWarning() << "MeetingRoom::disconnect() called but already disconnected";
+        qWarning() << __FUNCTION__ << "MeetingRoom::disconnect() called but already disconnected";
         return true;
     }
     setDelegate(nullptr);
-    qInfo() << "Disconnected from room";
+    qInfo() << __FUNCTION__ << "Disconnected from room";
     localUser_.reset();
     state_ = RoomState::DISCONNECTED;
 
@@ -105,7 +102,7 @@ bool MeetingRoom::disconnect() {
 
 std::shared_ptr<LocalUser>& MeetingRoom::getLocalUser() {
     if (state_ != RoomState::CONNECTED) {
-        qWarning() << "getLocalUser() called but not connected to room";
+        qWarning() << __FUNCTION__ << "getLocalUser() called but not connected to room";
         // Return empty shared_ptr to indicate no local user available
         return localUser_;
     }
@@ -117,31 +114,58 @@ std::shared_ptr<LocalUser>& MeetingRoom::getLocalUser() {
 
 std::shared_ptr<RemoteUser> MeetingRoom::getRemoteUser(const std::string &identity) {
     if (state_ != RoomState::CONNECTED) {
-        qWarning() << "getRemoteUser() called but not connected to room";
+        qWarning() << __FUNCTION__ << "getRemoteUser() called but not connected to room";
         return nullptr;
     }
     auto remote_participant = remoteParticipant(identity);
     if (!remote_participant) {
-        qWarning() << "No remote participant found with identity: " << QString::fromStdString(identity);
+        qWarning() << __FUNCTION__ << "No remote participant found with identity: " << QString::fromStdString(identity);
         return nullptr;
     }
     return std::make_shared<RemoteUser>(remote_participant);
 }
 
+std::vector<std::shared_ptr<RemoteUser>> MeetingRoom::getRemoteUsers() {
+    std::vector<std::shared_ptr<RemoteUser>> remote_users;
+    if (state_ != RoomState::CONNECTED) {
+        qWarning() << __FUNCTION__ << "getRemoteUsers() called but not connected to room";
+        return remote_users;
+    }
+    auto remote_participants = remoteParticipants();
+    for (const auto& participant : remote_participants) {
+        if (participant) {
+            qDebug() << __FUNCTION__ << "remote user: name=" << QString::fromStdString(participant->name())
+                    << "id=" << QString::fromStdString(participant->identity());
+            remote_users.push_back(std::make_shared<RemoteUser>(participant.get()));
+        }
+    }
+    return remote_users;
+}
+
 void MeetingRoom::onParticipantConnected(livekit::Room &room, const livekit::ParticipantConnectedEvent &ev) {
     Q_UNUSED(room);
     if (!ev.participant) {
-        qWarning() << "[MeetingRoom] participant connected event without participant";
+        qWarning() << __FUNCTION__ << "participant connected event without participant";
         return;
     }
 
     const QString participant_identity = QString::fromStdString(ev.participant->identity());
     const QString participant_name = QString::fromStdString(ev.participant->name());
-    qDebug() << "[MeetingRoom] participant connected: identity="
+    qDebug() << __FUNCTION__ << "participant connected: identity="
         << participant_identity
-        << " name=" << participant_name;
+        << "name=" << participant_name;
 
     emit sigParticipantJoined(participant_identity, participant_name);
+}
+
+void MeetingRoom::onParticipantsUpdated(livekit::Room &room, const livekit::ParticipantsUpdatedEvent &ev) {
+    Q_UNUSED(room);
+    for (const auto& participant : ev.participants) {
+        if (participant) {
+            qDebug() << __FUNCTION__ << "participant identity=" << QString::fromStdString(participant->identity())
+                << "name=" << QString::fromStdString(participant->name());
+        }
+    }
 }
 
 void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSubscribedEvent &ev) {
@@ -155,17 +179,12 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
     const QString track_name = ev.publication
         ? QString::fromStdString(ev.publication->name())
         : QStringLiteral("<unknown>");
-    qDebug() << "[MeetingRoom] track subscribed: participant_identity="
+    qDebug() << __FUNCTION__ << "track subscribed: participant_identity="
         << participant_identity
-        << " track_sid=" << track_sid
-        << " name=" << track_name;
-
-    if (ev.track) {
-        qDebug() << " kind=" << static_cast<int>(ev.track->kind());
-    }
-    if (ev.publication) {
-        qDebug() << " source=" << static_cast<int>(ev.publication->source());
-    }
+        << "track_sid=" << track_sid
+        << "name=" << track_name
+        << "kind=" << (ev.track ? trackKindToString(ev.track->kind()) : "<unknown>")
+        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : "<unknown>");
     
     if (ev.track) {
         const int track_kind = static_cast<int>(ev.track->kind());
@@ -178,12 +197,12 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
         opts.format = livekit::VideoBufferType::RGBA;
         auto video_stream = livekit::VideoStream::fromTrack(ev.track, opts);
         if (!video_stream) {
-            qCritical() << "Failed to create VideoStream for track " << track_sid;
+            qCritical() << __FUNCTION__ << "Failed to create VideoStream for track " << track_sid;
             return;
         }
 
         if (!MediaEngine::instance().startVideoRender(video_stream, track_sid.toStdString())) {
-            qCritical() << "MeetingRoom::startVideoRender failed for track " << track_sid;
+            qCritical() << __FUNCTION__ << "MeetingRoom::startVideoRender failed for track " << track_sid;
         }
     }
 
@@ -191,11 +210,11 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
         livekit::AudioStream::Options opts;
         auto audio_stream = livekit::AudioStream::fromTrack(ev.track, opts);
         if (!audio_stream) {
-            qCritical() << "Failed to create AudioStream for track " << track_sid;
+            qCritical() << __FUNCTION__ << "Failed to create AudioStream for track " << track_sid;
             return;
         }
         if (!MediaEngine::instance().startAudioSpeaker(audio_stream)) {
-            qCritical() << "MeetingRoom::startAudioSpeaker failed for track " << track_sid;
+            qCritical() << __FUNCTION__ << "MeetingRoom::startAudioSpeaker failed for track " << track_sid;
         }
     }
 }

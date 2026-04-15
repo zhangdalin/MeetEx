@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>VideoWidgit</class>
- <widget class="QWidget" name="VideoWidgit">
+ <class>VideoWidget</class>
+ <widget class="QWidget" name="VideoWidget">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -107,7 +107,7 @@
   <connection>
    <sender>muteBtn</sender>
    <signal>clicked()</signal>
-   <receiver>VideoWidgit</receiver>
+   <receiver>VideoWidget</receiver>
    <slot>toggleMute()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -123,7 +123,7 @@
   <connection>
    <sender>settingBtn</sender>
    <signal>clicked()</signal>
-   <receiver>VideoWidgit</receiver>
+   <receiver>VideoWidget</receiver>
    <slot>toggleSetting()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -139,7 +139,7 @@
   <connection>
    <sender>videoGLWidget</sender>
    <signal>resized()</signal>
-   <receiver>VideoWidgit</receiver>
+   <receiver>VideoWidget</receiver>
    <slot>onResize()</slot>
    <hints>
     <hint type="sourcelabel">

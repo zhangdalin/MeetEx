@@ -2,10 +2,24 @@
 #include "ui_inmeeting.h"
 #include "meeting_engine.h"
 #include "meeting_room.h"
+#include "remote_user.h"
+#include "videowidget.h"
+#include "videoglwidget.h"
 
 #include <QTimer>
 
 using namespace std;
+
+static const char* trackKindToMediaTypeString(int track_kind) {
+    switch (track_kind) {
+    case 1:
+        return "audio";
+    case 2:
+        return "video";
+    default:
+        return "unknown";
+    }
+}
 
 extern unique_ptr<QWidget> home;
 extern unique_ptr<QWidget> myprofile;
@@ -32,7 +46,7 @@ InMeeting::InMeeting(QWidget *parent)
     connect(timer, &QTimer::timeout, this, &InMeeting::onTimer);
     timer->start();
 
-    meetingEngine_->launchMeeting();
+    meetingEngine_->joinMeeting();
     // default unmuted and video on
     meetingEngine_->startAudio();
     ui->muteBtn->setText("静音");
@@ -47,7 +61,7 @@ InMeeting::~InMeeting()
 
 void InMeeting::toggleMute()
 {
-    qInfo() << "toggleMute";
+    qInfo() << __FUNCTION__ << "toggleMute";
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (button->text() == "静音") {
         meetingEngine_->stopAudio();
@@ -60,7 +74,7 @@ void InMeeting::toggleMute()
 
 void InMeeting::toggleVideo()
 {
-    qInfo() << "toggleVideo";
+    qInfo() << __FUNCTION__ << "toggleVideo";
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (button->text() == "开启视频") {
         meetingEngine_->startVideo();
@@ -73,7 +87,7 @@ void InMeeting::toggleVideo()
 
 void InMeeting::toggleRecord()
 {
-    qInfo() << "toggleRecord";
+    qInfo() << __FUNCTION__ << "toggleRecord";
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (button) {
         button->setText(button->text() == "录制" ? "停止录制" : "录制");
@@ -82,51 +96,55 @@ void InMeeting::toggleRecord()
 
 void InMeeting::startShare()
 {
-    qInfo() << "startShare";
+    qInfo() << __FUNCTION__ << "startShare";
 }
 
 void InMeeting::sendMsg()
 {
-    qInfo() << "sendMsg";
+    qInfo() << __FUNCTION__ << "sendMsg";
 }
 
 void InMeeting::showMember()
 {
-    qInfo() << "showMember";
+    qInfo() << __FUNCTION__ << "showMember";
+    auto remote_users = meetingEngine_->room()->getRemoteUsers();
 }
 
 void InMeeting::inviteUser()
 {
-    qInfo() << "inviteUser";
+    qInfo() << __FUNCTION__ << "inviteUser";
 }
 
 void InMeeting::openChat()
 {
-    qInfo() << "openChat";
+    qInfo() << __FUNCTION__ << "openChat";
 }
 
 void InMeeting::openApps()
 {
-    qInfo() << "openApps";
+    qInfo() << __FUNCTION__ << "openApps";
 }
 
 void InMeeting::endMeeting()
 {
-    qInfo() << "endMeeting";
+    qInfo() << __FUNCTION__ << "endMeeting";
     close();
 }
 
 void InMeeting::onParticipantJoined(const QString &participantId, const QString &participantName)
 {
-    qInfo() << "[InMeeting] new participant joined, name=" << participantName << " id=" << participantId;
+    qInfo() << __FUNCTION__ << "new participant joined, name=" << participantName << "id=" << participantId;
+    auto videoWidget = new VideoWidget(this);
+    ui->gridLayout->addWidget(videoWidget);
 }
 
 void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackName, const QString &participantIdentity, int trackKind)
 {
-    qInfo() << "[InMeeting] track subscribed, track_sid=" << trackSid
-            << " track_name=" << trackName
-            << " participant_identity=" << participantIdentity
-            << " track_kind=" << trackKind;
+    qInfo() << __FUNCTION__ << "track subscribed, track_sid=" << trackSid
+            << "track_name=" << trackName
+            << "participant_identity=" << participantIdentity
+            << "track_kind=" << trackKind
+            << "media_type=" << trackKindToMediaTypeString(trackKind);
 }
 
 void InMeeting::closeEvent(QCloseEvent *event)
@@ -138,5 +156,5 @@ void InMeeting::closeEvent(QCloseEvent *event)
 
 void InMeeting::onTimer()
 {
-    // qInfo() << "onTimer";
+    // qInfo() << __FUNCTION__ << "onTimer";
 }   

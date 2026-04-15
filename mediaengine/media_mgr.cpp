@@ -37,7 +37,7 @@ bool MediaMgr::ensureSDLInit(Uint32 flags) {
         return true; // already init
     }
     if (!SDL_InitSubSystem(flags)) {
-        qCritical() << "SDL_InitSubSystem failed (flags=" << flags << "):"
+        qCritical() << __FUNCTION__ << "SDL_InitSubSystem failed (flags=" << flags << "):"
                     << SDL_GetError();
         return false;
     }
@@ -50,7 +50,7 @@ bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_sourc
     stopMic();
 
     if (!audio_source) {
-        qCritical() << "startMic: audioSource is null";
+        qCritical() << __FUNCTION__ << "startMic: audioSource is null";
         return false;
     }
 
@@ -59,7 +59,7 @@ bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_sourc
 
     // Try SDL path
     if (!ensureSDLInit(SDL_INIT_AUDIO)) {
-        qWarning() << "No SDL audio, falling back to noise loop.";
+        qWarning() << __FUNCTION__ << "No SDL audio, falling back to noise loop.";
         mic_using_ = false;
         mic_thread_ = std::thread(runNoiseCaptureLoop, mic_source_, std::ref(mic_running_));
         return true;
@@ -68,7 +68,7 @@ bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_sourc
     int recCount = 0;
     SDL_AudioDeviceID *recDevs = SDL_GetAudioRecordingDevices(&recCount);
     if (!recDevs || recCount == 0) {
-        qWarning() << "No microphone devices found, falling back to noise loop.";
+        qWarning() << __FUNCTION__ << "No microphone devices found, falling back to noise loop.";
         if (recDevs)
             SDL_free(recDevs);
         mic_using_ = false;
@@ -96,12 +96,12 @@ bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_sourc
                 src->captureFrame(frame);
             }
             catch (const std::exception &e) {
-                qCritical() << "Error in captureFrame (SDL mic):" << e.what();
+                qCritical() << __FUNCTION__ << "Error in captureFrame (SDL mic):" << e.what();
             }
         });
 
     if (!mic_->init()) {
-        qWarning() << "Failed to init SDL mic, falling back to noise loop.";
+        qWarning() << __FUNCTION__ << "Failed to init SDL mic, falling back to noise loop.";
         mic_using_ = false;
         mic_.reset();
         mic_thread_ = std::thread(runNoiseCaptureLoop, mic_source_, std::ref(mic_running_));
@@ -134,7 +134,7 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
     stopCamera();
 
     if (!video_source) {
-        qCritical() << "startCamera: videoSource is null";
+        qCritical() << __FUNCTION__ << "startCamera: videoSource is null";
         return false;
     }
 
@@ -143,7 +143,7 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
 
     // Try SDL
     if (!ensureSDLInit(SDL_INIT_CAMERA)) {
-        qWarning() << "No SDL camera subsystem, using fake video loop.";
+        qWarning() << __FUNCTION__ << "No SDL camera subsystem, using fake video loop.";
         cam_using_ = false;
         cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, std::ref(cam_running_));
         return true;
@@ -152,7 +152,7 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
     int camCount = 0;
     SDL_CameraID *cams = SDL_GetCameras(&camCount);
     if (!cams || camCount == 0) {
-        qWarning() << "No camera devices found, using fake video loop.";
+        qWarning() << __FUNCTION__ << "No camera devices found, using fake video loop.";
         if (cams)
             SDL_free(cams);
         cam_using_ = false;
@@ -181,12 +181,12 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
             try {
                 src->captureFrame(frame, timestampNS / 1000, livekit::VideoRotation::VIDEO_ROTATION_0);
             } catch (const std::exception &e) {
-                qCritical() << "Error in captureFrame (SDL cam):" << e.what();
+                qCritical() << __FUNCTION__ << "Error in captureFrame (SDL cam):" << e.what();
             }
         });
 
     if (!cam_->init()) {
-        qWarning() << "Failed to init SDL camera, using fake video loop.";
+        qWarning() << __FUNCTION__ << "Failed to init SDL camera, using fake video loop.";
         cam_using_ = false;
         cam_.reset();
         cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, std::ref(cam_running_));
@@ -219,12 +219,12 @@ bool MediaMgr::startSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_s
     stopSpeaker();
 
     if (!audio_stream) {
-        qCritical() << "startSpeaker: audioStream is null";
+        qCritical() << __FUNCTION__ << "startSpeaker: audioStream is null";
         return false;
     }
 
     if (!ensureSDLInit(SDL_INIT_AUDIO)) {
-        qCritical() << "startSpeaker: SDL_INIT_AUDIO failed";
+        qCritical() << __FUNCTION__ << "startSpeaker: SDL_INIT_AUDIO failed";
         return false;
     }
 
@@ -237,7 +237,7 @@ bool MediaMgr::startSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_s
     try {
         speaker_thread_ = std::thread(&MediaMgr::speakerLoopSDL, this);
     } catch (const std::exception &e) {
-        qCritical() << "startSpeaker: failed to start speaker thread:" << e.what();
+        qCritical() << __FUNCTION__ << "startSpeaker: failed to start speaker thread:" << e.what();
         speaker_running_.store(false, std::memory_order_relaxed);
         speaker_stream_.reset();
         return false;
@@ -280,7 +280,7 @@ void MediaMgr::speakerLoopSDL() {
                                           /*userdata=*/nullptr);
 
             if (!localStream) {
-                qCritical() << "speakerLoopSDL: SDL_OpenAudioDeviceStream failed:"
+                qCritical() << __FUNCTION__ << "speakerLoopSDL: SDL_OpenAudioDeviceStream failed:"
                             << SDL_GetError();
                 break;
             }
@@ -289,13 +289,13 @@ void MediaMgr::speakerLoopSDL() {
 
             dev = SDL_GetAudioStreamDevice(localStream);
             if (dev == 0) {
-                qCritical() << "speakerLoopSDL: SDL_GetAudioStreamDevice failed:"
+                qCritical() << __FUNCTION__ << "speakerLoopSDL: SDL_GetAudioStreamDevice failed:"
                             << SDL_GetError();
                 break;
             }
 
             if (!SDL_ResumeAudioDevice(dev)) {
-                qCritical() << "speakerLoopSDL: SDL_ResumeAudioDevice failed:"
+                qCritical() << __FUNCTION__ << "speakerLoopSDL: SDL_ResumeAudioDevice failed:"
                             << SDL_GetError();
                 break;
             }
@@ -306,7 +306,7 @@ void MediaMgr::speakerLoopSDL() {
         const int numBytes = static_cast<int>(data.size() * sizeof(std::int16_t));
 
         if (!SDL_PutAudioStreamData(localStream, data.data(), numBytes)) {
-            qCritical() << "speakerLoopSDL: SDL_PutAudioStreamData failed:"
+            qCritical() << __FUNCTION__ << "speakerLoopSDL: SDL_PutAudioStreamData failed:"
                         << SDL_GetError();
             break;
         }
@@ -341,7 +341,7 @@ void MediaMgr::stopSpeaker() {
 bool MediaMgr::startRender(const std::shared_ptr<livekit::VideoStream> &video_stream,
                              const std::string &render_id) {
     if (!video_stream) {
-        qCritical() << "startRender: videoStream is null";
+        qCritical() << __FUNCTION__ << "startRender: videoStream is null";
         return false;
     }
 
@@ -371,7 +371,7 @@ bool MediaMgr::startRender(const std::shared_ptr<livekit::VideoStream> &video_st
     try {
         worker->thread = std::thread(&MediaMgr::renderLoop, this, id_for_thread, worker);
     } catch (const std::exception &e) {
-        qCritical() << "startRender: failed to start render id:" << QString::fromStdString(render_id) << " thread:" << e.what();
+        qCritical() << __FUNCTION__ << "startRender: failed to start render id:" << QString::fromStdString(render_id) << "thread:" << e.what();
 
         {
             std::lock_guard<std::mutex> lock(renders_mutex_);
@@ -430,7 +430,7 @@ void MediaMgr::renderLoop(const std::string &render_id,
             try {
                 frame = frame.convert(livekit::VideoBufferType::RGBA, false);
             } catch (const std::exception &ex) {
-                qCritical() << "renderLoop: convert to RGBA failed:" << ex.what();
+                qCritical() << __FUNCTION__ << "renderLoop: convert to RGBA failed:" << ex.what();
                 continue;
             }
         }

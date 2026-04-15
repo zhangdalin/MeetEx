@@ -24,11 +24,11 @@ void Login::closeEvent(QCloseEvent *event)
     if (login_state) {
         home = make_unique<Home>();
         home->show();
-        qInfo() << "login logic success";
+        qInfo() << __FUNCTION__ << "login logic success";
         QWidget::closeEvent(event);
     }
     else {
-        qInfo() << "without login, exit!";
+        qInfo() << __FUNCTION__ << "without login, exit!";
         QCoreApplication::exit();
     }
 }
