@@ -2,6 +2,7 @@
 #include "ui_inmeeting.h"
 #include "meeting_engine.h"
 #include "meeting_room.h"
+#include "meeting_def.h"
 #include "remote_user.h"
 #include "videowidget.h"
 #include "videoglwidget.h"
@@ -10,11 +11,11 @@
 
 using namespace std;
 
-static const char* trackKindToMediaTypeString(int track_kind) {
+static const char* trackKindToMediaTypeString(TrackKind track_kind) {
     switch (track_kind) {
-    case 1:
+    case TrackKind::AUDIO:
         return "audio";
-    case 2:
+    case TrackKind::VIDEO:
         return "video";
     default:
         return "unknown";
@@ -143,8 +144,22 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
     qInfo() << __FUNCTION__ << "track subscribed, track_sid=" << trackSid
             << "track_name=" << trackName
             << "participant_identity=" << participantIdentity
-            << "track_kind=" << trackKind
-            << "media_type=" << trackKindToMediaTypeString(trackKind);
+            << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
+    switch (static_cast<TrackKind>(trackKind)) {
+    case TrackKind::AUDIO:
+        break;
+    case TrackKind::VIDEO:
+    {
+        // auto videoWidget = new VideoWidget(this);
+        // ui->gridLayout->addWidget(videoWidget);
+         auto videoWidget = new VideoGLWidget(this);
+         ui->gridLayout->addWidget(videoWidget);
+         break;
+    }
+        break;
+    default:
+        break;
+    }
 }
 
 void InMeeting::closeEvent(QCloseEvent *event)

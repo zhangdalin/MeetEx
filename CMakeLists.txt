@@ -32,7 +32,6 @@ set(PROJECT_FORMS
     ui/settingcommon.ui
     ui/sharescreen.ui
     ui/myprofile.ui
-    ui/videowidget.ui
 )
 
 set(PROJECT_HEADERS
@@ -41,15 +40,14 @@ set(PROJECT_HEADERS
     src/bookmeeting.h
     src/joinmeeting.h
     src/inmeeting.h
-    src/videoglwidget.h
     src/settings.h
     src/settingaudio.h
     src/settingvideo.h
     src/settingrecording.h
     src/settingcommon.h
-    src/sharescreen.h
     src/myprofile.h
-    src/videowidget.h
+    src/sharescreen.h
+    src/videoglwidget.h
 )
 
 set(PROJECT_SOURCES
@@ -59,7 +57,6 @@ set(PROJECT_SOURCES
     src/bookmeeting.cpp
     src/joinmeeting.cpp
     src/inmeeting.cpp
-    src/videoglwidget.cpp
     src/settings.cpp
     src/settingaudio.cpp
     src/settingvideo.cpp
@@ -67,7 +64,7 @@ set(PROJECT_SOURCES
     src/settingcommon.cpp
     src/myprofile.cpp
     src/sharescreen.cpp
-    src/videowidget.cpp
+    src/videoglwidget.cpp
     ${TS_FILES}
 )
 

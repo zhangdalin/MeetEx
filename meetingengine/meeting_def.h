@@ -23,4 +23,10 @@ Access token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4MzY2MzgyNzEsImlkZ
 #define LIVEKIT_TOKEN "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4MzY2MzgyNzEsImlkZW50aXR5IjoiZGFyaW4iLCJpc3MiOiJBUEliWjNoWlRpSGRQWE4iLCJuYW1lIjoiZGFyaW4iLCJuYmYiOjE3NzYxNTgyNzEsInN1YiI6ImRhcmluIiwidmlkZW8iOnsicm9vbSI6Im1lZXRleCIsInJvb21Kb2luIjp0cnVlfX0.Qe117UmfWEH2rZ7UhVRGjjV989SwoH-FDIw1F8SGgSA"
 #define LIVEKIT_E2EE_KEY ""
 
+enum class TrackKind {
+    UNKNOWN = 0,
+    AUDIO = 1,
+    VIDEO = 2,
+};
+
 #endif // MEETING_DEF_H
