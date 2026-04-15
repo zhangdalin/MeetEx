@@ -5,6 +5,7 @@ add_library(mediaengine STATIC
     media_engine.cpp
     media_mgr.cpp
     media.cpp
+    media_qcam.cpp
     video_renderer.cpp
     wav_audio_source.cpp
     fallback_capture.cpp
@@ -26,6 +27,7 @@ target_link_directories(mediaengine
 target_link_libraries(mediaengine
     PUBLIC
         Qt${QT_VERSION_MAJOR}::Core
+        Qt${QT_VERSION_MAJOR}::Multimedia
         livekit
         livekit_ffi
         SDL3

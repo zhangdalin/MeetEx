@@ -68,12 +68,9 @@ public:
 
     // Renderer (remote video rendering)
     // Following APIs must be called on main thread
-    bool startRender(const std::shared_ptr<livekit::VideoStream> &video_stream,
-                       const std::string &render_id = "default");
+    bool startRender(const std::shared_ptr<livekit::VideoStream> &video_stream, const std::string &track_sid);
     void stopAllRenders();
-    bool copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height);
-    bool copyLatestVideoFrame(const std::string &render_id,
-                              std::vector<std::uint8_t> &rgba, int &width, int &height);
+    bool copyLatestVideoFrame(const std::string &track_sid, std::vector<std::uint8_t> &rgba, int &width, int &height);
 
 private:
     // ---- SDL bootstrap helpers ----
@@ -100,8 +97,7 @@ private:
         int latest_height = 0;
     };
 
-    void renderLoop(const std::string &render_id,
-                    const std::shared_ptr<RenderWorker> &worker);
+    void renderLoop(const std::string &track_sid, const std::shared_ptr<RenderWorker> &worker);
 
     // Mic
     std::shared_ptr<livekit::AudioSource> mic_source_;
@@ -126,5 +122,4 @@ private:
     // Renderer (remote video)
     std::mutex renders_mutex_;
     std::unordered_map<std::string, std::shared_ptr<RenderWorker>> renders_;
-    std::string latest_render_id_;
 };

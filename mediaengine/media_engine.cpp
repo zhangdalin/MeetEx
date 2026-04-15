@@ -129,8 +129,8 @@ bool MediaEngine::startAudioSpeaker(const std::shared_ptr<livekit::AudioStream> 
 }
 
 bool MediaEngine::startVideoRender(const std::shared_ptr<livekit::VideoStream> &video_stream,
-                                   const std::string &renderer_id) {
-    return media_mgr_->startRender(video_stream, renderer_id);
+                                   const std::string &track_sid) {
+    return media_mgr_->startRender(video_stream, track_sid);
 }
 
 void MediaEngine::stopAudioSpeaker() {
@@ -141,11 +141,7 @@ void MediaEngine::stopVideoRender() {
     media_mgr_->stopAllRenders();
 }
 
-bool MediaEngine::copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height) {
-    return media_mgr_->copyLatestVideoFrame(rgba, width, height);
-}
-
-bool MediaEngine::copyLatestVideoFrame(const std::string &renderer_id,
+bool MediaEngine::copyLatestVideoFrame(const std::string &track_sid,
                                        std::vector<std::uint8_t> &rgba, int &width, int &height) {
-    return media_mgr_->copyLatestVideoFrame(renderer_id, rgba, width, height);
+    return media_mgr_->copyLatestVideoFrame(track_sid, rgba, width, height);
 }

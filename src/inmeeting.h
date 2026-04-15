@@ -4,10 +4,10 @@
 #include <QWidget>
 #include <QString>
 #include <memory>
+#include <vector>
 
 class MeetingEngine;
-class GLVideoWidget;
-class VideoWidget;
+class VideoGLWidget;
 
 namespace Ui {
 class InMeeting;
@@ -43,10 +43,12 @@ protected:
 
 private:
     void onTimer();
+    void updateVideoWidgets();
 
 private:
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
+    std::vector<VideoGLWidget*> videoWidgets_;
 };
 
 #endif // INMEETING_H

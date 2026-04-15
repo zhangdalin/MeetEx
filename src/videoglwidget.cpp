@@ -4,8 +4,10 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 
-VideoGLWidget::VideoGLWidget(QWidget *parent)
+VideoGLWidget::VideoGLWidget(const QString &participant_identity, const QString &track_sid, QWidget *parent)
     : QOpenGLWidget(parent)
+    , participant_identity_(participant_identity)
+    , track_sid_(track_sid)
 {
     QVBoxLayout *layout = new QVBoxLayout(this);
     QPushButton *btn = new QPushButton("按钮");
@@ -55,7 +57,7 @@ void VideoGLWidget::paintGL()
     int width = 0;
     int height = 0;
 
-    if (MediaEngine::instance().copyLatestVideoFrame(rgba, width, height)) {
+    if (MediaEngine::instance().copyLatestVideoFrame(track_sid_.toStdString(), rgba, width, height)) {
         frame_rgba_ = std::move(rgba);
         frame_width_ = width;
         frame_height_ = height;
@@ -108,10 +110,6 @@ void VideoGLWidget::paintGL()
     program_.release();
 }
 
-void VideoGLWidget::resizeGL(int, int)
-{
-}
-
 void VideoGLWidget::ensureTexture(int width, int height)
 {
     if (width <= 0 || height <= 0) {
@@ -137,8 +135,9 @@ void VideoGLWidget::ensureTexture(int width, int height)
 
 void VideoGLWidget::updateViewportForAspect(int frameWidth, int frameHeight)
 {
-    const int view_w = width();
-    const int view_h = height();
+    const qreal dpr = devicePixelRatioF();
+    const int view_w = static_cast<int>(width() * dpr);
+    const int view_h = static_cast<int>(height() * dpr);
     if (view_w <= 0 || view_h <= 0 || frameWidth <= 0 || frameHeight <= 0) {
         glViewport(0, 0, view_w, view_h);
         return;

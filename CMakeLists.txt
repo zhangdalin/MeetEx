@@ -13,8 +13,8 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS
     ${CMAKE_CURRENT_SOURCE_DIR}/ui
 )
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets OpenGLWidgets LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets OpenGLWidgets LinguistTools)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets OpenGLWidgets Multimedia LinguistTools)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets OpenGLWidgets Multimedia LinguistTools)
 
 set(TS_FILES
     i18n/MeetEx_zh_CN.ts)

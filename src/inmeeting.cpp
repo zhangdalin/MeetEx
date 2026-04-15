@@ -3,10 +3,10 @@
 #include "meeting_engine.h"
 #include "meeting_room.h"
 #include "meeting_def.h"
-#include "remote_user.h"
-#include "videowidget.h"
 #include "videoglwidget.h"
 
+#include <algorithm>
+#include <cmath>
 #include <QTimer>
 
 using namespace std;
@@ -62,7 +62,7 @@ InMeeting::~InMeeting()
 
 void InMeeting::toggleMute()
 {
-    qInfo() << __FUNCTION__ << "toggleMute";
+    qInfo() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (button->text() == "静音") {
         meetingEngine_->stopAudio();
@@ -75,7 +75,7 @@ void InMeeting::toggleMute()
 
 void InMeeting::toggleVideo()
 {
-    qInfo() << __FUNCTION__ << "toggleVideo";
+    qInfo() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (button->text() == "开启视频") {
         meetingEngine_->startVideo();
@@ -88,7 +88,7 @@ void InMeeting::toggleVideo()
 
 void InMeeting::toggleRecord()
 {
-    qInfo() << __FUNCTION__ << "toggleRecord";
+    qInfo() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (button) {
         button->setText(button->text() == "录制" ? "停止录制" : "录制");
@@ -97,46 +97,44 @@ void InMeeting::toggleRecord()
 
 void InMeeting::startShare()
 {
-    qInfo() << __FUNCTION__ << "startShare";
+    qInfo() << __FUNCTION__;
 }
 
 void InMeeting::sendMsg()
 {
-    qInfo() << __FUNCTION__ << "sendMsg";
+    qInfo() << __FUNCTION__;
 }
 
 void InMeeting::showMember()
 {
-    qInfo() << __FUNCTION__ << "showMember";
+    qInfo() << __FUNCTION__;
     auto remote_users = meetingEngine_->room()->getRemoteUsers();
 }
 
 void InMeeting::inviteUser()
 {
-    qInfo() << __FUNCTION__ << "inviteUser";
+    qInfo() << __FUNCTION__;
 }
 
 void InMeeting::openChat()
 {
-    qInfo() << __FUNCTION__ << "openChat";
+    qInfo() << __FUNCTION__;
 }
 
 void InMeeting::openApps()
 {
-    qInfo() << __FUNCTION__ << "openApps";
+    qInfo() << __FUNCTION__;
 }
 
 void InMeeting::endMeeting()
 {
-    qInfo() << __FUNCTION__ << "endMeeting";
+    qInfo() << __FUNCTION__;
     close();
 }
 
 void InMeeting::onParticipantJoined(const QString &participantId, const QString &participantName)
 {
     qInfo() << __FUNCTION__ << "new participant joined, name=" << participantName << "id=" << participantId;
-    auto videoWidget = new VideoWidget(this);
-    ui->gridLayout->addWidget(videoWidget);
 }
 
 void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackName, const QString &participantIdentity, int trackKind)
@@ -150,10 +148,9 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
         break;
     case TrackKind::VIDEO:
     {
-        // auto videoWidget = new VideoWidget(this);
-        // ui->gridLayout->addWidget(videoWidget);
-         auto videoWidget = new VideoGLWidget(this);
-         ui->gridLayout->addWidget(videoWidget);
+         auto videoWidget = new VideoGLWidget(participantIdentity, trackSid, this);
+            videoWidgets_.push_back(videoWidget);
+            updateVideoWidgets();
          break;
     }
         break;
@@ -171,5 +168,57 @@ void InMeeting::closeEvent(QCloseEvent *event)
 
 void InMeeting::onTimer()
 {
-    // qInfo() << __FUNCTION__ << "onTimer";
-}   
+    for (int i = 0; i < ui->gridLayout->count(); ++i) {
+        QLayoutItem *item = ui->gridLayout->itemAt(i);
+        if (!item) {
+            continue;
+        }
+
+        QWidget *widget = item->widget();
+        if (!widget) {
+            continue;
+        }
+
+        auto *video_widget = qobject_cast<VideoGLWidget *>(widget);
+        if (video_widget) {
+            video_widget->update();
+        }
+    }
+}
+
+void InMeeting::updateVideoWidgets()
+{ 
+    qInfo() << __FUNCTION__;
+    const int n = videoWidgets_.size();
+    if (n <= 0) return;
+
+    // 方案A：固定2列
+    // const int cols = 2;
+
+    // 方案B：接近正方形
+    const int cols = std::max(1, static_cast<int>(std::ceil(std::sqrt(n))));
+    const int rows = (n + cols - 1) / cols;
+
+    // 先从 layout 移除（不 delete 控件）
+    while (QLayoutItem *item = ui->gridLayout->takeAt(0)) {
+        // item->widget() 仍由父对象管理
+        delete item;
+    }
+
+    // 按新行列重新放回
+    for (int i = 0; i < n; ++i) {
+        const int row = i / cols;
+        const int col = i % cols;
+
+        ui->gridLayout->addWidget(videoWidgets_[i], row, col);
+    }
+
+    // 可选：设置列拉伸，让每列等宽
+    for (int c = 0; c < cols; ++c) {
+        ui->gridLayout->setColumnStretch(c, 1);
+    }
+    // 可选：设置行拉伸，让每行等高
+    for (int r = 0; r < rows; ++r) {
+        ui->gridLayout->setRowStretch(r, 1);
+    }
+}

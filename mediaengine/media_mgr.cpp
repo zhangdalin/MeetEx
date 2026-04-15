@@ -339,7 +339,7 @@ void MediaMgr::stopSpeaker() {
 // ---------- Renderer control (placeholder) ----------
 
 bool MediaMgr::startRender(const std::shared_ptr<livekit::VideoStream> &video_stream,
-                             const std::string &render_id) {
+                             const std::string &track_sid) {
     if (!video_stream) {
         qCritical() << __FUNCTION__ << "startRender: videoStream is null";
         return false;
@@ -352,11 +352,11 @@ bool MediaMgr::startRender(const std::shared_ptr<livekit::VideoStream> &video_st
     std::shared_ptr<RenderWorker> old_worker = nullptr;
     {
         std::lock_guard<std::mutex> lock(renders_mutex_);
-        auto it = renders_.find(render_id);
+        auto it = renders_.find(track_sid);
         if (it != renders_.end()) {
             old_worker = it->second;
         }
-        renders_[render_id] = worker;
+        renders_[track_sid] = worker;
     }
 
     if (old_worker) {
@@ -366,21 +366,16 @@ bool MediaMgr::startRender(const std::shared_ptr<livekit::VideoStream> &video_st
         }
     }
 
-    const std::string id_for_thread = render_id;
-
     try {
-        worker->thread = std::thread(&MediaMgr::renderLoop, this, id_for_thread, worker);
+        worker->thread = std::thread(&MediaMgr::renderLoop, this, track_sid, worker);
     } catch (const std::exception &e) {
-        qCritical() << __FUNCTION__ << "startRender: failed to start render id:" << QString::fromStdString(render_id) << "thread:" << e.what();
+        qCritical() << __FUNCTION__ << "startRender: failed to start track_sid:" << QString::fromStdString(track_sid) << "thread:" << e.what();
 
         {
             std::lock_guard<std::mutex> lock(renders_mutex_);
-            auto it = renders_.find(render_id);
+            auto it = renders_.find(track_sid);
             if (it != renders_.end() && it->second == worker) {
                 renders_.erase(it);
-                if (latest_render_id_ == render_id) {
-                    latest_render_id_.clear();
-                }
             }
         }
 
@@ -398,7 +393,6 @@ void MediaMgr::stopAllRenders() {
             workers.push_back(entry.second);
         }
         renders_.clear();
-        latest_render_id_.clear();
     }
 
     for (auto &worker : workers) {
@@ -413,7 +407,7 @@ void MediaMgr::stopAllRenders() {
     }
 }
 
-void MediaMgr::renderLoop(const std::string &render_id,
+void MediaMgr::renderLoop(const std::string &track_sid,
                           const std::shared_ptr<RenderWorker> &worker) {
     while (worker->running.load(std::memory_order_relaxed)) {
         if (!worker->stream) {
@@ -451,39 +445,17 @@ void MediaMgr::renderLoop(const std::string &render_id,
             worker->latest_width = width;
             worker->latest_height = height;
         }
-
-        {
-            std::lock_guard<std::mutex> lock(renders_mutex_);
-            latest_render_id_ = render_id;
-        }
     }
 
     worker->running.store(false, std::memory_order_relaxed);
 }
 
-bool MediaMgr::copyLatestVideoFrame(std::vector<std::uint8_t> &rgba, int &width, int &height) {
-    std::string render_id;
-    {
-        std::lock_guard<std::mutex> lock(renders_mutex_);
-        if (latest_render_id_.empty()) {
-            if (renders_.empty()) {
-                return false;
-            }
-            render_id = renders_.begin()->first;
-        } else {
-            render_id = latest_render_id_;
-        }
-    }
-
-    return copyLatestVideoFrame(render_id, rgba, width, height);
-}
-
-bool MediaMgr::copyLatestVideoFrame(const std::string &render_id,
+bool MediaMgr::copyLatestVideoFrame(const std::string &track_sid,
                                     std::vector<std::uint8_t> &rgba, int &width, int &height) {
     std::shared_ptr<RenderWorker> worker;
     {
         std::lock_guard<std::mutex> lock(renders_mutex_);
-        auto it = renders_.find(render_id);
+        auto it = renders_.find(track_sid);
         if (it == renders_.end()) {
             return false;
         }
