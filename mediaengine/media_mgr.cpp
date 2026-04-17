@@ -17,7 +17,11 @@
 #include "media_mgr.h"
 
 #include "media.h"
+#include "media_qcam.h"
 #include "fallback_capture.h"
+
+#include <QCameraDevice>
+#include <QMediaDevices>
 
 #include <QDebug>
 
@@ -141,35 +145,20 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
     cam_source_ = video_source;
     cam_running_.store(true, std::memory_order_relaxed);
 
-    // Try SDL
-    if (!ensureSDLInit(SDL_INIT_CAMERA)) {
-        qWarning() << __FUNCTION__ << "No SDL camera subsystem, using fake video loop.";
-        cam_using_ = false;
-        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, std::ref(cam_running_));
-        return true;
-    }
-
-    int camCount = 0;
-    SDL_CameraID *cams = SDL_GetCameras(&camCount);
-    if (!cams || camCount == 0) {
+    // Check for available cameras via Qt
+    const QList<QCameraDevice> cameras = QMediaDevices::videoInputs();
+    if (cameras.isEmpty()) {
         qWarning() << __FUNCTION__ << "No camera devices found, using fake video loop.";
-        if (cams)
-            SDL_free(cams);
         cam_using_ = false;
         cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, std::ref(cam_running_));
         return true;
     }
-
-    SDL_free(cams);
 
     cam_using_ = true;
-    cam_ = std::make_unique<CamSource>(
+    cam_ = std::make_unique<QCamSource>(
         1280, 720, 30,
-        SDL_PIXELFORMAT_RGBA32, // Note SDL_PIXELFORMAT_RGBA8888 is not compatable
-        // with Livekit RGBA format.
         [src = cam_source_](const uint8_t *pixels, int pitch, int width,
-                            int height, SDL_PixelFormat /*fmt*/,
-                            Uint64 timestampNS) {
+                            int height, int64_t timestampNs) {
             auto frame = livekit::VideoFrame::create(width, height, livekit::VideoBufferType::RGBA);
             uint8_t *dst = frame.data();
             const int dstPitch = width * 4;
@@ -178,36 +167,36 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
                 std::memcpy(dst + y * dstPitch, pixels + y * pitch, dstPitch);
             }
 
+            // add frame to local render
+            
+
+            // add frame to video source;
             try {
-                src->captureFrame(frame, timestampNS / 1000, livekit::VideoRotation::VIDEO_ROTATION_0);
+                src->captureFrame(frame, timestampNs / 1000, livekit::VideoRotation::VIDEO_ROTATION_0);
             } catch (const std::exception &e) {
-                qCritical() << __FUNCTION__ << "Error in captureFrame (SDL cam):" << e.what();
+                qCritical() << __FUNCTION__ << "Error in captureFrame (Qt cam):" << e.what();
             }
         });
 
     if (!cam_->init()) {
-        qWarning() << __FUNCTION__ << "Failed to init SDL camera, using fake video loop.";
+        qWarning() << __FUNCTION__ << "Failed to init Qt camera, using fake video loop.";
         cam_using_ = false;
         cam_.reset();
         cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, std::ref(cam_running_));
         return true;
     }
 
-    cam_thread_ = std::thread(&MediaMgr::cameraLoopSDL, this);
+    // QCamSource delivers frames via Qt's event system; no pump thread needed.
     return true;
-}
-
-void MediaMgr::cameraLoopSDL() {
-    while (cam_running_.load(std::memory_order_relaxed)) {
-        cam_->pump();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
 }
 
 void MediaMgr::stopCamera() {
     cam_running_.store(false, std::memory_order_relaxed);
     if (cam_thread_.joinable()) {
         cam_thread_.join();
+    }
+    if (cam_) {
+        cam_->stop();
     }
     cam_.reset();
     cam_source_.reset();
@@ -450,7 +439,7 @@ void MediaMgr::renderLoop(const std::string &track_sid,
     worker->running.store(false, std::memory_order_relaxed);
 }
 
-bool MediaMgr::copyLatestVideoFrame(const std::string &track_sid,
+bool MediaMgr::copyVideoFrame(const std::string &track_sid,
                                     std::vector<std::uint8_t> &rgba, int &width, int &height) {
     std::shared_ptr<RenderWorker> worker;
     {

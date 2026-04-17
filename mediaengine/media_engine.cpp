@@ -141,7 +141,7 @@ void MediaEngine::stopVideoRender() {
     media_mgr_->stopAllRenders();
 }
 
-bool MediaEngine::copyLatestVideoFrame(const std::string &track_sid,
+bool MediaEngine::copyVideoFrame(const std::string &track_sid,
                                        std::vector<std::uint8_t> &rgba, int &width, int &height) {
-    return media_mgr_->copyLatestVideoFrame(track_sid, rgba, width, height);
+    return media_mgr_->copyVideoFrame(track_sid, rgba, width, height);
 }

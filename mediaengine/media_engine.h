@@ -29,7 +29,7 @@ public:
     bool startVideoRender(const std::shared_ptr<livekit::VideoStream> &video_stream, const std::string &track_sid);
     void stopAudioSpeaker();
     void stopVideoRender();
-    bool copyLatestVideoFrame(const std::string &track_sid, std::vector<std::uint8_t> &rgba, int &width, int &height);
+    bool copyVideoFrame(const std::string &track_sid, std::vector<std::uint8_t> &rgba, int &width, int &height);
 
 private:
     explicit MediaEngine();

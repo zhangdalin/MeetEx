@@ -4,13 +4,14 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 
-VideoGLWidget::VideoGLWidget(const QString &participant_identity, const QString &track_sid, QWidget *parent)
+VideoGLWidget::VideoGLWidget(const QString &participant_identity, const QString &track_sid, bool is_local, QWidget *parent)
     : QOpenGLWidget(parent)
     , participant_identity_(participant_identity)
     , track_sid_(track_sid)
+    , is_local_(is_local)
 {
     QVBoxLayout *layout = new QVBoxLayout(this);
-    QPushButton *btn = new QPushButton("按钮");
+    QPushButton *btn = new QPushButton(is_local_ ? "本地视频" : "远程视频");
     layout->addWidget(btn);
     layout->setAlignment(btn, Qt::AlignBottom | Qt::AlignCenter);
 }
@@ -57,16 +58,33 @@ void VideoGLWidget::paintGL()
     int width = 0;
     int height = 0;
 
-    if (MediaEngine::instance().copyLatestVideoFrame(track_sid_.toStdString(), rgba, width, height)) {
-        frame_rgba_ = std::move(rgba);
-        frame_width_ = width;
-        frame_height_ = height;
+    if (is_local_) {
+        // get local video frames;
+        if (MediaEngine::instance().copyVideoFrame(track_sid_.toStdString(), rgba, width, height)) {
+            frame_rgba_ = std::move(rgba);
+            frame_width_ = width;
+            frame_height_ = height;
 
-        ensureTexture(frame_width_, frame_height_);
-        if (texture_) {
-            texture_->bind();
-            texture_->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, frame_rgba_.data());
-            texture_->release();
+            ensureTexture(frame_width_, frame_height_);
+            if (texture_) {
+                texture_->bind();
+                texture_->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, frame_rgba_.data());
+                texture_->release();
+            }
+        }
+    } else {
+        // get remote video frames
+        if (MediaEngine::instance().copyVideoFrame(track_sid_.toStdString(), rgba, width, height)) {
+            frame_rgba_ = std::move(rgba);
+            frame_width_ = width;
+            frame_height_ = height;
+
+            ensureTexture(frame_width_, frame_height_);
+            if (texture_) {
+                texture_->bind();
+                texture_->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, frame_rgba_.data());
+                texture_->release();
+            }
         }
     }
 

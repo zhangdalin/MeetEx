@@ -36,6 +36,7 @@ InMeeting::InMeeting(QWidget *parent)
     , meetingEngine_(std::make_unique<MeetingEngine>())
 {
     ui->setupUi(this);
+    localVideoWidget_ = new VideoGLWidget("", "", true, this);
 
     connect(meetingEngine_->room(), &MeetingRoom::sigParticipantJoined,
             this, &InMeeting::onParticipantJoined);
@@ -80,7 +81,29 @@ void InMeeting::toggleVideo()
     if (button->text() == "开启视频") {
         meetingEngine_->startVideo();
         button->setText("关闭视频");
+        // 将本地视频作为第一个 widget 插入
+        auto localUser = meetingEngine_->room()->getLocalUser();
+        if (localUser) {
+            QString identity = QString::fromStdString(localUser->identity());
+            QString trackSid = QString::fromStdString(localUser->videoSid());
+            auto *localWidget = new VideoGLWidget(identity, trackSid, true, this);
+            videoWidgets_.insert(videoWidgets_.begin(), localWidget);
+            updateVideoWidgets();
+        }
     } else {
+        // 移除本地视频 widget
+        auto localUser = meetingEngine_->room()->getLocalUser();
+        if (localUser) {
+            QString identity = QString::fromStdString(localUser->identity());
+            auto it = std::find_if(videoWidgets_.begin(), videoWidgets_.end(),
+                [&identity](VideoGLWidget *w) { return w->participantIdentity() == identity; });
+            if (it != videoWidgets_.end()) {
+                ui->gridLayout->removeWidget(*it);
+                (*it)->deleteLater();
+                videoWidgets_.erase(it);
+                updateVideoWidgets();
+            }
+        }
         meetingEngine_->stopVideo();
         button->setText("开启视频");
     }
@@ -148,7 +171,7 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
         break;
     case TrackKind::VIDEO:
     {
-         auto videoWidget = new VideoGLWidget(participantIdentity, trackSid, this);
+         auto videoWidget = new VideoGLWidget(participantIdentity, trackSid, false, this);
             videoWidgets_.push_back(videoWidget);
             updateVideoWidgets();
          break;

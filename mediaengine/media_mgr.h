@@ -41,7 +41,7 @@ class VideoStream;
 
 // Forward-declared SDL helpers (you can also keep these separate if you like)
 class MicSource;
-class CamSource;
+class QCamSource;
 
 // SDLMediaManager gives you dedicated control over:
 // - mic capture  -> AudioSource
@@ -70,7 +70,7 @@ public:
     // Following APIs must be called on main thread
     bool startRender(const std::shared_ptr<livekit::VideoStream> &video_stream, const std::string &track_sid);
     void stopAllRenders();
-    bool copyLatestVideoFrame(const std::string &track_sid, std::vector<std::uint8_t> &rgba, int &width, int &height);
+    bool copyVideoFrame(const std::string &track_sid, std::vector<std::uint8_t> &rgba, int &width, int &height);
 
 private:
     // ---- SDL bootstrap helpers ----
@@ -81,7 +81,6 @@ private:
     void micLoopNoise();
 
     // ---- Camera helpers ----
-    void cameraLoopSDL();
     void cameraLoopFake();
 
     // ---- Speaker helpers (TODO: wire AudioStream -> SDL audio) ----
@@ -108,7 +107,7 @@ private:
 
     // Camera
     std::shared_ptr<livekit::VideoSource> cam_source_;
-    std::unique_ptr<CamSource> cam_;
+    std::unique_ptr<QCamSource> cam_;
     std::thread cam_thread_;
     std::atomic<bool> cam_running_{false};
     bool cam_using_ = false;

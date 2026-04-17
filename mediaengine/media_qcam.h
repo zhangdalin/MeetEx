@@ -41,7 +41,7 @@ public:
     bool isValid() const { return camera_ != nullptr && camera_->isActive(); }
 
 private slots:
-    void onVideoFrameReceived(const QVideoFrame &frame);
+    void videoFrameChanged(const QVideoFrame &frame);
 
 private:
     QCamera *camera_ = nullptr;

@@ -39,7 +39,7 @@ bool QCamSource::init()
     captureSession_->setVideoSink(videoSink_);
 
     connect(videoSink_, &QVideoSink::videoFrameChanged,
-            this, &QCamSource::onVideoFrameReceived);
+            this, &QCamSource::videoFrameChanged);
 
     camera_->start();
 
@@ -71,7 +71,7 @@ void QCamSource::stop()
     camera_ = nullptr;
 }
 
-void QCamSource::onVideoFrameReceived(const QVideoFrame &frame)
+void QCamSource::videoFrameChanged(const QVideoFrame &frame)
 {
     if (!callback_ || !frame.isValid()) {
         return;

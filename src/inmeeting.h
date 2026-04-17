@@ -48,6 +48,7 @@ private:
 private:
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
+    VideoGLWidget* localVideoWidget_;
     std::vector<VideoGLWidget*> videoWidgets_;
 };
 

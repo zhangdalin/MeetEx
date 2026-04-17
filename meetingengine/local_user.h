@@ -11,6 +11,7 @@ public:
     std::string identity() const;
     std::string name() const;
     std::string metadata() const;
+    std::string videoSid() const { return video_sid_; }
 
     bool openAudio();
     void closeAudio();

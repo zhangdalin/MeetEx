@@ -15,11 +15,12 @@ class VideoGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
     Q_OBJECT
 
 public:
-    explicit VideoGLWidget(const QString &participant_identity, const QString &track_sid, QWidget *parent = nullptr);
+    explicit VideoGLWidget(const QString &participant_identity, const QString &track_sid, bool is_local = false, QWidget *parent = nullptr);
     ~VideoGLWidget() override;
 
     const QString& participantIdentity() const { return participant_identity_; }
     const QString& trackSid() const { return track_sid_; }
+    bool isLocal() const { return is_local_; }
 
 protected:
     void initializeGL() override;
@@ -32,6 +33,7 @@ private:
 private:
     QString participant_identity_;
     QString track_sid_;
+    bool is_local_ = false;
     QOpenGLShaderProgram program_;
     QOpenGLTexture *texture_ = nullptr;
     int frame_width_ = 0;
