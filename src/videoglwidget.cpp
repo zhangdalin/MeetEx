@@ -9,7 +9,6 @@ VideoGLWidget::VideoGLWidget(QWidget *parent)
     , participant_identity_("")
     , track_sid_("")
     , is_local_(false)
-    , frame_buff_(std::make_unique<VideoFrameBuff>())
 {
     QVBoxLayout *layout = new QVBoxLayout(this);
     QPushButton *btn = new QPushButton(is_local_ ? "本地视频" : "远程视频");
@@ -62,23 +61,7 @@ void VideoGLWidget::paintGL()
         return;
     }
 
-    if (is_local_) {
-        // get local video frames from MediaEngine
-        {
-            std::lock_guard<std::mutex> lock(frame_buff_->mutex);
-            tmpBuff.rgba = std::move(frame_buff_->rgba);
-            tmpBuff.width = frame_buff_->width;
-            tmpBuff.height = frame_buff_->height;
-        }
-        ensureTexture(tmpBuff.width, tmpBuff.height);
-        if (texture_) {
-            texture_->bind();
-            texture_->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, tmpBuff.rgba.data());
-            texture_->release();
-        }
-
-    }  else if (MediaEngine::instance().copyVideoFrame(track_sid_, &tmpBuff)) {
-        // get remote video frames from MediaEngine
+    if (MediaEngine::instance().copyVideoFrame(track_sid_, tmpBuff)) {
         ensureTexture(tmpBuff.width, tmpBuff.height);
         if (texture_) {
             texture_->bind();

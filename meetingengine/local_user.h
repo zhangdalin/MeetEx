@@ -19,7 +19,7 @@ public:
     bool openAudio();
     void closeAudio();
 
-    bool openVideo(std::string& localVideoSid, VideoFrameBuff* frameBuff);
+    bool openVideo(std::string& localVideoSid);
     void closeVideo();
 
     void closeSpeaker();

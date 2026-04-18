@@ -7,15 +7,6 @@
 #include <vector>
 #include <mutex>
 
-class MediaMgr;
-
-struct VideoFrameBuff {
-    std::mutex mutex;
-    std::vector<uint8_t> rgba;
-    int width = 0;
-    int height = 0;
-};
-
 class MediaEngine {
 public:
     static MediaEngine &instance() {
@@ -30,7 +21,7 @@ public:
     bool startLocalAudio(livekit::LocalParticipant* participant, std::string& sid);
     void stopLocalAudio(livekit::LocalParticipant* participant, const std::string& sid);
 
-    bool startLocalVideo(livekit::LocalParticipant* participant, std::string& sid, VideoFrameBuff* frameBuff);
+    bool startLocalVideo(livekit::LocalParticipant* participant, std::string& sid);
     void stopLocalVideo(livekit::LocalParticipant* participant, const std::string& sid);
 
     bool startShareLocalScreen(livekit::LocalParticipant* participant, std::string& sid);
@@ -42,7 +33,7 @@ public:
     void stopAudioSpeaker();
     void stopVideoRender();
 
-    bool copyVideoFrame(const std::string &track_sid, VideoFrameBuff* frameBuff);
+    bool copyVideoFrame(const std::string &track_sid, VideoFrameBuff& frameBuff);
 
 private:
     explicit MediaEngine();

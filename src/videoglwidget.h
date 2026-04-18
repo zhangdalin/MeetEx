@@ -23,7 +23,6 @@ public:
     std::string& participantIdentity() { return participant_identity_; }
     std::string& trackSid() { return track_sid_; }
     bool isLocal() { return is_local_; }
-    VideoFrameBuff* frameBuff() { return frame_buff_.get(); }
 
     void setParticipantIdentity(const std::string &participant_identity) { participant_identity_ = participant_identity; }
     void setTrackSid(const std::string &track_sid) { track_sid_ = track_sid; }
@@ -41,8 +40,6 @@ private:
     std::string participant_identity_;
     std::string track_sid_;
     bool is_local_ = false;
-
-    std::unique_ptr<VideoFrameBuff> frame_buff_;
 
     QOpenGLShaderProgram program_;
     QOpenGLTexture *texture_ = nullptr;

@@ -20,7 +20,7 @@ public:
     bool startAudio();
     void stopAudio();
 
-    bool startVideo(std::string& localVideoSid, VideoFrameBuff* frameBuff);
+    bool startVideo(std::string& localVideoSid);
     void stopVideo();
     std::string localUserIdentity() const;
     std::string localVideoSid() const;

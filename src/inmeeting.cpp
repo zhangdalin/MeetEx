@@ -61,7 +61,7 @@ InMeeting::InMeeting(QWidget *parent)
     meetingEngine_->startAudio();
     ui->muteBtn->setText("静音");
 
-    meetingEngine_->startVideo(localVideoWidget->trackSid(), localVideoWidget->frameBuff());
+    meetingEngine_->startVideo(localVideoWidget->trackSid());
     ui->videoBtn->setText("关闭视频");
 }
 
@@ -88,7 +88,7 @@ void InMeeting::toggleVideo()
     qInfo() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (button->text() == "开启视频") {
-        meetingEngine_->startVideo(videoWidgets_[0]->trackSid(), videoWidgets_[0]->frameBuff());
+        meetingEngine_->startVideo(videoWidgets_[0]->trackSid());
         button->setText("关闭视频");
     } else {
         meetingEngine_->stopVideo();

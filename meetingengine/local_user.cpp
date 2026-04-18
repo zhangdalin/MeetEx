@@ -42,8 +42,8 @@ void LocalUser::closeAudio() {
     audio_sid_.clear();
 }
 
-bool LocalUser::openVideo(std::string& localVideoSid, VideoFrameBuff* frameBuff) {
-    if (!MediaEngine::instance().startLocalVideo(participant_, video_sid_, frameBuff)) {
+bool LocalUser::openVideo(std::string& localVideoSid) {
+    if (!MediaEngine::instance().startLocalVideo(participant_, video_sid_)) {
         return false;
     }
     localVideoSid = video_sid_;

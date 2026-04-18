@@ -42,7 +42,13 @@ class VideoStream;
 // Forward-declared SDL helpers (you can also keep these separate if you like)
 class MicSource;
 class QCamSource;
-struct VideoFrameBuff;
+
+struct VideoFrameBuff {
+    std::mutex mutex;
+    std::vector<uint8_t> rgba;
+    int width = 0;
+    int height = 0;
+};
 
 // SDLMediaManager gives you dedicated control over:
 // - mic capture  -> AudioSource
@@ -60,7 +66,7 @@ public:
     void stopMic();
 
     // Camera (local capture -> VideoSource)
-    bool startCamera(const std::shared_ptr<livekit::VideoSource> &video_source, VideoFrameBuff* frameBuff);
+    bool startCamera(const std::shared_ptr<livekit::VideoSource> &video_source, const std::string &track_sid);
     void stopCamera();
 
     // Speaker (remote audio playback)
@@ -71,7 +77,7 @@ public:
     // Following APIs must be called on main thread
     bool startRender(const std::shared_ptr<livekit::VideoStream> &video_stream, const std::string &track_sid);
     void stopAllRenders();
-    bool copyVideoFrame(const std::string &track_sid, VideoFrameBuff* frameBuff);
+    bool copyVideoFrame(const std::string &track_sid, VideoFrameBuff& frameBuff);
 
 private:
     // ---- SDL bootstrap helpers ----
@@ -91,10 +97,7 @@ private:
         std::shared_ptr<livekit::VideoStream> stream;
         std::thread thread;
         std::atomic<bool> running{false};
-        std::mutex frame_mutex;
-        std::vector<std::uint8_t> latest_rgba;
-        int latest_width = 0;
-        int latest_height = 0;
+        VideoFrameBuff frameBuff;
     };
 
     void renderLoop(const std::string &track_sid, const std::shared_ptr<RenderWorker> &worker);

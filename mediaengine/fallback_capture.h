@@ -35,5 +35,5 @@ void runNoiseCaptureLoop(const std::shared_ptr<livekit::AudioSource> &source,
 
 void runFakeVideoCaptureLoop(
     const std::shared_ptr<livekit::VideoSource> &source,
-    VideoFrameBuff* frameBuff,
+    VideoFrameBuff& frameBuff,
     std::atomic<bool> &running_flag);

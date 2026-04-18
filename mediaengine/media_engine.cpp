@@ -80,7 +80,7 @@ void MediaEngine::stopLocalAudio(livekit::LocalParticipant* participant, const s
     media_mgr_->stopMic();
 }
 
-bool MediaEngine::startLocalVideo(livekit::LocalParticipant* participant, std::string& sid, VideoFrameBuff* frameBuff) {
+bool MediaEngine::startLocalVideo(livekit::LocalParticipant* participant, std::string& sid) {
     // Setup Video Source / Track
     auto videoSource = std::make_shared<livekit::VideoSource>(VIDEO_WIDTH, VIDEO_HEIGHT);
     auto videoTrack = livekit::LocalVideoTrack::createLocalVideoTrack(VIDEO_TRACK_NAME, videoSource);
@@ -107,7 +107,7 @@ bool MediaEngine::startLocalVideo(livekit::LocalParticipant* participant, std::s
         qCritical() << __FUNCTION__ << "Failed to publish video track: " << e.what();
     }
 
-    return media_mgr_->startCamera(videoSource, frameBuff);
+    return media_mgr_->startCamera(videoSource, sid);
 }
 
 void MediaEngine::stopLocalVideo(livekit::LocalParticipant* participant, const std::string& sid) {
@@ -141,6 +141,6 @@ void MediaEngine::stopVideoRender() {
     media_mgr_->stopAllRenders();
 }
 
-bool MediaEngine::copyVideoFrame(const std::string &track_sid, VideoFrameBuff* frameBuff) {
+bool MediaEngine::copyVideoFrame(const std::string &track_sid, VideoFrameBuff& frameBuff) {
     return media_mgr_->copyVideoFrame(track_sid, frameBuff);
 }

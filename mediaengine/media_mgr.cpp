@@ -134,12 +134,30 @@ void MediaMgr::stopMic() {
 
 // ---------- Camera control ----------
 
-bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_source, VideoFrameBuff* frameBuff) {
+bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_source, const std::string &track_sid) {
     stopCamera();
 
     if (!video_source) {
         qCritical() << __FUNCTION__ << "startCamera: videoSource is null";
         return false;
+    }
+
+    auto worker = std::make_shared<RenderWorker>();
+    worker->stream.reset();
+    worker->running.store(true, std::memory_order_relaxed);
+
+    std::shared_ptr<RenderWorker> old_worker = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(renders_mutex_);
+        auto it = renders_.find(track_sid);
+        if (it != renders_.end()) {
+            old_worker = it->second;
+        }
+        renders_[track_sid] = worker;
+    }
+
+    if (old_worker) {
+        old_worker->running.store(false, std::memory_order_relaxed);
     }
 
     cam_source_ = video_source;
@@ -150,14 +168,15 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
     if (cameras.isEmpty()) {
         qWarning() << __FUNCTION__ << "No camera devices found, using fake video loop.";
         cam_using_ = false;
-        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, frameBuff, std::ref(cam_running_));
+        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, 
+            std::ref(worker->frameBuff), std::ref(cam_running_));
         return true;
     }
 
     cam_using_ = true;
     cam_ = std::make_unique<QCamSource>(
         1280, 720, 30,
-        [src = cam_source_, buff = frameBuff](const uint8_t *pixels, int pitch, int width,
+        [src = cam_source_, buff = &(worker->frameBuff)](const uint8_t *pixels, int pitch, int width,
                             int height, int64_t timestampNs) {
             auto frame = livekit::VideoFrame::create(width, height, livekit::VideoBufferType::RGBA);
             uint8_t *dst = frame.data();
@@ -190,7 +209,8 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
         qWarning() << __FUNCTION__ << "Failed to init Qt camera, using fake video loop.";
         cam_using_ = false;
         cam_.reset();
-        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, frameBuff, std::ref(cam_running_));
+        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, 
+            std::ref(worker->frameBuff), std::ref(cam_running_));
         return true;
     }
 
@@ -439,17 +459,17 @@ void MediaMgr::renderLoop(const std::string &track_sid,
         std::memcpy(rgba.data(), frame.data(), static_cast<size_t>(rgba_size));
 
         {
-            std::lock_guard<std::mutex> lock(worker->frame_mutex);
-            worker->latest_rgba = std::move(rgba);
-            worker->latest_width = width;
-            worker->latest_height = height;
+            std::lock_guard<std::mutex> lock(worker->frameBuff.mutex);
+            worker->frameBuff.rgba = std::move(rgba);
+            worker->frameBuff.width = width;
+            worker->frameBuff.height = height;
         }
     }
 
     worker->running.store(false, std::memory_order_relaxed);
 }
 
-bool MediaMgr::copyVideoFrame(const std::string &track_sid, VideoFrameBuff* frameBuff) {
+bool MediaMgr::copyVideoFrame(const std::string &track_sid, VideoFrameBuff& frameBuff) {
     std::shared_ptr<RenderWorker> worker;
     {
         std::lock_guard<std::mutex> lock(renders_mutex_);
@@ -460,13 +480,13 @@ bool MediaMgr::copyVideoFrame(const std::string &track_sid, VideoFrameBuff* fram
         worker = it->second;
     }
 
-    std::lock_guard<std::mutex> lock(worker->frame_mutex);
-    if (worker->latest_rgba.empty() || worker->latest_width <= 0 || worker->latest_height <= 0) {
+    std::lock_guard<std::mutex> lock(worker->frameBuff.mutex);
+    if (worker->frameBuff.rgba.empty() || worker->frameBuff.width <= 0 || worker->frameBuff.height <= 0) {
         return false;
     }
 
-    frameBuff->rgba = worker->latest_rgba;
-    frameBuff->width = worker->latest_width;
-    frameBuff->height = worker->latest_height;
+    frameBuff.rgba = worker->frameBuff.rgba;
+    frameBuff.width = worker->frameBuff.width;
+    frameBuff.height = worker->frameBuff.height;
     return true;
 }
