@@ -27,7 +27,7 @@ public:
     bool startShareLocalScreen(livekit::LocalParticipant* participant, std::string& sid);
     void stopShareLocalScreen(livekit::LocalParticipant* participant, const std::string& sid);
 
-    bool startAudioSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream);
+    bool startAudioSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid);
     bool startVideoRender(const std::shared_ptr<livekit::VideoStream> &video_stream, const std::string &track_sid);
 
     void stopAudioSpeaker();

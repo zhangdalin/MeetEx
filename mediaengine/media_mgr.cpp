@@ -232,7 +232,7 @@ void MediaMgr::stopCamera() {
 
 // ---------- Speaker control (placeholder) ----------
 
-bool MediaMgr::startSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream) {
+bool MediaMgr::startSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid) {
     stopSpeaker();
 
     if (!audio_stream) {

@@ -213,7 +213,7 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
             qCritical() << __FUNCTION__ << "Failed to create AudioStream for track " << track_sid;
             return;
         }
-        if (!MediaEngine::instance().startAudioSpeaker(audio_stream)) {
+        if (!MediaEngine::instance().startAudioSpeaker(audio_stream, track_sid.toStdString())) {
             qCritical() << __FUNCTION__ << "MeetingRoom::startAudioSpeaker failed for track " << track_sid;
         }
     }

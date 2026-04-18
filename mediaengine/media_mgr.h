@@ -70,7 +70,7 @@ public:
     void stopCamera();
 
     // Speaker (remote audio playback)
-    bool startSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream);
+    bool startSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid);
     void stopSpeaker();
 
     // Renderer (remote video rendering)
