@@ -5,8 +5,16 @@
 
 #include <cstdint>
 #include <vector>
+#include <mutex>
 
 class MediaMgr;
+
+struct VideoFrameBuff {
+    std::mutex mutex;
+    std::vector<uint8_t> rgba;
+    int width = 0;
+    int height = 0;
+};
 
 class MediaEngine {
 public:
@@ -21,15 +29,20 @@ public:
     bool fini();
     bool startLocalAudio(livekit::LocalParticipant* participant, std::string& sid);
     void stopLocalAudio(livekit::LocalParticipant* participant, const std::string& sid);
-    bool startLocalVideo(livekit::LocalParticipant* participant, std::string& sid);
+
+    bool startLocalVideo(livekit::LocalParticipant* participant, std::string& sid, VideoFrameBuff* frameBuff);
     void stopLocalVideo(livekit::LocalParticipant* participant, const std::string& sid);
+
     bool startShareLocalScreen(livekit::LocalParticipant* participant, std::string& sid);
     void stopShareLocalScreen(livekit::LocalParticipant* participant, const std::string& sid);
+
     bool startAudioSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream);
     bool startVideoRender(const std::shared_ptr<livekit::VideoStream> &video_stream, const std::string &track_sid);
+
     void stopAudioSpeaker();
     void stopVideoRender();
-    bool copyVideoFrame(const std::string &track_sid, std::vector<std::uint8_t> &rgba, int &width, int &height);
+
+    bool copyVideoFrame(const std::string &track_sid, VideoFrameBuff* frameBuff);
 
 private:
     explicit MediaEngine();

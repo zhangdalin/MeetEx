@@ -3,6 +3,8 @@
 
 #include "livekit/livekit.h"
 
+struct VideoFrameBuff;
+
 class LocalUser {
 public:
     explicit LocalUser(livekit::LocalParticipant* participant);
@@ -11,12 +13,15 @@ public:
     std::string identity() const;
     std::string name() const;
     std::string metadata() const;
-    std::string videoSid() const { return video_sid_; }
+    const std::string& videoSid() const { return video_sid_; }
+    const std::string& audioSid() const { return audio_sid_; }
 
     bool openAudio();
     void closeAudio();
-    bool openVideo();
+
+    bool openVideo(std::string& localVideoSid, VideoFrameBuff* frameBuff);
     void closeVideo();
+
     void closeSpeaker();
     void closeRenderer();
 

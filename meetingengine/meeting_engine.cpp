@@ -48,10 +48,10 @@ void MeetingEngine::stopAudio() {
     }
 }
 
-bool MeetingEngine::startVideo() {
+bool MeetingEngine::startVideo(std::string& localVideoSid, VideoFrameBuff* frameBuff) {
     auto localUser = room_->getLocalUser();
     if (localUser) {
-        localUser->openVideo();
+        localUser->openVideo(localVideoSid, frameBuff);
     } else {
         qCritical() << __FUNCTION__ << "No local user available to start video";
         return false;
@@ -66,4 +66,20 @@ void MeetingEngine::stopVideo() {
     } else {
         qCritical() << __FUNCTION__ << "No local user available to stop video";
     }
+}
+
+std::string MeetingEngine::localUserIdentity() const {
+    auto localUser = room_->getLocalUser();
+    if (!localUser) {
+        return "";
+    }
+    return localUser->identity();
+}
+
+std::string MeetingEngine::localVideoSid() const {
+    auto localUser = room_->getLocalUser();
+    if (!localUser) {
+        return "";
+    }
+    return localUser->videoSid();
 }

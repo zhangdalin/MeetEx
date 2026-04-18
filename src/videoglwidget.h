@@ -5,22 +5,29 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 #include <QOpenGLWidget>
-#include <QString>
 
 #include <cstdint>
 #include <vector>
+#include <string>
+#include <memory>
 
+struct VideoFrameBuff;
 class VideoGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
 
 public:
-    explicit VideoGLWidget(const QString &participant_identity, const QString &track_sid, bool is_local = false, QWidget *parent = nullptr);
+    explicit VideoGLWidget(QWidget *parent = nullptr);
     ~VideoGLWidget() override;
 
-    const QString& participantIdentity() const { return participant_identity_; }
-    const QString& trackSid() const { return track_sid_; }
-    bool isLocal() const { return is_local_; }
+    std::string& participantIdentity() { return participant_identity_; }
+    std::string& trackSid() { return track_sid_; }
+    bool isLocal() { return is_local_; }
+    VideoFrameBuff* frameBuff() { return frame_buff_.get(); }
+
+    void setParticipantIdentity(const std::string &participant_identity) { participant_identity_ = participant_identity; }
+    void setTrackSid(const std::string &track_sid) { track_sid_ = track_sid; }
+    void setLocal(bool is_local = true) { is_local_ = is_local; }
 
 protected:
     void initializeGL() override;
@@ -31,14 +38,14 @@ private:
     void updateViewportForAspect(int frameWidth, int frameHeight);
 
 private:
-    QString participant_identity_;
-    QString track_sid_;
+    std::string participant_identity_;
+    std::string track_sid_;
     bool is_local_ = false;
+
+    std::unique_ptr<VideoFrameBuff> frame_buff_;
+
     QOpenGLShaderProgram program_;
     QOpenGLTexture *texture_ = nullptr;
-    int frame_width_ = 0;
-    int frame_height_ = 0;
-    std::vector<std::uint8_t> frame_rgba_;
 };
 
 #endif // VIDEOGLWIDGET_H

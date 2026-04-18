@@ -16,6 +16,7 @@
 
 #include "fallback_capture.h"
 #include "wav_audio_source.h"
+#include "media_engine.h"
 
 #include <QDebug>
 #include <array>
@@ -62,7 +63,8 @@ void runNoiseCaptureLoop(const std::shared_ptr<livekit::AudioSource> &source,
 
 // Fake video source: solid color cycling
 void runFakeVideoCaptureLoop(const std::shared_ptr<livekit::VideoSource> &source,
-                             std::atomic<bool> &running_flag) {
+                            VideoFrameBuff* frameBuff,
+                            std::atomic<bool> &running_flag) {
     auto frame = livekit::VideoFrame::create(1280, 720, livekit::VideoBufferType::BGRA);
     const double framerate = 1.0 / 30.0;
 
@@ -101,6 +103,18 @@ void runFakeVideoCaptureLoop(const std::shared_ptr<livekit::VideoSource> &source
             data[i + 3] = rgb[2]; // B
         }
 
+        // add frame to local render
+        if (frameBuff) {
+            std::lock_guard<std::mutex> lock(frameBuff->mutex);
+            const int rgba_size = frame.width() * frame.height() * 4;
+            std::vector<std::uint8_t> rgba(static_cast<size_t>(rgba_size));
+            std::memcpy(rgba.data(), frame.data(), static_cast<size_t>(rgba_size));
+            frameBuff->rgba = std::move(rgba);
+            frameBuff->width = frame.width();
+            frameBuff->height = frame.height();
+        }
+
+        // add frame to video source;
         try {
             // If VideoSource is ARGB-capable, pass frame.
             // If it expects I420, pass i420 instead.

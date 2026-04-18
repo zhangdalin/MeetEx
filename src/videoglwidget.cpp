@@ -4,11 +4,12 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 
-VideoGLWidget::VideoGLWidget(const QString &participant_identity, const QString &track_sid, bool is_local, QWidget *parent)
+VideoGLWidget::VideoGLWidget(QWidget *parent)
     : QOpenGLWidget(parent)
-    , participant_identity_(participant_identity)
-    , track_sid_(track_sid)
-    , is_local_(is_local)
+    , participant_identity_("")
+    , track_sid_("")
+    , is_local_(false)
+    , frame_buff_(std::make_unique<VideoFrameBuff>())
 {
     QVBoxLayout *layout = new QVBoxLayout(this);
     QPushButton *btn = new QPushButton(is_local_ ? "本地视频" : "远程视频");
@@ -54,47 +55,45 @@ void VideoGLWidget::initializeGL()
 
 void VideoGLWidget::paintGL()
 {
-    std::vector<std::uint8_t> rgba;
-    int width = 0;
-    int height = 0;
+    VideoFrameBuff tmpBuff{};
+
+    if (participant_identity_.empty() || track_sid_.empty()) {
+        glClear(GL_COLOR_BUFFER_BIT);
+        return;
+    }
 
     if (is_local_) {
-        // get local video frames;
-        if (MediaEngine::instance().copyVideoFrame(track_sid_.toStdString(), rgba, width, height)) {
-            frame_rgba_ = std::move(rgba);
-            frame_width_ = width;
-            frame_height_ = height;
-
-            ensureTexture(frame_width_, frame_height_);
-            if (texture_) {
-                texture_->bind();
-                texture_->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, frame_rgba_.data());
-                texture_->release();
-            }
+        // get local video frames from MediaEngine
+        {
+            std::lock_guard<std::mutex> lock(frame_buff_->mutex);
+            tmpBuff.rgba = std::move(frame_buff_->rgba);
+            tmpBuff.width = frame_buff_->width;
+            tmpBuff.height = frame_buff_->height;
         }
-    } else {
-        // get remote video frames
-        if (MediaEngine::instance().copyVideoFrame(track_sid_.toStdString(), rgba, width, height)) {
-            frame_rgba_ = std::move(rgba);
-            frame_width_ = width;
-            frame_height_ = height;
+        ensureTexture(tmpBuff.width, tmpBuff.height);
+        if (texture_) {
+            texture_->bind();
+            texture_->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, tmpBuff.rgba.data());
+            texture_->release();
+        }
 
-            ensureTexture(frame_width_, frame_height_);
-            if (texture_) {
-                texture_->bind();
-                texture_->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, frame_rgba_.data());
-                texture_->release();
-            }
+    }  else if (MediaEngine::instance().copyVideoFrame(track_sid_, &tmpBuff)) {
+        // get remote video frames from MediaEngine
+        ensureTexture(tmpBuff.width, tmpBuff.height);
+        if (texture_) {
+            texture_->bind();
+            texture_->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, tmpBuff.rgba.data());
+            texture_->release();
         }
     }
 
     glClear(GL_COLOR_BUFFER_BIT);
 
-    if (!texture_ || frame_width_ <= 0 || frame_height_ <= 0) {
+    if (!texture_ || tmpBuff.width <= 0 || tmpBuff.height <= 0) {
         return;
     }
 
-    updateViewportForAspect(frame_width_, frame_height_);
+    updateViewportForAspect(tmpBuff.width, tmpBuff.height);
 
     static const GLfloat vertices[] = {
         -1.0f, -1.0f,

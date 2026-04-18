@@ -107,7 +107,7 @@ std::shared_ptr<LocalUser>& MeetingRoom::getLocalUser() {
         return localUser_;
     }
     else if (!localUser_) {
-        localUser_ = std::make_shared<LocalUser>(localParticipant());
+        localUser_ = std::make_shared<LocalUser>(this->localParticipant());
     }
     return localUser_;
 }
@@ -117,7 +117,7 @@ std::shared_ptr<RemoteUser> MeetingRoom::getRemoteUser(const std::string &identi
         qWarning() << __FUNCTION__ << "getRemoteUser() called but not connected to room";
         return nullptr;
     }
-    auto remote_participant = remoteParticipant(identity);
+    auto remote_participant = this->remoteParticipant(identity);
     if (!remote_participant) {
         qWarning() << __FUNCTION__ << "No remote participant found with identity: " << QString::fromStdString(identity);
         return nullptr;
@@ -131,7 +131,7 @@ std::vector<std::shared_ptr<RemoteUser>> MeetingRoom::getRemoteUsers() {
         qWarning() << __FUNCTION__ << "getRemoteUsers() called but not connected to room";
         return remote_users;
     }
-    auto remote_participants = remoteParticipants();
+    auto remote_participants = this->remoteParticipants();
     for (const auto& participant : remote_participants) {
         if (participant) {
             qDebug() << __FUNCTION__ << "remote user: name=" << QString::fromStdString(participant->name())

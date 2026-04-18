@@ -36,7 +36,8 @@ public slots:
     void openApps();
     void endMeeting();
     void onParticipantJoined(const QString &participantId, const QString &participantName);
-    void onTrackSubscribed(const QString &trackSid, const QString &trackName, const QString &participantIdentity, int trackKind);
+    void onTrackSubscribed(const QString &trackSid, const QString &trackName, 
+        const QString &participantIdentity, int trackKind);
 
 protected:
     void closeEvent(QCloseEvent *event);
@@ -48,7 +49,6 @@ private:
 private:
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
-    VideoGLWidget* localVideoWidget_;
     std::vector<VideoGLWidget*> videoWidgets_;
 };
 

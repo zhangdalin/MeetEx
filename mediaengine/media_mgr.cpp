@@ -15,7 +15,7 @@
  */
 
 #include "media_mgr.h"
-
+#include "media_engine.h"
 #include "media.h"
 #include "media_qcam.h"
 #include "fallback_capture.h"
@@ -134,7 +134,7 @@ void MediaMgr::stopMic() {
 
 // ---------- Camera control ----------
 
-bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_source) {
+bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_source, VideoFrameBuff* frameBuff) {
     stopCamera();
 
     if (!video_source) {
@@ -150,14 +150,14 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
     if (cameras.isEmpty()) {
         qWarning() << __FUNCTION__ << "No camera devices found, using fake video loop.";
         cam_using_ = false;
-        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, std::ref(cam_running_));
+        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, frameBuff, std::ref(cam_running_));
         return true;
     }
 
     cam_using_ = true;
     cam_ = std::make_unique<QCamSource>(
         1280, 720, 30,
-        [src = cam_source_](const uint8_t *pixels, int pitch, int width,
+        [src = cam_source_, buff = frameBuff](const uint8_t *pixels, int pitch, int width,
                             int height, int64_t timestampNs) {
             auto frame = livekit::VideoFrame::create(width, height, livekit::VideoBufferType::RGBA);
             uint8_t *dst = frame.data();
@@ -168,7 +168,15 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
             }
 
             // add frame to local render
-            
+            if (buff) {
+                std::lock_guard<std::mutex> lock(buff->mutex);
+                const int rgba_size = width * height * 4;
+                std::vector<std::uint8_t> rgba(static_cast<size_t>(rgba_size));
+                std::memcpy(rgba.data(), frame.data(), static_cast<size_t>(rgba_size));
+                buff->rgba = std::move(rgba);
+                buff->width = width;
+                buff->height = height;
+            }
 
             // add frame to video source;
             try {
@@ -182,7 +190,7 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
         qWarning() << __FUNCTION__ << "Failed to init Qt camera, using fake video loop.";
         cam_using_ = false;
         cam_.reset();
-        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, std::ref(cam_running_));
+        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, frameBuff, std::ref(cam_running_));
         return true;
     }
 
@@ -358,7 +366,9 @@ bool MediaMgr::startRender(const std::shared_ptr<livekit::VideoStream> &video_st
     try {
         worker->thread = std::thread(&MediaMgr::renderLoop, this, track_sid, worker);
     } catch (const std::exception &e) {
-        qCritical() << __FUNCTION__ << "startRender: failed to start track_sid:" << QString::fromStdString(track_sid) << "thread:" << e.what();
+        qCritical() << __FUNCTION__ 
+                << "startRender: failed to start track_sid:" << QString::fromStdString(track_sid) 
+                << "thread:" << e.what();
 
         {
             std::lock_guard<std::mutex> lock(renders_mutex_);
@@ -439,8 +449,7 @@ void MediaMgr::renderLoop(const std::string &track_sid,
     worker->running.store(false, std::memory_order_relaxed);
 }
 
-bool MediaMgr::copyVideoFrame(const std::string &track_sid,
-                                    std::vector<std::uint8_t> &rgba, int &width, int &height) {
+bool MediaMgr::copyVideoFrame(const std::string &track_sid, VideoFrameBuff* frameBuff) {
     std::shared_ptr<RenderWorker> worker;
     {
         std::lock_guard<std::mutex> lock(renders_mutex_);
@@ -456,8 +465,8 @@ bool MediaMgr::copyVideoFrame(const std::string &track_sid,
         return false;
     }
 
-    rgba = worker->latest_rgba;
-    width = worker->latest_width;
-    height = worker->latest_height;
+    frameBuff->rgba = worker->latest_rgba;
+    frameBuff->width = worker->latest_width;
+    frameBuff->height = worker->latest_height;
     return true;
 }

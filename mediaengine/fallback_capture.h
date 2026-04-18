@@ -28,9 +28,12 @@ namespace livekit
     class VideoSource;
 } // namespace livekit
 
+struct VideoFrameBuff;
+
 void runNoiseCaptureLoop(const std::shared_ptr<livekit::AudioSource> &source,
                          std::atomic<bool> &running_flag);
 
 void runFakeVideoCaptureLoop(
     const std::shared_ptr<livekit::VideoSource> &source,
+    VideoFrameBuff* frameBuff,
     std::atomic<bool> &running_flag);

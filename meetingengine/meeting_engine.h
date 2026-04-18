@@ -2,8 +2,11 @@
 #define MEETING_ENGINE_H
 
 #include <memory>
+#include <string>
+#include <vector>
 
 class MeetingRoom;
+struct VideoFrameBuff;
 class MeetingEngine {
 public:
     explicit MeetingEngine();
@@ -16,8 +19,11 @@ public:
 
     bool startAudio();
     void stopAudio();
-    bool startVideo();
+
+    bool startVideo(std::string& localVideoSid, VideoFrameBuff* frameBuff);
     void stopVideo();
+    std::string localUserIdentity() const;
+    std::string localVideoSid() const;
 
 private:
     std::unique_ptr<MeetingRoom> room_;

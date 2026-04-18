@@ -3,13 +3,21 @@
 #include "meeting_engine.h"
 #include "meeting_room.h"
 #include "meeting_def.h"
+#include "local_user.h"
+#include "remote_user.h"
 #include "videoglwidget.h"
 
 #include <algorithm>
 #include <cmath>
 #include <QTimer>
 
-using namespace std;
+extern std::unique_ptr<QWidget> home;
+extern std::unique_ptr<QWidget> myprofile;
+extern std::unique_ptr<QWidget> joinmeeting;
+extern std::unique_ptr<QWidget> inmeeting;
+extern std::unique_ptr<QWidget> bookmeeting;
+extern std::unique_ptr<QWidget> sharescreen;
+extern std::unique_ptr<QWidget> settings;
 
 static const char* trackKindToMediaTypeString(TrackKind track_kind) {
     switch (track_kind) {
@@ -22,21 +30,15 @@ static const char* trackKindToMediaTypeString(TrackKind track_kind) {
     }
 }
 
-extern unique_ptr<QWidget> home;
-extern unique_ptr<QWidget> myprofile;
-extern unique_ptr<QWidget> joinmeeting;
-extern unique_ptr<QWidget> inmeeting;
-extern unique_ptr<QWidget> bookmeeting;
-extern unique_ptr<QWidget> sharescreen;
-extern unique_ptr<QWidget> settings;
-
 InMeeting::InMeeting(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::InMeeting)
     , meetingEngine_(std::make_unique<MeetingEngine>())
 {
     ui->setupUi(this);
-    localVideoWidget_ = new VideoGLWidget("", "", true, this);
+    auto localVideoWidget = new VideoGLWidget(this);
+    localVideoWidget->setLocal(true);
+    videoWidgets_.push_back(localVideoWidget);
 
     connect(meetingEngine_->room(), &MeetingRoom::sigParticipantJoined,
             this, &InMeeting::onParticipantJoined);
@@ -49,10 +51,17 @@ InMeeting::InMeeting(QWidget *parent)
     timer->start();
 
     meetingEngine_->joinMeeting();
+    auto localUser = meetingEngine_->room()->getLocalUser();
+    if (localUser) {
+        localVideoWidget->setParticipantIdentity(localUser->identity());
+        localVideoWidget->setLocal(true);
+    }
+
     // default unmuted and video on
     meetingEngine_->startAudio();
     ui->muteBtn->setText("静音");
-    meetingEngine_->startVideo();
+
+    meetingEngine_->startVideo(localVideoWidget->trackSid(), localVideoWidget->frameBuff());
     ui->videoBtn->setText("关闭视频");
 }
 
@@ -79,31 +88,9 @@ void InMeeting::toggleVideo()
     qInfo() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (button->text() == "开启视频") {
-        meetingEngine_->startVideo();
+        meetingEngine_->startVideo(videoWidgets_[0]->trackSid(), videoWidgets_[0]->frameBuff());
         button->setText("关闭视频");
-        // 将本地视频作为第一个 widget 插入
-        auto localUser = meetingEngine_->room()->getLocalUser();
-        if (localUser) {
-            QString identity = QString::fromStdString(localUser->identity());
-            QString trackSid = QString::fromStdString(localUser->videoSid());
-            auto *localWidget = new VideoGLWidget(identity, trackSid, true, this);
-            videoWidgets_.insert(videoWidgets_.begin(), localWidget);
-            updateVideoWidgets();
-        }
     } else {
-        // 移除本地视频 widget
-        auto localUser = meetingEngine_->room()->getLocalUser();
-        if (localUser) {
-            QString identity = QString::fromStdString(localUser->identity());
-            auto it = std::find_if(videoWidgets_.begin(), videoWidgets_.end(),
-                [&identity](VideoGLWidget *w) { return w->participantIdentity() == identity; });
-            if (it != videoWidgets_.end()) {
-                ui->gridLayout->removeWidget(*it);
-                (*it)->deleteLater();
-                videoWidgets_.erase(it);
-                updateVideoWidgets();
-            }
-        }
         meetingEngine_->stopVideo();
         button->setText("开启视频");
     }
@@ -157,12 +144,16 @@ void InMeeting::endMeeting()
 
 void InMeeting::onParticipantJoined(const QString &participantId, const QString &participantName)
 {
-    qInfo() << __FUNCTION__ << "new participant joined, name=" << participantName << "id=" << participantId;
+    qInfo() << __FUNCTION__
+            << "new participant joined, name=" << participantName
+            << "id=" << participantId;
 }
 
-void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackName, const QString &participantIdentity, int trackKind)
+void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackName, 
+    const QString &participantIdentity, int trackKind)
 {
-    qInfo() << __FUNCTION__ << "track subscribed, track_sid=" << trackSid
+    qInfo() << __FUNCTION__ 
+            << "track subscribed, track_sid=" << trackSid
             << "track_name=" << trackName
             << "participant_identity=" << participantIdentity
             << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
@@ -171,10 +162,12 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
         break;
     case TrackKind::VIDEO:
     {
-         auto videoWidget = new VideoGLWidget(participantIdentity, trackSid, false, this);
-            videoWidgets_.push_back(videoWidget);
-            updateVideoWidgets();
-         break;
+        auto videoWidget = new VideoGLWidget(this);
+        videoWidget->setParticipantIdentity(participantIdentity.toStdString());
+        videoWidget->setTrackSid(trackSid.toStdString());
+        videoWidget->setLocal(false);
+        videoWidgets_.push_back(videoWidget);
+        updateVideoWidgets();
     }
         break;
     default:

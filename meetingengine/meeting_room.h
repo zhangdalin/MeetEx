@@ -43,7 +43,8 @@ public:
 
 signals:
     void sigParticipantJoined(const QString &participantId, const QString &participantName);
-    void sigTrackSubscribed(const QString &trackSid, const QString &trackName, const QString &participantIdentity, int trackKind);
+    void sigTrackSubscribed(const QString &trackSid, const QString &trackName, 
+        const QString &participantIdentity, int trackKind);
 
 private:
     std::string url_;
