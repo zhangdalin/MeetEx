@@ -182,6 +182,30 @@ void InMeeting::closeEvent(QCloseEvent *event)
     QWidget::closeEvent(event);
 }
 
+void InMeeting::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+
+    const int leftMargin = 20;
+    const int topMargin = 20;
+    const int rightMargin = 20;
+    const int bottomMargin = 20;
+    const int gap = 8;
+    const int toolbarHeight = 32;
+
+    const int contentWidth = std::max(0, width() - leftMargin - rightMargin);
+    const int toolbarY = std::max(topMargin, height() - bottomMargin - toolbarHeight);
+    const int gridHeight = std::max(0, toolbarY - gap - topMargin);
+
+    if (ui->gridLayoutWidget) {
+        ui->gridLayoutWidget->setGeometry(leftMargin, topMargin, contentWidth, gridHeight);
+    }
+
+    if (ui->layoutWidget) {
+        ui->layoutWidget->setGeometry(leftMargin, toolbarY, contentWidth, toolbarHeight);
+    }
+}
+
 void InMeeting::onTimer()
 {
     for (int i = 0; i < ui->gridLayout->count(); ++i) {

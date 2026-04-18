@@ -16,7 +16,7 @@ public:
     ~Login();
 
 protected:
-    void closeEvent(QCloseEvent *event);
+    void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void onLogin();

@@ -40,7 +40,8 @@ public slots:
         const QString &participantIdentity, int trackKind);
 
 protected:
-    void closeEvent(QCloseEvent *event);
+    void closeEvent(QCloseEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
     void onTimer();

@@ -19,7 +19,7 @@ signals:
     void sigClosing();
 
 protected:
-    void closeEvent(QCloseEvent *event);
+    void closeEvent(QCloseEvent *event) override;
 
 private:
     Ui::MyProfile *ui;
