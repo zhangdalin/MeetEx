@@ -202,7 +202,7 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
         }
 
         if (!MediaEngine::instance().startVideoRender(video_stream, track_sid.toStdString())) {
-            qCritical() << __FUNCTION__ << "MeetingRoom::startVideoRender failed for track " << track_sid;
+            qCritical() << __FUNCTION__ << "video render failed for track " << track_sid;
         }
     }
 
@@ -213,8 +213,8 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
             qCritical() << __FUNCTION__ << "Failed to create AudioStream for track " << track_sid;
             return;
         }
-        if (!MediaEngine::instance().startAudioSpeaker(audio_stream, track_sid.toStdString())) {
-            qCritical() << __FUNCTION__ << "MeetingRoom::startAudioSpeaker failed for track " << track_sid;
+        if (!MediaEngine::instance().startAudioPlay(audio_stream, track_sid.toStdString())) {
+            qCritical() << __FUNCTION__ << "audio play failed for track " << track_sid;
         }
     }
 }

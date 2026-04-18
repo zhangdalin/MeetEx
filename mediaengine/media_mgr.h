@@ -69,14 +69,15 @@ public:
     bool startCamera(const std::shared_ptr<livekit::VideoSource> &video_source, const std::string &track_sid);
     void stopCamera();
 
-    // Speaker (remote audio playback)
-    bool startSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid);
-    void stopSpeaker();
+    // Playback (remote audio playback)
+    bool startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid);
+    void stopAllPlayback();
 
     // Renderer (remote video rendering)
     // Following APIs must be called on main thread
     bool startRender(const std::shared_ptr<livekit::VideoStream> &video_stream, const std::string &track_sid);
     void stopAllRenders();
+
     bool copyVideoFrame(const std::string &track_sid, VideoFrameBuff& frameBuff);
 
 private:
@@ -90,8 +91,11 @@ private:
     // ---- Camera helpers ----
     void cameraLoopFake();
 
-    // ---- Speaker helpers (TODO: wire AudioStream -> SDL audio) ----
-    void speakerLoopSDL();
+    struct PlaybackWorker {
+        std::shared_ptr<livekit::AudioStream> stream;
+        std::thread thread;
+        std::atomic<bool> running{false};
+    };
 
     struct RenderWorker {
         std::shared_ptr<livekit::VideoStream> stream;
@@ -100,6 +104,8 @@ private:
         VideoFrameBuff frameBuff;
     };
 
+    // ---- Playback helpers ----
+    void playbackLoopSDL(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker);
     void renderLoop(const std::string &track_sid, const std::shared_ptr<RenderWorker> &worker);
 
     // Mic
@@ -116,11 +122,9 @@ private:
     std::atomic<bool> cam_running_{false};
     bool cam_using_ = false;
 
-    // Speaker (remote audio) – left mostly as a placeholder
-    std::shared_ptr<livekit::AudioStream> speaker_stream_;
-    std::thread speaker_thread_;
-    std::atomic<bool> speaker_running_{false};
-    SDL_AudioStream *audio_stream_ = nullptr;
+    // Playback (remote audio)
+    std::mutex playback_mutex_;
+    std::unordered_map<std::string, std::shared_ptr<PlaybackWorker>> playback_;
 
     // Renderer (remote video)
     std::mutex renders_mutex_;

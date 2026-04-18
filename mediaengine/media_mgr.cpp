@@ -32,7 +32,7 @@ MediaMgr::MediaMgr() = default;
 MediaMgr::~MediaMgr() {
     stopMic();
     stopCamera();
-    stopSpeaker();
+    stopAllPlayback();
     stopAllRenders();
 }
 
@@ -54,7 +54,7 @@ bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_sourc
     stopMic();
 
     if (!audio_source) {
-        qCritical() << __FUNCTION__ << "startMic: audioSource is null";
+        qCritical() << __FUNCTION__ << "audioSource is null";
         return false;
     }
 
@@ -138,7 +138,12 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
     stopCamera();
 
     if (!video_source) {
-        qCritical() << __FUNCTION__ << "startCamera: videoSource is null";
+        qCritical() << __FUNCTION__ << "videoSource is null";
+        return false;
+    }
+
+    if (track_sid.empty()) {
+        qCritical() << __FUNCTION__ << "track_sid is empty";
         return false;
     }
 
@@ -232,48 +237,76 @@ void MediaMgr::stopCamera() {
 
 // ---------- Speaker control (placeholder) ----------
 
-bool MediaMgr::startSpeaker(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid) {
-    stopSpeaker();
-
+bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid) {
     if (!audio_stream) {
-        qCritical() << __FUNCTION__ << "startSpeaker: audioStream is null";
+        qCritical() << __FUNCTION__ << "audioStream is null";
+        return false;
+    }
+
+    if (track_sid.empty()) {
+        qCritical() << __FUNCTION__ << "track_sid is empty";
         return false;
     }
 
     if (!ensureSDLInit(SDL_INIT_AUDIO)) {
-        qCritical() << __FUNCTION__ << "startSpeaker: SDL_INIT_AUDIO failed";
+        qCritical() << __FUNCTION__ << "SDL_INIT_AUDIO failed";
         return false;
     }
 
-    speaker_stream_ = audio_stream;
-    speaker_running_.store(true, std::memory_order_relaxed);
+    auto worker = std::make_shared<PlaybackWorker>();
+    worker->stream = audio_stream;
+    worker->running.store(true, std::memory_order_relaxed);
 
-    // Note, we don't open the speaker since the format is unknown yet.
-    // Instead, open the speaker in the speakerLoopSDL thread with the native
-    // format.
+    std::shared_ptr<PlaybackWorker> old_worker = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(playback_mutex_);
+        auto it = playback_.find(track_sid);
+        if (it != playback_.end()) {
+            old_worker = it->second;
+        }
+        playback_[track_sid] = worker;
+    }
+
+    if (old_worker) {
+        old_worker->running.store(false, std::memory_order_relaxed);
+        if (old_worker->thread.joinable()) {
+            old_worker->thread.join();
+        }
+        old_worker->stream.reset();
+    }
+
     try {
-        speaker_thread_ = std::thread(&MediaMgr::speakerLoopSDL, this);
+        worker->thread = std::thread(&MediaMgr::playbackLoopSDL, this, track_sid, worker);
     } catch (const std::exception &e) {
-        qCritical() << __FUNCTION__ << "startSpeaker: failed to start speaker thread:" << e.what();
-        speaker_running_.store(false, std::memory_order_relaxed);
-        speaker_stream_.reset();
+        qCritical() << __FUNCTION__
+                    << "failed to start playback thread for track_sid:" << QString::fromStdString(track_sid)
+                    << "error:" << e.what();
+        worker->running.store(false, std::memory_order_relaxed);
+        worker->stream.reset();
+        {
+            std::lock_guard<std::mutex> lock(playback_mutex_);
+            auto it = playback_.find(track_sid);
+            if (it != playback_.end() && it->second == worker) {
+                playback_.erase(it);
+            }
+        }
         return false;
     }
 
     return true;
 }
 
-void MediaMgr::speakerLoopSDL() {
+void MediaMgr::playbackLoopSDL(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker) {
     SDL_AudioStream *localStream = nullptr;
     SDL_AudioDeviceID dev = 0;
 
-    while (speaker_running_.load(std::memory_order_relaxed)) {
-        if (!speaker_stream_) {
+    while (worker->running.load(std::memory_order_relaxed)) {
+        if (!worker->stream) {
             break;
         }
 
         livekit::AudioFrameEvent ev;
-        if (!speaker_stream_->read(ev)) {
+        if (!worker->stream->read(ev)) {
             // EOS or closed
             break;
         }
@@ -297,22 +330,20 @@ void MediaMgr::speakerLoopSDL() {
                                           /*userdata=*/nullptr);
 
             if (!localStream) {
-                qCritical() << __FUNCTION__ << "speakerLoopSDL: SDL_OpenAudioDeviceStream failed:"
+                qCritical() << __FUNCTION__ << "SDL_OpenAudioDeviceStream failed:"
                             << SDL_GetError();
                 break;
             }
 
-            audio_stream_ = localStream; // store if you want to inspect later
-
             dev = SDL_GetAudioStreamDevice(localStream);
             if (dev == 0) {
-                qCritical() << __FUNCTION__ << "speakerLoopSDL: SDL_GetAudioStreamDevice failed:"
+                qCritical() << __FUNCTION__ << "SDL_GetAudioStreamDevice failed:"
                             << SDL_GetError();
                 break;
             }
 
             if (!SDL_ResumeAudioDevice(dev)) {
-                qCritical() << __FUNCTION__ << "speakerLoopSDL: SDL_ResumeAudioDevice failed:"
+                qCritical() << __FUNCTION__ << "SDL_ResumeAudioDevice failed:"
                             << SDL_GetError();
                 break;
             }
@@ -323,7 +354,7 @@ void MediaMgr::speakerLoopSDL() {
         const int numBytes = static_cast<int>(data.size() * sizeof(std::int16_t));
 
         if (!SDL_PutAudioStreamData(localStream, data.data(), numBytes)) {
-            qCritical() << __FUNCTION__ << "speakerLoopSDL: SDL_PutAudioStreamData failed:"
+            qCritical() << __FUNCTION__ << "SDL_PutAudioStreamData failed:"
                         << SDL_GetError();
             break;
         }
@@ -335,22 +366,39 @@ void MediaMgr::speakerLoopSDL() {
     if (localStream) {
         SDL_DestroyAudioStream(localStream);
         localStream = nullptr;
-        audio_stream_ = nullptr;
     }
 
-    speaker_running_.store(false, std::memory_order_relaxed);
+    worker->running.store(false, std::memory_order_relaxed);
+
+    {
+        std::lock_guard<std::mutex> lock(playback_mutex_);
+        auto it = playback_.find(track_sid);
+        if (it != playback_.end() && it->second == worker) {
+            playback_.erase(it);
+        }
+    }
 }
 
-void MediaMgr::stopSpeaker() {
-    speaker_running_.store(false, std::memory_order_relaxed);
-    if (speaker_thread_.joinable()) {
-        speaker_thread_.join();
+void MediaMgr::stopAllPlayback() {
+    std::vector<std::shared_ptr<PlaybackWorker>> workers;
+    {
+        std::lock_guard<std::mutex> lock(playback_mutex_);
+        for (auto &entry : playback_) {
+            workers.push_back(entry.second);
+        }
+        playback_.clear();
     }
-    if (audio_stream_) {
-        SDL_DestroyAudioStream(audio_stream_);
-        audio_stream_ = nullptr;
+
+    for (auto &worker : workers) {
+        worker->running.store(false, std::memory_order_relaxed);
     }
-    speaker_stream_.reset();
+
+    for (auto &worker : workers) {
+        if (worker->thread.joinable()) {
+            worker->thread.join();
+        }
+        worker->stream.reset();
+    }
 }
 
 // ---------- Renderer control (placeholder) ----------
@@ -358,7 +406,7 @@ void MediaMgr::stopSpeaker() {
 bool MediaMgr::startRender(const std::shared_ptr<livekit::VideoStream> &video_stream,
                              const std::string &track_sid) {
     if (!video_stream) {
-        qCritical() << __FUNCTION__ << "startRender: videoStream is null";
+        qCritical() << __FUNCTION__ << "videoStream is null";
         return false;
     }
 
@@ -387,7 +435,7 @@ bool MediaMgr::startRender(const std::shared_ptr<livekit::VideoStream> &video_st
         worker->thread = std::thread(&MediaMgr::renderLoop, this, track_sid, worker);
     } catch (const std::exception &e) {
         qCritical() << __FUNCTION__ 
-                << "startRender: failed to start track_sid:" << QString::fromStdString(track_sid) 
+                << "failed to start track_sid:" << QString::fromStdString(track_sid) 
                 << "thread:" << e.what();
 
         {
@@ -443,7 +491,7 @@ void MediaMgr::renderLoop(const std::string &track_sid,
             try {
                 frame = frame.convert(livekit::VideoBufferType::RGBA, false);
             } catch (const std::exception &ex) {
-                qCritical() << __FUNCTION__ << "renderLoop: convert to RGBA failed:" << ex.what();
+                qCritical() << __FUNCTION__ << "convert to RGBA failed:" << ex.what();
                 continue;
             }
         }

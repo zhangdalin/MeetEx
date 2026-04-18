@@ -56,7 +56,7 @@ void LocalUser::closeVideo(){
 }
 
 void LocalUser::closeSpeaker() {
-    MediaEngine::instance().stopAudioSpeaker();
+    MediaEngine::instance().stopAudioPlay();
 }
 
 void LocalUser::closeRenderer() {
