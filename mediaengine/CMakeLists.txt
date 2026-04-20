@@ -7,8 +7,7 @@ add_library(mediaengine STATIC
     media_qmic.cpp
     media_qcam.cpp
     media_qspk.cpp
-    wav_audio_source.cpp
-    fallback_capture.cpp
+    media_filewav.cpp
 )
 
 target_include_directories(mediaengine

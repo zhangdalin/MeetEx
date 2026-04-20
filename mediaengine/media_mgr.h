@@ -59,13 +59,6 @@ public:
     bool copyVideoFrame(const std::string &track_sid, VideoFrameBuff& frameBuff);
 
 private:
-    // ---- Mic helpers ----
-    void micLoop();
-    void micLoopNoise();
-
-    // ---- Camera helpers ----
-    void cameraLoopFake();
-
     struct PlaybackWorker {
         std::shared_ptr<livekit::AudioStream> stream;
         std::thread thread;
@@ -78,6 +71,14 @@ private:
         std::atomic<bool> running{false};
         VideoFrameBuff frameBuff;
     };
+    
+    void micLoop(const std::shared_ptr<livekit::AudioSource> &source,
+                        std::atomic<bool> &running_flag);
+    void runNoiseCapLoop(const std::shared_ptr<livekit::AudioSource> &source,
+                        std::atomic<bool> &running_flag);
+    void runFakeVideoCapLoop(const std::shared_ptr<livekit::VideoSource> &source,
+                        VideoFrameBuff& frameBuff,
+                        std::atomic<bool> &running_flag);
 
     // ---- Playback helpers ----
     void playbackLoop(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker);

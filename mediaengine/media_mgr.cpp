@@ -2,7 +2,7 @@
 #include "media_qmic.h"
 #include "media_qcam.h"
 #include "media_qspk.h"
-#include "fallback_capture.h"
+#include "media_filewav.h"
 
 #include <QCameraDevice>
 #include <QAudioDevice>
@@ -37,41 +37,77 @@ bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_sourc
     if (QMediaDevices::audioInputs().isEmpty()) {
         qWarning() << __FUNCTION__ << "No microphone devices found, falling back to noise loop.";
         mic_using_ = false;
-        mic_thread_ = std::thread(runNoiseCaptureLoop, mic_source_, std::ref(mic_running_));
+        mic_thread_ = std::thread(&MediaMgr::runNoiseCapLoop, this, mic_source_, std::ref(mic_running_));
         return true;
     }
 
     mic_using_ = true;
-    mic_thread_ = std::thread(&MediaMgr::micLoop, this);
+    mic_thread_ = std::thread(&MediaMgr::micLoop, this, mic_source_, std::ref(mic_running_));
+    
     return true;
 }
 
-void MediaMgr::micLoop() {
-    auto source = mic_source_;
+// Test utils to run a capture loop to publish noisy audio frames to the room
+void MediaMgr::runNoiseCapLoop(const std::shared_ptr<livekit::AudioSource> &source,
+                         std::atomic<bool> &running_flag) {
+    const int sample_rate = source->sample_rate();
+    const int num_channels = source->num_channels();
+    const int frame_ms = 10;
+    const int samples_per_channel = sample_rate * frame_ms / 1000;
+
+    // FIX: variable name should not shadow the type
+    WavSource wavSource("data/welcome.wav", 48000, 1, false);
+
+    using Clock = std::chrono::steady_clock;
+    auto next_deadline = Clock::now();
+    while (running_flag.load(std::memory_order_relaxed)) {
+        livekit::AudioFrame frame =
+            livekit::AudioFrame::create(sample_rate, num_channels, samples_per_channel);
+        wavSource.fillFrame(frame);
+        try {
+            source->captureFrame(frame);
+        } catch (const std::exception &e) {
+            qCritical() << __FUNCTION__ << "Error in captureFrame (noise):" << e.what();
+            break;
+        }
+
+        // Pace the loop to roughly real-time
+        next_deadline += std::chrono::milliseconds(frame_ms);
+        std::this_thread::sleep_until(next_deadline);
+    }
+
+    try {
+        source->clearQueue();
+    } catch (...) {
+        qWarning() << __FUNCTION__ << "Error in clearQueue (noise)";
+    }
+}
+
+void MediaMgr::micLoop(const std::shared_ptr<livekit::AudioSource> &source,
+                        std::atomic<bool> &running_flag) {
     QMicSource mic(source->sample_rate(),
-                  source->num_channels(),
-                  source->sample_rate() / 100,
-                  [source](const int16_t *samples,
-                           int num_samples_per_channel,
-                           int sample_rate, int num_channels) {
-                      livekit::AudioFrame frame = livekit::AudioFrame::create(sample_rate, num_channels,
-                                                                              num_samples_per_channel);
-                      std::memcpy(frame.data().data(), samples,
-                                  num_samples_per_channel * num_channels * sizeof(int16_t));
-                      try {
-                          source->captureFrame(frame);
-                      } catch (const std::exception &e) {
-                          qCritical() << __FUNCTION__ << "Error in captureFrame (Qt mic):" << e.what();
-                      }
-                  });
+                source->num_channels(),
+                source->sample_rate() / 100,
+                [source](const int16_t *samples,
+                        int num_samples_per_channel,
+                        int sample_rate, int num_channels) {
+                    livekit::AudioFrame frame = livekit::AudioFrame::create(sample_rate, num_channels,
+                                                                            num_samples_per_channel);
+                    std::memcpy(frame.data().data(), samples,
+                                num_samples_per_channel * num_channels * sizeof(int16_t));
+                    try {
+                        source->captureFrame(frame);
+                    } catch (const std::exception &e) {
+                        qCritical() << __FUNCTION__ << "Error in captureFrame (Qt mic):" << e.what();
+                    }
+                });
 
     if (!mic.init()) {
         qWarning() << __FUNCTION__ << "Failed to init Qt mic, falling back to noise loop.";
-        runNoiseCaptureLoop(source, mic_running_);
+        mic_thread_ = std::thread(&MediaMgr::runNoiseCapLoop, this, mic_source_, std::ref(mic_running_));
         return;
     }
-
-    while (mic_running_.load(std::memory_order_relaxed)) {
+    while (running_flag.load(std::memory_order_relaxed)) {
         mic.pump();
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
@@ -126,15 +162,14 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
     if (cameras.isEmpty()) {
         qWarning() << __FUNCTION__ << "No camera devices found, using fake video loop.";
         cam_using_ = false;
-        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, 
+        cam_thread_ = std::thread(&MediaMgr::runFakeVideoCapLoop, this, cam_source_, 
             std::ref(worker->frameBuff), std::ref(cam_running_));
         return true;
     }
 
-    cam_using_ = true;
     cam_ = std::make_unique<QCamSource>(
         1280, 720, 30,
-        [src = cam_source_, buff = &(worker->frameBuff)](const uint8_t *pixels, int pitch, int width,
+        [source = cam_source_, buff = &(worker->frameBuff)](const uint8_t *pixels, int pitch, int width,
                             int height, int64_t timestampNs) {
             auto frame = livekit::VideoFrame::create(width, height, livekit::VideoBufferType::RGBA);
             uint8_t *dst = frame.data();
@@ -157,23 +192,91 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
 
             // add frame to video source;
             try {
-                src->captureFrame(frame, timestampNs / 1000, livekit::VideoRotation::VIDEO_ROTATION_0);
+                source->captureFrame(frame, timestampNs / 1000, livekit::VideoRotation::VIDEO_ROTATION_0);
             } catch (const std::exception &e) {
                 qCritical() << __FUNCTION__ << "Error in captureFrame (Qt cam):" << e.what();
             }
         });
 
+    cam_using_ = true;
+
     if (!cam_->init()) {
         qWarning() << __FUNCTION__ << "Failed to init Qt camera, using fake video loop.";
         cam_using_ = false;
         cam_.reset();
-        cam_thread_ = std::thread(runFakeVideoCaptureLoop, cam_source_, 
+        cam_thread_ = std::thread(&MediaMgr::runFakeVideoCapLoop, this, cam_source_, 
             std::ref(worker->frameBuff), std::ref(cam_running_));
         return true;
     }
 
     // QCamSource delivers frames via Qt's event system; no pump thread needed.
     return true;
+}
+
+
+// Fake video source: solid color cycling
+void MediaMgr::runFakeVideoCapLoop(const std::shared_ptr<livekit::VideoSource> &source,
+                            VideoFrameBuff& frameBuff,
+                            std::atomic<bool> &running_flag) {
+    auto frame = livekit::VideoFrame::create(1280, 720, livekit::VideoBufferType::BGRA);
+    const double framerate = 1.0 / 30.0;
+
+    while (running_flag.load(std::memory_order_relaxed)) {
+        static auto start = std::chrono::high_resolution_clock::now();
+        float t = std::chrono::duration<float>(
+                      std::chrono::high_resolution_clock::now() - start)
+                      .count();
+        // Cycle every 4 seconds: 0=red, 1=green, 2=blue, 3=black
+        int stage = static_cast<int>(t) % 4;
+
+        std::array<uint8_t, 4> rgb{};
+        switch (stage) {
+        case 0: // red
+            rgb = {255, 0, 0, 0};
+            break;
+        case 1: // green
+            rgb = {0, 255, 0, 0};
+            break;
+        case 2: // blue
+            rgb = {0, 0, 255, 0};
+            break;
+        case 3: // black
+        default:
+            rgb = {0, 0, 0, 0};
+            break;
+        }
+
+        // ARGB
+        uint8_t *data = frame.data();
+        const size_t size = frame.dataSize();
+        for (size_t i = 0; i < size; i += 4) {
+            data[i + 0] = 255;    // A
+            data[i + 1] = rgb[0]; // R
+            data[i + 2] = rgb[1]; // G
+            data[i + 3] = rgb[2]; // B
+        }
+
+        // add frame to local render
+        std::lock_guard<std::mutex> lock(frameBuff.mutex);
+        const int rgba_size = frame.width() * frame.height() * 4;
+        std::vector<std::uint8_t> rgba(static_cast<size_t>(rgba_size));
+        std::memcpy(rgba.data(), frame.data(), static_cast<size_t>(rgba_size));
+        frameBuff.rgba = std::move(rgba);
+        frameBuff.width = frame.width();
+        frameBuff.height = frame.height();
+
+        // add frame to video source;
+        try {
+            // If VideoSource is ARGB-capable, pass frame.
+            // If it expects I420, pass i420 instead.
+            source->captureFrame(frame, 0, livekit::VideoRotation::VIDEO_ROTATION_0);
+        } catch (const std::exception &e) {
+            qCritical() << __FUNCTION__ << "Error in captureFrame (fake video):" << e.what();
+            break;
+        }
+
+        std::this_thread::sleep_for(std::chrono::duration<double>(framerate));
+    }
 }
 
 void MediaMgr::stopCamera() {
@@ -245,7 +348,7 @@ bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_
 }
 
 void MediaMgr::playbackLoop(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker) {
-    std::unique_ptr<QSpkSink> sink = nullptr;
+    std::unique_ptr<QSpkSink> sink;
 
     while (worker->running.load(std::memory_order_relaxed)) {
         if (!worker->stream) {

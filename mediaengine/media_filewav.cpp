@@ -1,20 +1,4 @@
-/*
- * Copyright 2025 LiveKit
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an “AS IS” BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-#include "wav_audio_source.h"
+#include "media_filewav.h"
 
 #include <cstring>
 #include <fstream>
@@ -120,7 +104,7 @@ WavData load_wav16(const std::string &path) {
     return out;
 }
 
-WavAudioSource::WavAudioSource(const std::string &path,
+WavSource::WavSource(const std::string &path,
                                int expected_sample_rate, int expected_channels,
                                bool loop_enabled)
     : loop_enabled_(loop_enabled) {
@@ -139,7 +123,7 @@ WavAudioSource::WavAudioSource(const std::string &path,
     playhead_ = 0;
 }
 
-void WavAudioSource::fillFrame(livekit::AudioFrame &frame) {
+void WavSource::fillFrame(livekit::AudioFrame &frame) {
     const std::size_t frame_samples =
         static_cast<std::size_t>(frame.num_channels()) *
         static_cast<std::size_t>(frame.samples_per_channel());
