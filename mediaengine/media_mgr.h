@@ -60,7 +60,7 @@ public:
 
 private:
     // ---- Mic helpers ----
-    void micLoopQt();
+    void micLoop();
     void micLoopNoise();
 
     // ---- Camera helpers ----
@@ -80,7 +80,7 @@ private:
     };
 
     // ---- Playback helpers ----
-    void playbackLoopQt(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker);
+    void playbackLoop(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker);
     void renderLoop(const std::string &track_sid, const std::shared_ptr<RenderWorker> &worker);
 
     // Mic

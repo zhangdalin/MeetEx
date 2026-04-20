@@ -1,19 +1,3 @@
-/*
- * Copyright 2025 LiveKit, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #include "media_mgr.h"
 #include "media_qmic.h"
 #include "media_qcam.h"
@@ -58,11 +42,11 @@ bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_sourc
     }
 
     mic_using_ = true;
-    mic_thread_ = std::thread(&MediaMgr::micLoopQt, this);
+    mic_thread_ = std::thread(&MediaMgr::micLoop, this);
     return true;
 }
 
-void MediaMgr::micLoopQt() {
+void MediaMgr::micLoop() {
     auto source = mic_source_;
     QMicSource mic(source->sample_rate(),
                   source->num_channels(),
@@ -240,7 +224,7 @@ bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_
     }
 
     try {
-        worker->thread = std::thread(&MediaMgr::playbackLoopQt, this, track_sid, worker);
+        worker->thread = std::thread(&MediaMgr::playbackLoop, this, track_sid, worker);
     } catch (const std::exception &e) {
         qCritical() << __FUNCTION__
                     << "failed to start playback thread for track_sid:" << QString::fromStdString(track_sid)
@@ -260,7 +244,7 @@ bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_
     return true;
 }
 
-void MediaMgr::playbackLoopQt(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker) {
+void MediaMgr::playbackLoop(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker) {
     std::unique_ptr<QSpkSink> sink = nullptr;
 
     while (worker->running.load(std::memory_order_relaxed)) {
