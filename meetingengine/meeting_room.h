@@ -3,12 +3,12 @@
 
 #include <string>
 #include <memory>
-#include <functional>
 
 #include <QString>
 #include <QObject>
 
-#include "livekit/livekit.h"
+#include "livekit/room.h"
+#include "livekit/room_delegate.h"
 
 enum class RoomState {
     DISCONNECTED,

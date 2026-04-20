@@ -19,15 +19,8 @@ void MediaEngine::printLiveKitVersion() {
 bool MediaEngine::init() {
     printLiveKitVersion();
 
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        qCritical() << __FUNCTION__ <<  __FUNCTION__ << "SDL_Init(SDL_INIT_VIDEO) failed:" << SDL_GetError();
-        // You can choose to exit, or run in "headless" mode without renderer.
-        return false;
-    }
-
     if(!livekit::initialize()) {
         qCritical() << __FUNCTION__ <<  __FUNCTION__ << "Failed to initialize LiveKit";
-        SDL_Quit();
         return false;
     }
 
@@ -38,7 +31,6 @@ bool MediaEngine::init() {
 
 bool MediaEngine::fini() {
     livekit::shutdown();
-    SDL_Quit();
     qInfo() << __FUNCTION__ <<  __FUNCTION__ << "Media engine finalized successfully.";
     return true;
 }

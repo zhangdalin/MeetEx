@@ -109,7 +109,6 @@ target_include_directories(MeetEx PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/meetingengine
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/livekit/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/SDL3-3.4.2/include
 )
 
 target_link_libraries(MeetEx PRIVATE Qt${QT_VERSION_MAJOR}::Widgets

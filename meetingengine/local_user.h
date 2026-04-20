@@ -1,10 +1,14 @@
 #ifndef LOCAL_USER_H
 #define LOCAL_USER_H
 
-#include "livekit/livekit.h"
+#include <string>
 
 struct VideoFrameBuff;
 
+namespace livekit
+{
+class LocalParticipant;
+}
 class LocalUser {
 public:
     explicit LocalUser(livekit::LocalParticipant* participant);

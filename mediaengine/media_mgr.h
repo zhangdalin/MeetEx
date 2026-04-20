@@ -1,26 +1,5 @@
-/*
- * Copyright 2025 LiveKit, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-#pragma once
-
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_audio.h>
-#include <SDL3/SDL_camera.h>
-
-#include "wav_audio_source.h"
+#ifndef MEDIA_MGR_H
+#define MEDIA_MGR_H
 
 #include <atomic>
 #include <cstdint>
@@ -39,8 +18,7 @@ class AudioStream;
 class VideoStream;
 } // namespace livekit
 
-// Forward-declared SDL helpers (you can also keep these separate if you like)
-class MicSource;
+class QMicSource;
 class QCamSource;
 
 struct VideoFrameBuff {
@@ -50,7 +28,7 @@ struct VideoFrameBuff {
     int height = 0;
 };
 
-// SDLMediaManager gives you dedicated control over:
+// MediaMgr gives you dedicated control over:
 // - mic capture  -> AudioSource
 // - camera capture -> VideoSource
 // - speaker playback -> AudioStream (TODO: integrate your API)
@@ -81,11 +59,8 @@ public:
     bool copyVideoFrame(const std::string &track_sid, VideoFrameBuff& frameBuff);
 
 private:
-    // ---- SDL bootstrap helpers ----
-    bool ensureSDLInit(Uint32 flags);
-
     // ---- Mic helpers ----
-    void micLoopSDL();
+    void micLoopQt();
     void micLoopNoise();
 
     // ---- Camera helpers ----
@@ -105,12 +80,11 @@ private:
     };
 
     // ---- Playback helpers ----
-    void playbackLoopSDL(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker);
+    void playbackLoopQt(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker);
     void renderLoop(const std::string &track_sid, const std::shared_ptr<RenderWorker> &worker);
 
     // Mic
     std::shared_ptr<livekit::AudioSource> mic_source_;
-    std::unique_ptr<MicSource> mic_;
     std::thread mic_thread_;
     std::atomic<bool> mic_running_{false};
     bool mic_using_ = false;
@@ -130,3 +104,5 @@ private:
     std::mutex renders_mutex_;
     std::unordered_map<std::string, std::shared_ptr<RenderWorker>> renders_;
 };
+
+#endif // MEDIA_MGR_H

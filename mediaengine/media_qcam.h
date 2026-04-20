@@ -9,17 +9,17 @@
 #include <QVideoSink>
 
 // -------------------------
-// QCamSource (Qt-based camera, replaces SDL CamSource)
+// QCamSource (Qt-based camera source)
 // -------------------------
-// Drop-in replacement for CamSource using Qt's native camera API.
-// Callback delivers raw RGBA pixels (same memory layout as CamSource RGBA32).
+// Camera source implemented with Qt's native camera API.
+// Callback delivers raw RGBA pixels.
 // init() starts capture. stop() stops capture. No pump() needed — frames
 // are delivered asynchronously via the VideoCallback on the Qt event thread.
 class QCamSource : public QObject {
     Q_OBJECT
 
 public:
-    // Compatible callback signature with SDL CamSource (SDL types removed).
+    // Callback signature used by the media pipeline.
     // pixels : RGBA8888 rows, pitch bytes per row.
     // timestampNs : capture timestamp in nanoseconds.
     using VideoCallback = std::function<void(
@@ -33,7 +33,7 @@ public:
                VideoCallback cb = nullptr,
                QObject *parent = nullptr);
 
-    ~QCamSource() override;
+    ~QCamSource();
 
     bool init(); // Open first available camera and start capture
     void stop(); // Stop capture and release camera

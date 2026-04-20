@@ -1,7 +1,11 @@
 #ifndef REMOTE_USER_H
-#define REMOTE_USER_H  
+#define REMOTE_USER_H
 
-#include "livekit/livekit.h"
+#include <string>
+
+namespace livekit {
+class RemoteParticipant;
+}
 
 class RemoteUser {
 public:

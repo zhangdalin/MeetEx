@@ -15,12 +15,13 @@
  */
 
 #include "media_mgr.h"
-#include "media_engine.h"
-#include "media.h"
+#include "media_qmic.h"
 #include "media_qcam.h"
+#include "media_qspk.h"
 #include "fallback_capture.h"
 
 #include <QCameraDevice>
+#include <QAudioDevice>
 #include <QMediaDevices>
 
 #include <QDebug>
@@ -36,18 +37,6 @@ MediaMgr::~MediaMgr() {
     stopAllRenders();
 }
 
-bool MediaMgr::ensureSDLInit(Uint32 flags) {
-    if ((SDL_WasInit(flags) & flags) == flags) {
-        return true; // already init
-    }
-    if (!SDL_InitSubSystem(flags)) {
-        qCritical() << __FUNCTION__ << "SDL_InitSubSystem failed (flags=" << flags << "):"
-                    << SDL_GetError();
-        return false;
-    }
-    return true;
-}
-
 // ---------- Mic control ----------
 
 bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_source) {
@@ -61,64 +50,45 @@ bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_sourc
     mic_source_ = audio_source;
     mic_running_.store(true, std::memory_order_relaxed);
 
-    // Try SDL path
-    if (!ensureSDLInit(SDL_INIT_AUDIO)) {
-        qWarning() << __FUNCTION__ << "No SDL audio, falling back to noise loop.";
-        mic_using_ = false;
-        mic_thread_ = std::thread(runNoiseCaptureLoop, mic_source_, std::ref(mic_running_));
-        return true;
-    }
-
-    int recCount = 0;
-    SDL_AudioDeviceID *recDevs = SDL_GetAudioRecordingDevices(&recCount);
-    if (!recDevs || recCount == 0) {
+    if (QMediaDevices::audioInputs().isEmpty()) {
         qWarning() << __FUNCTION__ << "No microphone devices found, falling back to noise loop.";
-        if (recDevs)
-            SDL_free(recDevs);
         mic_using_ = false;
         mic_thread_ = std::thread(runNoiseCaptureLoop, mic_source_, std::ref(mic_running_));
         return true;
     }
 
-    SDL_free(recDevs);
-
-    // We have at least one mic; use SDL
     mic_using_ = true;
-
-    mic_ = std::make_unique<MicSource>(
-        mic_source_->sample_rate(),
-        mic_source_->num_channels(),
-        mic_source_->sample_rate() / 100, // ~10ms
-        [src = mic_source_](const int16_t *samples,
-                            int num_samples_per_channel,
-                            int sample_rate, int num_channels) {
-            livekit::AudioFrame frame = livekit::AudioFrame::create(sample_rate, num_channels,
-                                                                    num_samples_per_channel);
-            std::memcpy(frame.data().data(), samples,
-                        num_samples_per_channel * num_channels * sizeof(int16_t));
-            try {
-                src->captureFrame(frame);
-            }
-            catch (const std::exception &e) {
-                qCritical() << __FUNCTION__ << "Error in captureFrame (SDL mic):" << e.what();
-            }
-        });
-
-    if (!mic_->init()) {
-        qWarning() << __FUNCTION__ << "Failed to init SDL mic, falling back to noise loop.";
-        mic_using_ = false;
-        mic_.reset();
-        mic_thread_ = std::thread(runNoiseCaptureLoop, mic_source_, std::ref(mic_running_));
-        return true;
-    }
-
-    mic_thread_ = std::thread(&MediaMgr::micLoopSDL, this);
+    mic_thread_ = std::thread(&MediaMgr::micLoopQt, this);
     return true;
 }
 
-void MediaMgr::micLoopSDL() {
+void MediaMgr::micLoopQt() {
+    auto source = mic_source_;
+    QMicSource mic(source->sample_rate(),
+                  source->num_channels(),
+                  source->sample_rate() / 100,
+                  [source](const int16_t *samples,
+                           int num_samples_per_channel,
+                           int sample_rate, int num_channels) {
+                      livekit::AudioFrame frame = livekit::AudioFrame::create(sample_rate, num_channels,
+                                                                              num_samples_per_channel);
+                      std::memcpy(frame.data().data(), samples,
+                                  num_samples_per_channel * num_channels * sizeof(int16_t));
+                      try {
+                          source->captureFrame(frame);
+                      } catch (const std::exception &e) {
+                          qCritical() << __FUNCTION__ << "Error in captureFrame (Qt mic):" << e.what();
+                      }
+                  });
+
+    if (!mic.init()) {
+        qWarning() << __FUNCTION__ << "Failed to init Qt mic, falling back to noise loop.";
+        runNoiseCaptureLoop(source, mic_running_);
+        return;
+    }
+
     while (mic_running_.load(std::memory_order_relaxed)) {
-        mic_->pump();
+        mic.pump();
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
@@ -128,7 +98,6 @@ void MediaMgr::stopMic() {
     if (mic_thread_.joinable()) {
         mic_thread_.join();
     }
-    mic_.reset();
     mic_source_.reset();
 }
 
@@ -235,7 +204,7 @@ void MediaMgr::stopCamera() {
     cam_source_.reset();
 }
 
-// ---------- Speaker control (placeholder) ----------
+// ---------- Speaker control ----------
 
 bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid) {
     if (!audio_stream) {
@@ -245,11 +214,6 @@ bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_
 
     if (track_sid.empty()) {
         qCritical() << __FUNCTION__ << "track_sid is empty";
-        return false;
-    }
-
-    if (!ensureSDLInit(SDL_INIT_AUDIO)) {
-        qCritical() << __FUNCTION__ << "SDL_INIT_AUDIO failed";
         return false;
     }
 
@@ -276,7 +240,7 @@ bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_
     }
 
     try {
-        worker->thread = std::thread(&MediaMgr::playbackLoopSDL, this, track_sid, worker);
+        worker->thread = std::thread(&MediaMgr::playbackLoopQt, this, track_sid, worker);
     } catch (const std::exception &e) {
         qCritical() << __FUNCTION__
                     << "failed to start playback thread for track_sid:" << QString::fromStdString(track_sid)
@@ -296,9 +260,8 @@ bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_
     return true;
 }
 
-void MediaMgr::playbackLoopSDL(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker) {
-    SDL_AudioStream *localStream = nullptr;
-    SDL_AudioDeviceID dev = 0;
+void MediaMgr::playbackLoopQt(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker) {
+    std::unique_ptr<QSpkSink> sink = nullptr;
 
     while (worker->running.load(std::memory_order_relaxed)) {
         if (!worker->stream) {
@@ -317,55 +280,16 @@ void MediaMgr::playbackLoopSDL(const std::string &track_sid, const std::shared_p
             continue;
         }
 
-        // Lazily open SDL audio stream based on the first frame's format, so no
-        // resampler is needed.
-        if (!localStream) {
-            SDL_AudioSpec want{};
-            want.format = SDL_AUDIO_S16;
-            want.channels = static_cast<Uint8>(frame.num_channels());
-            want.freq = frame.sample_rate();
-
-            localStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &want,
-                                          /*callback=*/nullptr,
-                                          /*userdata=*/nullptr);
-
-            if (!localStream) {
-                qCritical() << __FUNCTION__ << "SDL_OpenAudioDeviceStream failed:"
-                            << SDL_GetError();
-                break;
-            }
-
-            dev = SDL_GetAudioStreamDevice(localStream);
-            if (dev == 0) {
-                qCritical() << __FUNCTION__ << "SDL_GetAudioStreamDevice failed:"
-                            << SDL_GetError();
-                break;
-            }
-
-            if (!SDL_ResumeAudioDevice(dev)) {
-                qCritical() << __FUNCTION__ << "SDL_ResumeAudioDevice failed:"
-                            << SDL_GetError();
+        if (!sink) {
+            sink = std::make_unique<QSpkSink>(frame.sample_rate(), frame.num_channels());
+            if (!sink->init()) {
+                qCritical() << __FUNCTION__ << "Failed to init Qt speaker sink";
                 break;
             }
         }
 
-        // Push PCM to SDL. We assume frames are already S16, interleaved, matching
-        // sample_rate / channels we used above.
-        const int numBytes = static_cast<int>(data.size() * sizeof(std::int16_t));
-
-        if (!SDL_PutAudioStreamData(localStream, data.data(), numBytes)) {
-            qCritical() << __FUNCTION__ << "SDL_PutAudioStreamData failed:"
-                        << SDL_GetError();
-            break;
-        }
-
-        // Tiny sleep to avoid busy loop; SDL buffers internally.
-        SDL_Delay(2);
-    }
-
-    if (localStream) {
-        SDL_DestroyAudioStream(localStream);
-        localStream = nullptr;
+        sink->enqueue(data.data(), frame.samples_per_channel());
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 
     worker->running.store(false, std::memory_order_relaxed);

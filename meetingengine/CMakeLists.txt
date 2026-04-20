@@ -11,13 +11,11 @@ target_include_directories(meetingengine
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/thirdparty/livekit/include
-        ${CMAKE_SOURCE_DIR}/thirdparty/SDL3-3.4.2/include
 )
 
 # target_link_directories(meetingengine
 #     PUBLIC
 #         ${CMAKE_SOURCE_DIR}/thirdparty/livekit/lib/$<IF:$<CONFIG:Debug>,Debug,Release>
-#         ${CMAKE_SOURCE_DIR}/thirdparty/SDL3-3.4.2/lib/x64
 # )
 
 target_link_libraries(meetingengine

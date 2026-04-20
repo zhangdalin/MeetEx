@@ -1,5 +1,9 @@
 #include "remote_user.h"
 
+#include "livekit/remote_participant.h"
+
+#include <stdexcept>
+
 RemoteUser::RemoteUser(livekit::RemoteParticipant* participant)
     : participant_(participant) {
     if (!participant_) {

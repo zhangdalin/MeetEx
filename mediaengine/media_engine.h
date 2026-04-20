@@ -3,9 +3,7 @@
 
 #include "media_mgr.h"
 
-#include <cstdint>
-#include <vector>
-#include <mutex>
+#include "livekit/local_participant.h"
 
 class MediaEngine {
 public:
