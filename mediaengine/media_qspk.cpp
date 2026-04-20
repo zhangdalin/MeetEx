@@ -5,6 +5,9 @@
 #include <QMediaDevices>
 #include <QDebug>
 
+#include <chrono>
+#include <thread>
+
 QSpkSink::QSpkSink(int sample_rate, int channels)
     : sample_rate_(sample_rate), channels_(channels) {}
 
@@ -52,13 +55,20 @@ void QSpkSink::enqueue(const int16_t *samples,
     const char *data = reinterpret_cast<const char *>(samples);
     qint64 remaining = static_cast<qint64>(totalSamples * static_cast<int>(sizeof(int16_t)));
 
+    static constexpr int kMaxRetries = 20; // 20 x 1ms = up to 20ms total wait
+    int retries = 0;
     while (remaining > 0) {
         const qint64 written = device_->write(data, remaining);
         if (written <= 0) {
-            qWarning() << __FUNCTION__ << "Audio sink write stalled";
-            break;
+            if (++retries > kMaxRetries) {
+                qWarning() << __FUNCTION__ << "Audio sink write stalled, dropping" << remaining << "bytes";
+                break;
+            }
+            // Sink buffer full; wait 1ms for hardware to drain then retry
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            continue;
         }
-
+        retries = 0;
         data += written;
         remaining -= written;
     }

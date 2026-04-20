@@ -598,19 +598,25 @@ void MediaMgr::mixLoop() {
     std::vector<int32_t> acc;
     std::vector<int16_t> out;
 
-    while (mix_running_.load(std::memory_order_relaxed)) {
-        {
-            std::unique_lock<std::mutex> lk(mix_mutex_);
-            // Wake up when notified by a playbackLoop, or every 10 ms at the latest
-            mix_cv_.wait_for(lk, std::chrono::milliseconds(10));
+    using Clock = std::chrono::steady_clock;
+    auto next_deadline = Clock::now() + std::chrono::milliseconds(10);
 
-            if (!mix_running_.load(std::memory_order_relaxed))
-                break;
+    while (mix_running_.load(std::memory_order_relaxed)) {
+        // Tick at a fixed 10 ms rate regardless of how often playbackLoop notifies.
+        // This prevents bursting too much data into QAudioSink at once.
+        std::this_thread::sleep_until(next_deadline);
+        next_deadline += std::chrono::milliseconds(10);
+
+        if (!mix_running_.load(std::memory_order_relaxed))
+            break;
+
+        size_t maxContrib = 0;
+        {
+            std::lock_guard<std::mutex> lk(mix_mutex_);
 
             // Drain up to kFrameSamples from every active track and sum them
             const size_t take = static_cast<size_t>(kFrameSamples);
             acc.assign(take, 0);
-            size_t maxContrib = 0;
 
             for (auto &[_, mt] : mix_tracks_) {
                 const size_t avail = std::min(mt.buf.size(), take);
@@ -623,19 +629,19 @@ void MediaMgr::mixLoop() {
                 mt.buf.erase(mt.buf.begin(),
                              mt.buf.begin() + static_cast<ptrdiff_t>(avail));
             }
-
-            if (maxContrib == 0)
-                continue;
-
-            // Saturating cast: clamp to int16 range to prevent wrap-around distortion
-            out.resize(maxContrib);
-            for (size_t i = 0; i < maxContrib; ++i) {
-                int32_t v = acc[i];
-                if (v >  32767) v =  32767;
-                if (v < -32768) v = -32768;
-                out[i] = static_cast<int16_t>(v);
-            }
         } // release mix_mutex_ before writing to the sink
+
+        if (maxContrib == 0)
+            continue;
+
+        // Saturating cast: clamp to int16 range to prevent wrap-around distortion
+        out.resize(maxContrib);
+        for (size_t i = 0; i < maxContrib; ++i) {
+            int32_t v = acc[i];
+            if (v >  32767) v =  32767;
+            if (v < -32768) v = -32768;
+            out[i] = static_cast<int16_t>(v);
+        }
 
         sink.enqueue(out.data(), static_cast<int>(out.size() / static_cast<size_t>(kChannels)));
     }
