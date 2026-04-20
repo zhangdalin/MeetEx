@@ -43,7 +43,6 @@ bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_sourc
 
     mic_using_ = true;
     mic_thread_ = std::thread(&MediaMgr::micLoop, this, mic_source_, std::ref(mic_running_));
-    
     return true;
 }
 
@@ -331,6 +330,14 @@ bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_
         old_worker->stream.reset();
     }
 
+    // Start the shared mixer output thread exactly once, before playbackLoop begins pushing data
+    {
+        bool expected = false;
+        if (mix_running_.compare_exchange_strong(expected, true)) {
+            mix_thread_ = std::thread(&MediaMgr::mixLoop, this);
+        }
+    }
+
     try {
         worker->thread = std::thread(&MediaMgr::playbackLoop, this, track_sid, worker);
     } catch (const std::exception &e) {
@@ -353,8 +360,6 @@ bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_
 }
 
 void MediaMgr::playbackLoop(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker) {
-    std::unique_ptr<QSpkSink> sink;
-
     while (worker->running.load(std::memory_order_relaxed)) {
         if (!worker->stream) {
             break;
@@ -372,16 +377,20 @@ void MediaMgr::playbackLoop(const std::string &track_sid, const std::shared_ptr<
             continue;
         }
 
-        if (!sink) {
-            sink = std::make_unique<QSpkSink>(frame.sample_rate(), frame.num_channels());
-            if (!sink->init()) {
-                qCritical() << __FUNCTION__ << "Failed to init Qt speaker sink";
-                break;
-            }
+        // Push decoded PCM into the shared mixer buffer for this track
+        {
+            std::lock_guard<std::mutex> lk(mix_mutex_);
+            auto &mt = mix_tracks_[track_sid];
+            const int total = frame.samples_per_channel() * frame.num_channels();
+            mt.buf.insert(mt.buf.end(), data.data(), data.data() + total);
         }
+        mix_cv_.notify_one();
+    }
 
-        sink->enqueue(data.data(), frame.samples_per_channel());
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    // Remove this track from the mixer when the stream ends
+    {
+        std::lock_guard<std::mutex> lk(mix_mutex_);
+        mix_tracks_.erase(track_sid);
     }
 
     worker->running.store(false, std::memory_order_relaxed);
@@ -414,6 +423,17 @@ void MediaMgr::stopAllPlayback() {
             worker->thread.join();
         }
         worker->stream.reset();
+    }
+
+    // Stop the mixer output thread
+    mix_running_.store(false, std::memory_order_relaxed);
+    mix_cv_.notify_all();
+    if (mix_thread_.joinable()) {
+        mix_thread_.join();
+    }
+    {
+        std::lock_guard<std::mutex> lk(mix_mutex_);
+        mix_tracks_.clear();
     }
 }
 
@@ -557,4 +577,66 @@ bool MediaMgr::copyVideoFrame(const std::string &track_sid, VideoFrameBuff& fram
     frameBuff.width = worker->frameBuff.width;
     frameBuff.height = worker->frameBuff.height;
     return true;
+}
+
+// ---------- Audio mixer output ----------
+
+void MediaMgr::mixLoop() {
+    // Fixed output format: 48 kHz mono (standard WebRTC format).
+    // All remote tracks are assumed to share this format.
+    static constexpr int kSampleRate   = 48000;
+    static constexpr int kChannels     = 1;
+    static constexpr int kFrameSamples = kSampleRate / 100; // 10 ms = 480 samples
+
+    QSpkSink sink(kSampleRate, kChannels);
+    if (!sink.init()) {
+        qCritical() << __FUNCTION__ << "Failed to init mix sink";
+        mix_running_.store(false, std::memory_order_relaxed);
+        return;
+    }
+
+    std::vector<int32_t> acc;
+    std::vector<int16_t> out;
+
+    while (mix_running_.load(std::memory_order_relaxed)) {
+        {
+            std::unique_lock<std::mutex> lk(mix_mutex_);
+            // Wake up when notified by a playbackLoop, or every 10 ms at the latest
+            mix_cv_.wait_for(lk, std::chrono::milliseconds(10));
+
+            if (!mix_running_.load(std::memory_order_relaxed))
+                break;
+
+            // Drain up to kFrameSamples from every active track and sum them
+            const size_t take = static_cast<size_t>(kFrameSamples);
+            acc.assign(take, 0);
+            size_t maxContrib = 0;
+
+            for (auto &[_, mt] : mix_tracks_) {
+                const size_t avail = std::min(mt.buf.size(), take);
+                if (avail == 0)
+                    continue;
+                for (size_t i = 0; i < avail; ++i)
+                    acc[i] += static_cast<int32_t>(mt.buf[i]);
+                if (avail > maxContrib)
+                    maxContrib = avail;
+                mt.buf.erase(mt.buf.begin(),
+                             mt.buf.begin() + static_cast<ptrdiff_t>(avail));
+            }
+
+            if (maxContrib == 0)
+                continue;
+
+            // Saturating cast: clamp to int16 range to prevent wrap-around distortion
+            out.resize(maxContrib);
+            for (size_t i = 0; i < maxContrib; ++i) {
+                int32_t v = acc[i];
+                if (v >  32767) v =  32767;
+                if (v < -32768) v = -32768;
+                out[i] = static_cast<int16_t>(v);
+            }
+        } // release mix_mutex_ before writing to the sink
+
+        sink.enqueue(out.data(), static_cast<int>(out.size() / static_cast<size_t>(kChannels)));
+    }
 }

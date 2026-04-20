@@ -2,6 +2,7 @@
 #define MEDIA_MGR_H
 
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -71,6 +72,12 @@ private:
         std::atomic<bool> running{false};
         VideoFrameBuff frameBuff;
     };
+
+    // ---- Audio mixer ----
+    // All remote audio tracks are mixed into a single QSpkSink output.
+    struct MixTrack {
+        std::vector<int16_t> buf; // pending interleaved S16 samples
+    };
     
     void micLoop(const std::shared_ptr<livekit::AudioSource> &source,
                         std::atomic<bool> &running_flag);
@@ -83,6 +90,14 @@ private:
     // ---- Playback helpers ----
     void playbackLoop(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker);
     void renderLoop(const std::string &track_sid, const std::shared_ptr<RenderWorker> &worker);
+
+    void mixLoop();
+
+    std::mutex              mix_mutex_;
+    std::condition_variable mix_cv_;
+    std::unordered_map<std::string, MixTrack> mix_tracks_;
+    std::thread             mix_thread_;
+    std::atomic<bool>       mix_running_{false};
 
     // Mic
     std::shared_ptr<livekit::AudioSource> mic_source_;
