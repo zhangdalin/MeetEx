@@ -179,13 +179,13 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
                 std::memcpy(dst + y * dstPitch, pixels + y * pitch, dstPitch);
             }
 
-            // add frame to local render
+            // add frame to local render (reuse existing buffer, reallocate only on resolution change)
             if (buff) {
                 std::lock_guard<std::mutex> lock(buff->mutex);
-                const int rgba_size = width * height * 4;
-                std::vector<std::uint8_t> rgba(static_cast<size_t>(rgba_size));
-                std::memcpy(rgba.data(), frame.data(), static_cast<size_t>(rgba_size));
-                buff->rgba = std::move(rgba);
+                const size_t rgba_size = static_cast<size_t>(width * height * 4);
+                if (buff->rgba.size() != rgba_size)
+                    buff->rgba.resize(rgba_size);
+                std::memcpy(buff->rgba.data(), frame.data(), rgba_size);
                 buff->width = width;
                 buff->height = height;
             }
@@ -220,6 +220,14 @@ void MediaMgr::runFakeVideoCapLoop(const std::shared_ptr<livekit::VideoSource> &
                             std::atomic<bool> &running_flag) {
     auto frame = livekit::VideoFrame::create(1280, 720, livekit::VideoBufferType::BGRA);
     const double framerate = 1.0 / 30.0;
+
+    // Pre-allocate render buffer once; no heap allocation inside the loop
+    {
+        std::lock_guard<std::mutex> lock(frameBuff.mutex);
+        frameBuff.rgba.resize(static_cast<size_t>(1280 * 720 * 4));
+        frameBuff.width = 1280;
+        frameBuff.height = 720;
+    }
 
     while (running_flag.load(std::memory_order_relaxed)) {
         static auto start = std::chrono::high_resolution_clock::now();
@@ -256,14 +264,11 @@ void MediaMgr::runFakeVideoCapLoop(const std::shared_ptr<livekit::VideoSource> &
             data[i + 3] = rgb[2]; // B
         }
 
-        // add frame to local render
-        std::lock_guard<std::mutex> lock(frameBuff.mutex);
-        const int rgba_size = frame.width() * frame.height() * 4;
-        std::vector<std::uint8_t> rgba(static_cast<size_t>(rgba_size));
-        std::memcpy(rgba.data(), frame.data(), static_cast<size_t>(rgba_size));
-        frameBuff.rgba = std::move(rgba);
-        frameBuff.width = frame.width();
-        frameBuff.height = frame.height();
+        // add frame to local render (direct write into pre-allocated buffer)
+        {
+            std::lock_guard<std::mutex> lock(frameBuff.mutex);
+            std::memcpy(frameBuff.rgba.data(), frame.data(), frameBuff.rgba.size());
+        }
 
         // add frame to video source;
         try {
@@ -487,6 +492,7 @@ void MediaMgr::stopAllRenders() {
 
 void MediaMgr::renderLoop(const std::string &track_sid,
                           const std::shared_ptr<RenderWorker> &worker) {
+    std::vector<std::uint8_t> rgba; // persistent; swapped with frameBuff each frame to avoid realloc
     while (worker->running.load(std::memory_order_relaxed)) {
         if (!worker->stream) {
             break;
@@ -513,13 +519,13 @@ void MediaMgr::renderLoop(const std::string &track_sid,
             continue;
         }
 
-        const int rgba_size = width * height * 4;
-        std::vector<std::uint8_t> rgba(static_cast<size_t>(rgba_size));
-        std::memcpy(rgba.data(), frame.data(), static_cast<size_t>(rgba_size));
+        const size_t rgba_size = static_cast<size_t>(width * height * 4);
+        rgba.resize(rgba_size); // no-op when resolution is unchanged
+        std::memcpy(rgba.data(), frame.data(), rgba_size);
 
         {
             std::lock_guard<std::mutex> lock(worker->frameBuff.mutex);
-            worker->frameBuff.rgba = std::move(rgba);
+            rgba.swap(worker->frameBuff.rgba); // swap: rgba recycles the old buffer for next frame
             worker->frameBuff.width = width;
             worker->frameBuff.height = height;
         }
@@ -544,7 +550,10 @@ bool MediaMgr::copyVideoFrame(const std::string &track_sid, VideoFrameBuff& fram
         return false;
     }
 
-    frameBuff.rgba = worker->frameBuff.rgba;
+    // resize + memcpy: avoids reallocation when caller reuses the same frameBuff
+    const size_t sz = worker->frameBuff.rgba.size();
+    frameBuff.rgba.resize(sz);
+    std::memcpy(frameBuff.rgba.data(), worker->frameBuff.rgba.data(), sz);
     frameBuff.width = worker->frameBuff.width;
     frameBuff.height = worker->frameBuff.height;
     return true;
