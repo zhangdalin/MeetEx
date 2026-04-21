@@ -7,10 +7,9 @@
 VideoGLWidget::VideoGLWidget(QWidget *parent)
     : QOpenGLWidget(parent)
     , track_sid_("")
-    , is_local_(true)
 {
     QVBoxLayout *layout = new QVBoxLayout(this);
-    QPushButton *btn = new QPushButton(is_local_ ? "本地视频" : "远程视频");
+    QPushButton *btn = new QPushButton("视频");
     layout->addWidget(btn);
     layout->setAlignment(btn, Qt::AlignBottom | Qt::AlignCenter);
 }

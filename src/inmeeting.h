@@ -66,6 +66,7 @@ private:
 
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
+    // every participantId handle a widget, local participantId is unique and fixed, remote participantId may come and go
     std::unordered_map<std::string, VideoGLWidget*> videoWidgets_;
     QPointer<VideoGLWidget> localVideoWidget_;
     std::string localParticipantId_;

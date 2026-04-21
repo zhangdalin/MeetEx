@@ -4,7 +4,6 @@
 #include "meeting_room.h"
 #include "meeting_def.h"
 #include "local_user.h"
-#include "remote_user.h"
 #include "videoglwidget.h"
 
 #include <algorithm>
@@ -231,11 +230,9 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
         if (it == videoWidgets_.end()) {
             auto *videoWidget = new VideoGLWidget(this);
             videoWidget->setTrackSid(trackSid.toStdString());
-            videoWidget->setLocal(false);
             videoWidgets_[participantIdStr] = videoWidget;
         } else if (it->second) {
             it->second->setTrackSid(trackSid.toStdString());
-            it->second->setLocal(false);
         }
         updateVideoWidgets();
     }
@@ -464,15 +461,16 @@ void InMeeting::updateSpeakerHighlight(
 {
     for (const auto &entry : videoWidgets_) {
         auto *videoWidget = entry.second;
+        auto participantId = entry.first;
         if (!videoWidget) {
             continue;
         }
 
         bool speaking = false;
-        if (videoWidget->isLocal()) {
+        if (participantId == localParticipantId_) {
             speaking = localSpeaking;
         } else {
-            const auto it = remoteSpeakingByParticipant.find(entry.first);
+            const auto it = remoteSpeakingByParticipant.find(participantId);
             speaking = it != remoteSpeakingByParticipant.end() && it->second;
         }
 

@@ -21,10 +21,7 @@ public:
     ~VideoGLWidget() override;
 
     std::string& trackSid() { return track_sid_; }
-    bool isLocal() { return is_local_; }
-
     void setTrackSid(const std::string &track_sid) { track_sid_ = track_sid; }
-    void setLocal(bool is_local = false) { is_local_ = is_local; }
 
 protected:
     void initializeGL() override;
@@ -36,7 +33,6 @@ private:
 
 private:
     std::string track_sid_;
-    bool is_local_ = true;
 
     QOpenGLShaderProgram program_;
     QOpenGLTexture *texture_ = nullptr;
