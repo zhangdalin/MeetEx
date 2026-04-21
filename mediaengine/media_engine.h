@@ -32,6 +32,11 @@ public:
     void stopVideoRender();
 
     bool copyVideoFrame(const std::string &track_sid, VideoFrameBuff& frameBuff);
+    AudioLevelInfo localAudioLevel() const;
+    bool isLocalAudioSpeaking() const;
+    AudioLevelInfo remoteAudioLevel(const std::string &track_sid) const;
+    bool isRemoteAudioSpeaking(const std::string &track_sid) const;
+    std::unordered_map<std::string, AudioLevelInfo> remoteAudioLevels() const;
 
 private:
     explicit MediaEngine();

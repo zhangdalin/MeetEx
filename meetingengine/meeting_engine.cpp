@@ -83,3 +83,23 @@ std::string MeetingEngine::localVideoSid() const {
     }
     return localUser->videoSid();
 }
+
+AudioLevelInfo MeetingEngine::localAudioLevel() const {
+    return MediaEngine::instance().localAudioLevel();
+}
+
+bool MeetingEngine::isLocalAudioSpeaking() const {
+    return MediaEngine::instance().isLocalAudioSpeaking();
+}
+
+AudioLevelInfo MeetingEngine::remoteAudioLevel(const std::string &trackSid) const {
+    return MediaEngine::instance().remoteAudioLevel(trackSid);
+}
+
+bool MeetingEngine::isRemoteAudioSpeaking(const std::string &trackSid) const {
+    return MediaEngine::instance().isRemoteAudioSpeaking(trackSid);
+}
+
+std::unordered_map<std::string, AudioLevelInfo> MeetingEngine::remoteAudioLevels() const {
+    return MediaEngine::instance().remoteAudioLevels();
+}

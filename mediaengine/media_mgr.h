@@ -29,6 +29,16 @@ struct VideoFrameBuff {
     int height = 0;
 };
 
+struct AudioLevelInfo {
+    float rms = 0.0f;
+    float peak = 0.0f;
+    float db = -100.0f;
+    float smoothed_db = -100.0f;
+    float level = 0.0f;
+    bool speaking = false;
+    bool valid = false;
+};
+
 // MediaMgr gives you dedicated control over:
 // - mic capture  -> AudioSource
 // - camera capture -> VideoSource
@@ -51,6 +61,12 @@ public:
     // Playback (remote audio playback)
     bool startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid);
     void stopAllPlayback();
+
+    AudioLevelInfo localAudioLevel() const;
+    bool isLocalAudioSpeaking() const;
+    AudioLevelInfo remoteAudioLevel(const std::string &track_sid) const;
+    bool isRemoteAudioSpeaking(const std::string &track_sid) const;
+    std::unordered_map<std::string, AudioLevelInfo> remoteAudioLevels() const;
 
     // Renderer (remote video rendering)
     // Following APIs must be called on main thread
@@ -92,12 +108,21 @@ private:
     void renderLoop(const std::string &track_sid, const std::shared_ptr<RenderWorker> &worker);
 
     void mixLoop();
+    void updateLocalAudioLevel(const int16_t *samples, std::size_t sample_count);
+    void updateRemoteAudioLevel(const std::string &track_sid, const int16_t *samples, std::size_t sample_count);
+    void resetLocalAudioLevel();
+    void resetRemoteAudioLevel(const std::string &track_sid);
+    void resetAllRemoteAudioLevels();
 
     std::mutex              mix_mutex_;
     std::condition_variable mix_cv_;
     std::unordered_map<std::string, MixTrack> mix_tracks_;
     std::thread             mix_thread_;
     std::atomic<bool>       mix_running_{false};
+
+    mutable std::mutex audio_levels_mutex_;
+    AudioLevelInfo local_audio_level_;
+    std::unordered_map<std::string, AudioLevelInfo> remote_audio_levels_;
 
     // Mic
     std::shared_ptr<livekit::AudioSource> mic_source_;

@@ -136,3 +136,23 @@ void MediaEngine::stopVideoRender() {
 bool MediaEngine::copyVideoFrame(const std::string &track_sid, VideoFrameBuff& frameBuff) {
     return media_mgr_->copyVideoFrame(track_sid, frameBuff);
 }
+
+AudioLevelInfo MediaEngine::localAudioLevel() const {
+    return media_mgr_->localAudioLevel();
+}
+
+bool MediaEngine::isLocalAudioSpeaking() const {
+    return media_mgr_->isLocalAudioSpeaking();
+}
+
+AudioLevelInfo MediaEngine::remoteAudioLevel(const std::string &track_sid) const {
+    return media_mgr_->remoteAudioLevel(track_sid);
+}
+
+bool MediaEngine::isRemoteAudioSpeaking(const std::string &track_sid) const {
+    return media_mgr_->isRemoteAudioSpeaking(track_sid);
+}
+
+std::unordered_map<std::string, AudioLevelInfo> MediaEngine::remoteAudioLevels() const {
+    return media_mgr_->remoteAudioLevels();
+}

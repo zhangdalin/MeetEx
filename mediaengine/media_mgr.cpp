@@ -4,6 +4,12 @@
 #include "media_qspk.h"
 #include "media_filewav.h"
 
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cmath>
+#include <cstring>
+
 #include <QCameraDevice>
 #include <QAudioDevice>
 #include <QMediaDevices>
@@ -11,6 +17,58 @@
 #include <QDebug>
 
 #include <livekit/livekit.h>
+
+namespace {
+
+constexpr float kSilenceDb = -100.0f;
+constexpr float kLevelFloorDb = -60.0f;
+constexpr float kSpeakingOnDb = -42.0f;
+constexpr float kSpeakingOffDb = -48.0f;
+constexpr float kSmoothingAlpha = 0.35f;
+
+AudioLevelInfo analyzeAudioLevel(const int16_t *samples,
+                                 std::size_t sample_count,
+                                 const AudioLevelInfo &previous) {
+    AudioLevelInfo current = previous;
+    if (!samples || sample_count == 0) {
+        current.valid = false;
+        current.rms = 0.0f;
+        current.peak = 0.0f;
+        current.db = kSilenceDb;
+        current.smoothed_db = previous.valid
+            ? (1.0f - kSmoothingAlpha) * previous.smoothed_db + kSmoothingAlpha * kSilenceDb
+            : kSilenceDb;
+        current.level = std::clamp((current.smoothed_db - kLevelFloorDb) / -kLevelFloorDb, 0.0f, 1.0f);
+        current.speaking = previous.speaking ? (current.smoothed_db >= kSpeakingOffDb)
+                                             : (current.smoothed_db >= kSpeakingOnDb);
+        return current;
+    }
+
+    double sum_squares = 0.0;
+    int peak_abs = 0;
+    for (std::size_t i = 0; i < sample_count; ++i) {
+        const int value = static_cast<int>(samples[i]);
+        const int abs_value = std::abs(value);
+        peak_abs = std::max(peak_abs, abs_value);
+
+        const double normalized = static_cast<double>(value) / 32768.0;
+        sum_squares += normalized * normalized;
+    }
+
+    current.valid = true;
+    current.rms = static_cast<float>(std::sqrt(sum_squares / static_cast<double>(sample_count)));
+    current.peak = static_cast<float>(peak_abs) / 32767.0f;
+    current.db = current.rms > 1e-9f ? static_cast<float>(20.0 * std::log10(current.rms)) : kSilenceDb;
+    current.smoothed_db = previous.valid
+        ? (1.0f - kSmoothingAlpha) * previous.smoothed_db + kSmoothingAlpha * current.db
+        : current.db;
+    current.level = std::clamp((current.smoothed_db - kLevelFloorDb) / -kLevelFloorDb, 0.0f, 1.0f);
+    current.speaking = previous.speaking ? (current.smoothed_db >= kSpeakingOffDb)
+                                         : (current.smoothed_db >= kSpeakingOnDb);
+    return current;
+}
+
+} // namespace
 
 MediaMgr::MediaMgr() = default;
 
@@ -63,6 +121,7 @@ void MediaMgr::runNoiseCapLoop(const std::shared_ptr<livekit::AudioSource> &sour
         livekit::AudioFrame frame =
             livekit::AudioFrame::create(sample_rate, num_channels, samples_per_channel);
         wavSource.fillFrame(frame);
+        updateLocalAudioLevel(frame.data().data(), frame.data().size());
         try {
             source->captureFrame(frame);
         } catch (const std::exception &e) {
@@ -87,9 +146,12 @@ void MediaMgr::micLoop(const std::shared_ptr<livekit::AudioSource> &source,
     QMicSource mic(source->sample_rate(),
                 source->num_channels(),
                 source->sample_rate() / 100,
-                [source](const int16_t *samples,
+                [this, source](const int16_t *samples,
                         int num_samples_per_channel,
                         int sample_rate, int num_channels) {
+                    updateLocalAudioLevel(samples,
+                                          static_cast<std::size_t>(num_samples_per_channel) *
+                                              static_cast<std::size_t>(num_channels));
                     livekit::AudioFrame frame = livekit::AudioFrame::create(sample_rate, num_channels,
                                                                             num_samples_per_channel);
                     std::memcpy(frame.data().data(), samples,
@@ -118,6 +180,7 @@ void MediaMgr::stopMic() {
         mic_thread_.join();
     }
     mic_source_.reset();
+    resetLocalAudioLevel();
 }
 
 // ---------- Camera control ----------
@@ -329,6 +392,7 @@ bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_
         }
         old_worker->stream.reset();
     }
+    resetRemoteAudioLevel(track_sid);
 
     // Start the shared mixer output thread exactly once, before playbackLoop begins pushing data
     {
@@ -377,6 +441,8 @@ void MediaMgr::playbackLoop(const std::string &track_sid, const std::shared_ptr<
             continue;
         }
 
+        updateRemoteAudioLevel(track_sid, data.data(), data.size());
+
         // Push decoded PCM into the shared mixer buffer for this track
         {
             std::lock_guard<std::mutex> lk(mix_mutex_);
@@ -392,6 +458,7 @@ void MediaMgr::playbackLoop(const std::string &track_sid, const std::shared_ptr<
         std::lock_guard<std::mutex> lk(mix_mutex_);
         mix_tracks_.erase(track_sid);
     }
+    resetRemoteAudioLevel(track_sid);
 
     worker->running.store(false, std::memory_order_relaxed);
 
@@ -435,6 +502,62 @@ void MediaMgr::stopAllPlayback() {
         std::lock_guard<std::mutex> lk(mix_mutex_);
         mix_tracks_.clear();
     }
+    resetAllRemoteAudioLevels();
+}
+
+AudioLevelInfo MediaMgr::localAudioLevel() const {
+    std::lock_guard<std::mutex> lock(audio_levels_mutex_);
+    return local_audio_level_;
+}
+
+bool MediaMgr::isLocalAudioSpeaking() const {
+    return localAudioLevel().speaking;
+}
+
+AudioLevelInfo MediaMgr::remoteAudioLevel(const std::string &track_sid) const {
+    std::lock_guard<std::mutex> lock(audio_levels_mutex_);
+    auto it = remote_audio_levels_.find(track_sid);
+    if (it == remote_audio_levels_.end()) {
+        return {};
+    }
+    return it->second;
+}
+
+bool MediaMgr::isRemoteAudioSpeaking(const std::string &track_sid) const {
+    return remoteAudioLevel(track_sid).speaking;
+}
+
+std::unordered_map<std::string, AudioLevelInfo> MediaMgr::remoteAudioLevels() const {
+    std::lock_guard<std::mutex> lock(audio_levels_mutex_);
+    return remote_audio_levels_;
+}
+
+void MediaMgr::updateLocalAudioLevel(const int16_t *samples, std::size_t sample_count) {
+    std::lock_guard<std::mutex> lock(audio_levels_mutex_);
+    local_audio_level_ = analyzeAudioLevel(samples, sample_count, local_audio_level_);
+}
+
+void MediaMgr::updateRemoteAudioLevel(const std::string &track_sid,
+                                      const int16_t *samples,
+                                      std::size_t sample_count) {
+    std::lock_guard<std::mutex> lock(audio_levels_mutex_);
+    auto &level = remote_audio_levels_[track_sid];
+    level = analyzeAudioLevel(samples, sample_count, level);
+}
+
+void MediaMgr::resetLocalAudioLevel() {
+    std::lock_guard<std::mutex> lock(audio_levels_mutex_);
+    local_audio_level_ = {};
+}
+
+void MediaMgr::resetRemoteAudioLevel(const std::string &track_sid) {
+    std::lock_guard<std::mutex> lock(audio_levels_mutex_);
+    remote_audio_levels_.erase(track_sid);
+}
+
+void MediaMgr::resetAllRemoteAudioLevels() {
+    std::lock_guard<std::mutex> lock(audio_levels_mutex_);
+    remote_audio_levels_.clear();
 }
 
 // ---------- Renderer control (placeholder) ----------

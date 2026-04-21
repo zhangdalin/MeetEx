@@ -3,8 +3,14 @@
 
 #include <QWidget>
 #include <QString>
+#include <QLabel>
+#include <QProgressBar>
+#include <QPointer>
+#include <QVBoxLayout>
 #include <memory>
 #include <vector>
+#include <unordered_map>
+#include <string>
 
 class MeetingEngine;
 class VideoGLWidget;
@@ -46,11 +52,32 @@ protected:
 private:
     void onTimer();
     void updateVideoWidgets();
+    void updateAudioStatusPanel();
+    void updateSpeakerHighlight(bool localSpeaking,
+                                const std::unordered_map<std::string, bool> &remoteSpeakingByParticipant);
 
 private:
+    struct RemoteAudioRowWidgets {
+        QPointer<QWidget> row;
+        QPointer<QLabel> nameLabel;
+        QPointer<QProgressBar> levelBar;
+        QPointer<QLabel> stateLabel;
+    };
+
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
     std::vector<VideoGLWidget*> videoWidgets_;
+    std::unordered_map<std::string, std::string> remoteAudioTrackOwners_;
+    std::unordered_map<VideoGLWidget *, bool> lastSpeakingStateByWidget_;
+    std::unordered_map<std::string, RemoteAudioRowWidgets> remoteAudioRows_;
+
+    QPointer<QWidget> audioStatusPanel_;
+    QPointer<QLabel> localMicLabel_;
+    QPointer<QProgressBar> localMicBar_;
+    QPointer<QLabel> localMicStateLabel_;
+    QPointer<QLabel> remoteTalkerLabel_;
+    QPointer<QWidget> remoteAudioListContainer_;
+    QPointer<QVBoxLayout> remoteAudioListLayout_;
 };
 
 #endif // INMEETING_H
