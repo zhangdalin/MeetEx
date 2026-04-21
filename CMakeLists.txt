@@ -13,8 +13,8 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS
     ${CMAKE_CURRENT_SOURCE_DIR}/ui
 )
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets OpenGLWidgets Multimedia LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets OpenGLWidgets Multimedia LinguistTools)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Gui Widgets OpenGLWidgets Multimedia LinguistTools)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Widgets OpenGLWidgets Multimedia LinguistTools)
 
 set(TS_FILES
     i18n/MeetEx_zh_CN.ts)
@@ -74,6 +74,7 @@ set(PROJECT_RESOURCES
 
 add_subdirectory(mediaengine)
 add_subdirectory(meetingengine)
+add_subdirectory(tools)
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(MeetEx

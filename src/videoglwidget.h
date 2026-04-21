@@ -26,7 +26,7 @@ public:
 
     void setParticipantIdentity(const std::string &participant_identity) { participant_identity_ = participant_identity; }
     void setTrackSid(const std::string &track_sid) { track_sid_ = track_sid; }
-    void setLocal(bool is_local = true) { is_local_ = is_local; }
+    void setLocal(bool is_local = false) { is_local_ = is_local; }
 
 protected:
     void initializeGL() override;
@@ -39,7 +39,7 @@ private:
 private:
     std::string participant_identity_;
     std::string track_sid_;
-    bool is_local_ = false;
+    bool is_local_ = true;
 
     QOpenGLShaderProgram program_;
     QOpenGLTexture *texture_ = nullptr;
