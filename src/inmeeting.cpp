@@ -554,5 +554,5 @@ void InMeeting::updateVideoWidgets()
     }
 
     // 缓存有序 widget 指针供 onTimer 使用
-    cachedOrderedWidgets_ = orderedWidgets;
+    cachedOrderedWidgets_.swap(orderedWidgets);
 }
