@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <unordered_map>
 #include <QTimer>
 
 extern std::unique_ptr<QWidget> home;
@@ -49,20 +50,21 @@ InMeeting::InMeeting(QWidget *parent)
     meetingEngine_->joinMeeting();
     auto localUser = meetingEngine_->room()->getLocalUser();
     if (localUser) {
-        localVideoWidget_ = new ParticipantWidget(this);
+        auto *localVideoWidget = new ParticipantWidget(this);
         localParticipantId_ = QString::fromStdString(localUser->identity());
-        localVideoWidget_->setParticipantName("我");
-        participantWidgets_[localParticipantId_] = localVideoWidget_;
+        localVideoWidget->setParticipantName("我");
+        participantWidgets_[localParticipantId_] = localVideoWidget;
     }
 
     // default unmuted and video on
     meetingEngine_->startAudio();
     ui->muteBtn->setText("静音");
 
-    if (localVideoWidget_) {
+    const auto localIt = participantWidgets_.find(localParticipantId_);
+    if (localIt != participantWidgets_.end() && localIt.value()) {
         std::string localVideoSid;
         meetingEngine_->startVideo(localVideoSid);
-        localVideoWidget_->setVideoTrackSid(QString::fromStdString(localVideoSid));
+        localIt.value()->setVideoTrackSid(QString::fromStdString(localVideoSid));
     }
     ui->videoBtn->setText("关闭视频");
 
@@ -91,13 +93,15 @@ void InMeeting::toggleVideo()
 {
     qInfo() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
-    if (!localVideoWidget_) {
+    const auto localIt = participantWidgets_.find(localParticipantId_);
+    ParticipantWidget *localVideoWidget = (localIt != participantWidgets_.end()) ? localIt.value() : nullptr;
+    if (!localVideoWidget) {
         return;
     }
     if (button->text() == "开启视频") {
         std::string localVideoSid;
         meetingEngine_->startVideo(localVideoSid);
-        localVideoWidget_->setVideoTrackSid(QString::fromStdString(localVideoSid));
+        localVideoWidget->setVideoTrackSid(QString::fromStdString(localVideoSid));
         button->setText("关闭视频");
     } else {
         meetingEngine_->stopVideo();
@@ -193,7 +197,15 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
     switch (static_cast<TrackKind>(trackKind))
     {
     case TrackKind::AUDIO:
-        remoteAudioTrackOwners_[trackSid] = participantId;
+        if (!participantWidget->audioTrackSid().isEmpty()) {
+            const QString oldAudioSid = participantWidget->audioTrackSid();
+            const auto oldIt = audioTrackOwners_.find(oldAudioSid);
+            if (oldIt != audioTrackOwners_.end() && oldIt.value() == participantWidget) {
+                audioTrackOwners_.erase(oldIt);
+            }
+        }
+
+        audioTrackOwners_[trackSid] = participantWidget;
         participantWidget->setAudioTrackSid(trackSid);
         break;
     case TrackKind::VIDEO:
@@ -260,28 +272,31 @@ void InMeeting::updateAudioStatusPanel()
 
     const AudioLevelInfo local_level = meetingEngine_->localAudioLevel();
     const bool local_speaking = meetingEngine_->isLocalAudioSpeaking();
-    if (localVideoWidget_) {
-        localVideoWidget_->setAudioStatus(local_level.level, local_speaking);
+    const auto localIt = participantWidgets_.find(localParticipantId_);
+    if (localIt != participantWidgets_.end() && localIt.value()) {
+        localIt.value()->setAudioStatus(local_level.level, local_speaking);
     }
 
     const auto remote_levels = meetingEngine_->remoteAudioLevels();
-    QHash<QString, bool> remote_speaking_by_participant;
     struct ParticipantAudioSnapshot { float level = 0.0f; bool speaking = false; };
-    QHash<QString, ParticipantAudioSnapshot> participant_audio;
+    std::unordered_map<ParticipantWidget *, ParticipantAudioSnapshot> participant_audio;
 
     for (const auto &entry : remote_levels) {
         const QString trackSid = QString::fromStdString(entry.first);
-        const auto owner_it = remoteAudioTrackOwners_.find(trackSid);
-        const QString participant = owner_it != remoteAudioTrackOwners_.end()
-            ? owner_it.value()
-            : trackSid;
+        const auto ownerIt = audioTrackOwners_.find(trackSid);
+        if (ownerIt == audioTrackOwners_.end()) {
+            continue;
+        }
 
-        auto &snapshot = participant_audio[participant];
+        ParticipantWidget *owner = ownerIt.value().data();
+        if (!owner) {
+            audioTrackOwners_.erase(ownerIt);
+            continue;
+        }
+
+        auto &snapshot = participant_audio[owner];
         snapshot.level = std::max(snapshot.level, entry.second.level);
         snapshot.speaking = snapshot.speaking || entry.second.speaking;
-
-        const bool speaking = entry.second.speaking;
-        remote_speaking_by_participant[participant] = remote_speaking_by_participant.value(participant, false) || speaking;
     }
 
     for (auto widgetIt = participantWidgets_.cbegin(); widgetIt != participantWidgets_.cend(); ++widgetIt) {
@@ -291,52 +306,11 @@ void InMeeting::updateAudioStatusPanel()
             continue;
         }
 
-        const auto it = participant_audio.find(participantId);
+        const auto it = participant_audio.find(participantWidget);
         if (it == participant_audio.end()) {
             participantWidget->setAudioStatus(0.0f, false);
         } else {
-            participantWidget->setAudioStatus(it.value().level, it.value().speaking);
-        }
-    }
-
-    updateSpeakerHighlight(local_speaking, remote_speaking_by_participant);
-}
-
-void InMeeting::updateSpeakerHighlight(
-    bool localSpeaking,
-    const QHash<QString, bool> &remoteSpeakingByParticipant)
-{
-    for (auto widgetIt = participantWidgets_.cbegin(); widgetIt != participantWidgets_.cend(); ++widgetIt) {
-        auto *videoWidget = widgetIt.value();
-        const QString participantId = widgetIt.key();
-        if (!videoWidget) {
-            continue;
-        }
-
-        bool speaking = false;
-        if (participantId == localParticipantId_) {
-            speaking = localSpeaking;
-        } else {
-            const auto it = remoteSpeakingByParticipant.find(participantId);
-            speaking = it != remoteSpeakingByParticipant.end() && it.value();
-        }
-
-        const auto stateIt = lastSpeakingStateByWidget_.find(videoWidget);
-        if (stateIt != lastSpeakingStateByWidget_.end() && stateIt->second == speaking) {
-            continue;
-        }
-        lastSpeakingStateByWidget_[videoWidget] = speaking;
-
-        if (speaking) {
-            videoWidget->setStyleSheet(
-                "border: 2px solid #27C93F;"
-                "border-radius: 6px;"
-                "background-color: #0D1218;");
-        } else {
-            videoWidget->setStyleSheet(
-                "border: 1px solid #2A3442;"
-                "border-radius: 6px;"
-                "background-color: #0D1218;");
+            participantWidget->setAudioStatus(it->second.level, it->second.speaking);
         }
     }
 }

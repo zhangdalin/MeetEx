@@ -27,7 +27,7 @@ public:
     ~ParticipantWidget() override;
 
     QString& audioTrackSid() { return audio_track_sid_; }
-    void setAudioTrackSid(const QString &audio_track_sid) { audio_track_sid_ = audio_track_sid; }
+    void setAudioTrackSid(const QString &audio_track_sid);
 
     QString& videoTrackSid() { return video_track_sid_; }
     void setVideoTrackSid(const QString &video_track_sid) { video_track_sid_ = video_track_sid; }
@@ -42,6 +42,7 @@ protected:
 private:
     void ensureTexture(int width, int height);
     void updateViewportForAspect(int frameWidth, int frameHeight);
+    void updateSpeakingStyle(bool speaking);
 
 private:
     void setupOverlay();
@@ -49,6 +50,7 @@ private:
 private:
     QString audio_track_sid_;
     QString video_track_sid_;
+
     QOpenGLShaderProgram program_;
     QOpenGLTexture *texture_ = nullptr;
 

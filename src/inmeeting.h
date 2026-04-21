@@ -7,7 +7,6 @@
 #include <QHash>
 #include <memory>
 #include <vector>
-#include <unordered_map>
 
 class MeetingEngine;
 class ParticipantWidget;
@@ -50,18 +49,16 @@ private:
     void onTimer();
     void updateVideoWidgets();
     void updateAudioStatusPanel();
-    void updateSpeakerHighlight(bool localSpeaking,
-                                const QHash<QString, bool> &remoteSpeakingByParticipant);
 
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
-    // every participantId handle a widget, local participantId is unique and fixed, remote participantId may come and go
+    // every participantId handle a widget
+    // participantId -> widget
     QHash<QString, ParticipantWidget*> participantWidgets_;
-    QPointer<ParticipantWidget> localVideoWidget_;
     QString localParticipantId_;
-
-    QHash<QString, QString> remoteAudioTrackOwners_;
-    std::unordered_map<ParticipantWidget *, bool> lastSpeakingStateByWidget_;
+    
+    // audio track sid -> owner widget
+    QHash<QString, QPointer<ParticipantWidget>> audioTrackOwners_;
 
     // 性能优化缓存
     std::vector<ParticipantWidget*> cachedOrderedWidgets_;

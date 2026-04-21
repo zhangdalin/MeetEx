@@ -25,6 +25,15 @@ ParticipantWidget::~ParticipantWidget()
     doneCurrent();
 }
 
+void ParticipantWidget::setAudioTrackSid(const QString &audio_track_sid)
+{
+    if (audio_track_sid_ == audio_track_sid) {
+        return;
+    }
+
+    audio_track_sid_ = audio_track_sid;
+}
+
 void ParticipantWidget::initializeGL()
 {
     initializeOpenGLFunctions();
@@ -82,6 +91,8 @@ void ParticipantWidget::setAudioStatus(float level, bool speaking)
         stateLabel_->setText(speaking ? "说话中" : "未说话");
         stateLabel_->setStyleSheet(speaking ? "color:#27C93F;" : "color:#C8D1E0;");
     }
+
+    updateSpeakingStyle(speaking);
 }
 
 void ParticipantWidget::paintGL()
@@ -196,6 +207,8 @@ void ParticipantWidget::updateViewportForAspect(int frameWidth, int frameHeight)
 
 void ParticipantWidget::setupOverlay()
 {
+    updateSpeakingStyle(false);
+
     audioOverlay_ = new QWidget(this);
     audioOverlay_->setStyleSheet(
         "background-color: rgba(10, 14, 20, 145);"
@@ -241,4 +254,19 @@ void ParticipantWidget::setupOverlay()
         " background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #27C93F, stop:1 #0B8A2C);"
         "}");
     topRow->addWidget(levelBar_);
+}
+
+void ParticipantWidget::updateSpeakingStyle(bool speaking)
+{
+    if (speaking) {
+        setStyleSheet(
+            "border: 2px solid #27C93F;"
+            "border-radius: 6px;"
+            "background-color: #0D1218;");
+    } else {
+        setStyleSheet(
+            "border: 1px solid #2A3442;"
+            "border-radius: 6px;"
+            "background-color: #0D1218;");
+    }
 }
