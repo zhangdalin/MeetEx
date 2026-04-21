@@ -3,14 +3,11 @@
 
 #include <QWidget>
 #include <QString>
-#include <QLabel>
-#include <QProgressBar>
 #include <QPointer>
-#include <QVBoxLayout>
+#include <QHash>
 #include <memory>
 #include <vector>
 #include <unordered_map>
-#include <string>
 
 class MeetingEngine;
 class ParticipantWidget;
@@ -54,39 +51,21 @@ private:
     void updateVideoWidgets();
     void updateAudioStatusPanel();
     void updateSpeakerHighlight(bool localSpeaking,
-                                const std::unordered_map<std::string, bool> &remoteSpeakingByParticipant);
-
-private:
-    struct RemoteAudioRowWidgets {
-        QPointer<QWidget> row;
-        QPointer<QLabel> nameLabel;
-        QPointer<QProgressBar> levelBar;
-        QPointer<QLabel> stateLabel;
-    };
+                                const QHash<QString, bool> &remoteSpeakingByParticipant);
 
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
     // every participantId handle a widget, local participantId is unique and fixed, remote participantId may come and go
-    std::unordered_map<std::string, ParticipantWidget*> participantWidgets_;
+    QHash<QString, ParticipantWidget*> participantWidgets_;
     QPointer<ParticipantWidget> localVideoWidget_;
-    std::string localParticipantId_;
+    QString localParticipantId_;
 
-    std::unordered_map<std::string, std::string> remoteAudioTrackOwners_;
+    QHash<QString, QString> remoteAudioTrackOwners_;
     std::unordered_map<ParticipantWidget *, bool> lastSpeakingStateByWidget_;
-    std::unordered_map<std::string, RemoteAudioRowWidgets> remoteAudioRows_;
-
-    QPointer<QWidget> audioStatusPanel_;
-    QPointer<QLabel> localMicLabel_;
-    QPointer<QProgressBar> localMicBar_;
-    QPointer<QLabel> localMicStateLabel_;
-    QPointer<QLabel> remoteTalkerLabel_;
-    QPointer<QWidget> remoteAudioListContainer_;
-    QPointer<QVBoxLayout> remoteAudioListLayout_;
 
     // 性能优化缓存
     std::vector<ParticipantWidget*> cachedOrderedWidgets_;
     int audioUpdateCounter_ = 0;
-    std::unordered_map<std::string, std::pair<float, bool>> lastRemoteAudioState_;  // {participantId -> {level, speaking}}
 };
 
 #endif // INMEETING_H

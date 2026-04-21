@@ -2,17 +2,19 @@
 #include "media_engine.h"
 
 #include <QVBoxLayout>
-#include <QPushButton>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QProgressBar>
+#include <QWidget>
+
+#include <algorithm>
 
 ParticipantWidget::ParticipantWidget(QWidget *parent)
     : QOpenGLWidget(parent)
-    , audio_track_sid_("")
-    , video_track_sid_("")
+    , audio_track_sid_()
+    , video_track_sid_()
 {
-    QVBoxLayout *layout = new QVBoxLayout(this);
-    QPushButton *btn = new QPushButton("视频");
-    layout->addWidget(btn);
-    layout->setAlignment(btn, Qt::AlignBottom | Qt::AlignCenter);
+    setupOverlay();
 }
 
 ParticipantWidget::~ParticipantWidget()
@@ -51,16 +53,47 @@ void ParticipantWidget::initializeGL()
     program_.link();
 }
 
+void ParticipantWidget::setParticipantName(const QString &name)
+{
+    if (participantName_ == name) {
+        return;
+    }
+
+    participantName_ = name;
+    if (nameLabel_) {
+        nameLabel_->setText(participantName_);
+    }
+}
+
+void ParticipantWidget::setAudioStatus(float level, bool speaking)
+{
+    const int levelInt = static_cast<int>(std::clamp(level * 100.0f, 0.0f, 100.0f));
+    if (lastAudioLevel_ == levelInt && lastSpeaking_ == speaking) {
+        return;
+    }
+
+    lastAudioLevel_ = levelInt;
+    lastSpeaking_ = speaking;
+
+    if (levelBar_) {
+        levelBar_->setValue(levelInt);
+    }
+    if (stateLabel_) {
+        stateLabel_->setText(speaking ? "说话中" : "未说话");
+        stateLabel_->setStyleSheet(speaking ? "color:#27C93F;" : "color:#C8D1E0;");
+    }
+}
+
 void ParticipantWidget::paintGL()
 {
     VideoFrameBuff tmpBuff{};
 
-    if (video_track_sid_.empty()) {
+    if (video_track_sid_.isEmpty()) {
         glClear(GL_COLOR_BUFFER_BIT);
         return;
     }
 
-    if (MediaEngine::instance().copyVideoFrame(video_track_sid_, tmpBuff)) {
+    if (MediaEngine::instance().copyVideoFrame(video_track_sid_.toStdString(), tmpBuff)) {
         ensureTexture(tmpBuff.width, tmpBuff.height);
         if (texture_) {
             texture_->bind();
@@ -159,4 +192,53 @@ void ParticipantWidget::updateViewportForAspect(int frameWidth, int frameHeight)
     }
 
     glViewport(vp_x, vp_y, vp_w, vp_h);
+}
+
+void ParticipantWidget::setupOverlay()
+{
+    audioOverlay_ = new QWidget(this);
+    audioOverlay_->setStyleSheet(
+        "background-color: rgba(10, 14, 20, 145);"
+        "border: 1px solid rgba(100, 115, 135, 130);"
+        "border-radius: 6px;");
+
+    auto *rootLayout = new QVBoxLayout(this);
+    rootLayout->setContentsMargins(8, 8, 8, 8);
+    rootLayout->addStretch();
+    rootLayout->addWidget(audioOverlay_);
+
+    auto *overlayLayout = new QVBoxLayout(audioOverlay_);
+    overlayLayout->setContentsMargins(8, 6, 8, 6);
+    overlayLayout->setSpacing(4);
+
+    auto *topRow = new QHBoxLayout();
+    topRow->setSpacing(6);
+    overlayLayout->addLayout(topRow);
+
+    nameLabel_ = new QLabel("参与者", audioOverlay_);
+    nameLabel_->setStyleSheet("color:#E8EDF5;");
+    topRow->addWidget(nameLabel_, 1);
+
+    stateLabel_ = new QLabel("未说话", audioOverlay_);
+    stateLabel_->setStyleSheet("color:#C8D1E0;");
+    topRow->addWidget(stateLabel_);
+
+    levelBar_ = new QProgressBar(audioOverlay_);
+    levelBar_->setRange(0, 100);
+    levelBar_->setValue(0);
+    levelBar_->setTextVisible(false);
+    levelBar_->setOrientation(Qt::Vertical);
+    levelBar_->setFixedWidth(6);
+    levelBar_->setFixedHeight(stateLabel_->sizeHint().height());
+    levelBar_->setStyleSheet(
+        "QProgressBar {"
+        " border: 1px solid rgba(75, 87, 105, 180);"
+        " border-radius: 3px;"
+        " background: rgba(8, 10, 14, 155);"
+        "}"
+        "QProgressBar::chunk {"
+        " border-radius: 2px;"
+        " background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #27C93F, stop:1 #0B8A2C);"
+        "}");
+    topRow->addWidget(levelBar_);
 }

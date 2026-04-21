@@ -8,12 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
-#include <QProgressBar>
-#include <QLabel>
 #include <QTimer>
-#include <QSet>
 
 extern std::unique_ptr<QWidget> home;
 extern std::unique_ptr<QWidget> myprofile;
@@ -41,59 +36,6 @@ InMeeting::InMeeting(QWidget *parent)
 {
     ui->setupUi(this);
 
-    audioStatusPanel_ = new QWidget(this);
-    audioStatusPanel_->setObjectName("audioStatusPanel");
-    audioStatusPanel_->setStyleSheet(
-        "QWidget#audioStatusPanel {"
-        " background-color: rgba(20, 24, 30, 170);"
-        " border: 1px solid rgba(120, 134, 156, 120);"
-        " border-radius: 8px;"
-        "}"
-        "QLabel { color: #E8EDF5; }"
-        "QProgressBar {"
-        " border: 1px solid rgba(80, 90, 110, 180);"
-        " border-radius: 4px;"
-        " background: rgba(8, 10, 14, 150);"
-        " text-align: center;"
-        " color: #E8EDF5;"
-        "}"
-        "QProgressBar::chunk {"
-        " border-radius: 3px;"
-        " background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #27C93F, stop:1 #0B8A2C);"
-        "}");
-
-    auto *statusLayout = new QVBoxLayout(audioStatusPanel_);
-    statusLayout->setContentsMargins(10, 8, 10, 8);
-    statusLayout->setSpacing(6);
-
-    auto *topRowLayout = new QHBoxLayout();
-    topRowLayout->setSpacing(8);
-    statusLayout->addLayout(topRowLayout);
-
-    localMicLabel_ = new QLabel("本地麦克风", audioStatusPanel_);
-    topRowLayout->addWidget(localMicLabel_);
-
-    localMicBar_ = new QProgressBar(audioStatusPanel_);
-    localMicBar_->setRange(0, 100);
-    localMicBar_->setValue(0);
-    localMicBar_->setTextVisible(false);
-    localMicBar_->setFixedWidth(110);
-    topRowLayout->addWidget(localMicBar_);
-
-    localMicStateLabel_ = new QLabel("未说话", audioStatusPanel_);
-    localMicStateLabel_->setMinimumWidth(52);
-    topRowLayout->addWidget(localMicStateLabel_);
-
-    remoteTalkerLabel_ = new QLabel("远端发言: 无", audioStatusPanel_);
-    remoteTalkerLabel_->setMinimumWidth(170);
-    topRowLayout->addWidget(remoteTalkerLabel_, 1);
-
-    remoteAudioListContainer_ = new QWidget(audioStatusPanel_);
-    remoteAudioListLayout_ = new QVBoxLayout(remoteAudioListContainer_);
-    remoteAudioListLayout_->setContentsMargins(0, 0, 0, 0);
-    remoteAudioListLayout_->setSpacing(4);
-    statusLayout->addWidget(remoteAudioListContainer_);
-
     connect(meetingEngine_->room(), &MeetingRoom::sigParticipantJoined,
             this, &InMeeting::onParticipantJoined);
     connect(meetingEngine_->room(), &MeetingRoom::sigTrackSubscribed,
@@ -108,7 +50,8 @@ InMeeting::InMeeting(QWidget *parent)
     auto localUser = meetingEngine_->room()->getLocalUser();
     if (localUser) {
         localVideoWidget_ = new ParticipantWidget(this);
-        localParticipantId_ = localUser->identity();
+        localParticipantId_ = QString::fromStdString(localUser->identity());
+        localVideoWidget_->setParticipantName("我");
         participantWidgets_[localParticipantId_] = localVideoWidget_;
     }
 
@@ -117,7 +60,9 @@ InMeeting::InMeeting(QWidget *parent)
     ui->muteBtn->setText("静音");
 
     if (localVideoWidget_) {
-        meetingEngine_->startVideo(localVideoWidget_->videoTrackSid());
+        std::string localVideoSid;
+        meetingEngine_->startVideo(localVideoSid);
+        localVideoWidget_->setVideoTrackSid(QString::fromStdString(localVideoSid));
     }
     ui->videoBtn->setText("关闭视频");
 
@@ -150,7 +95,9 @@ void InMeeting::toggleVideo()
         return;
     }
     if (button->text() == "开启视频") {
-        meetingEngine_->startVideo(localVideoWidget_->videoTrackSid());
+        std::string localVideoSid;
+        meetingEngine_->startVideo(localVideoSid);
+        localVideoWidget_->setVideoTrackSid(QString::fromStdString(localVideoSid));
         button->setText("关闭视频");
     } else {
         meetingEngine_->stopVideo();
@@ -210,12 +157,13 @@ void InMeeting::onParticipantJoined(const QString &participantId, const QString 
             << "new participant joined, name=" << participantName
             << "id=" << participantId;
 
-    auto participantIdStr = participantId.toStdString();
-
-    auto it = participantWidgets_.find(participantIdStr);
+    auto it = participantWidgets_.find(participantId);
     if (it == participantWidgets_.end()) {
         auto *participantWidget = new ParticipantWidget(this);
-        participantWidgets_[participantIdStr] = participantWidget;
+        participantWidget->setParticipantName(participantName);
+        participantWidgets_[participantId] = participantWidget;
+    } else if (it.value()) {
+        it.value()->setParticipantName(participantName);
     }
 }
 
@@ -228,24 +176,28 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
             << "participant_id=" << participantId
             << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
 
-    auto participantIdStr = participantId.toStdString();
-
-    auto it = participantWidgets_.find(participantIdStr);
+    auto it = participantWidgets_.find(participantId);
+    ParticipantWidget *participantWidget = nullptr;
     if (it == participantWidgets_.end()) {
-        auto *participantWidget = new ParticipantWidget(this);
-        participantWidgets_[participantIdStr] = participantWidget;
-    } else if (it->second) {
-        it->second->setVideoTrackSid(trackSid.toStdString());
+        participantWidget = new ParticipantWidget(this);
+        participantWidget->setParticipantName(participantId);
+        participantWidgets_[participantId] = participantWidget;
+    } else {
+        participantWidget = it.value();
+    }
+
+    if (!participantWidget) {
+        return;
     }
 
     switch (static_cast<TrackKind>(trackKind))
     {
     case TrackKind::AUDIO:
-        remoteAudioTrackOwners_[trackSid.toStdString()] = participantId.toStdString();
-        participantWidgets_[participantIdStr]->setAudioTrackSid(trackSid.toStdString());
+        remoteAudioTrackOwners_[trackSid] = participantId;
+        participantWidget->setAudioTrackSid(trackSid);
         break;
     case TrackKind::VIDEO:
-        participantWidgets_[participantIdStr]->setVideoTrackSid(trackSid.toStdString());
+        participantWidget->setVideoTrackSid(trackSid);
         break;
     default:
         break;
@@ -283,14 +235,6 @@ void InMeeting::resizeEvent(QResizeEvent *event)
     if (ui->layoutWidget) {
         ui->layoutWidget->setGeometry(leftMargin, toolbarY, contentWidth, toolbarHeight);
     }
-
-    if (audioStatusPanel_) {
-        const int panelWidth = std::clamp(contentWidth / 2, 300, 620);
-        const int rowCount = static_cast<int>(remoteAudioRows_.size());
-        const int panelHeight = std::clamp(52 + rowCount * 24, 52, 220);
-        audioStatusPanel_->setGeometry(leftMargin + contentWidth - panelWidth, topMargin, panelWidth, panelHeight);
-        audioStatusPanel_->raise();
-    }
 }
 
 void InMeeting::onTimer()
@@ -316,152 +260,43 @@ void InMeeting::updateAudioStatusPanel()
 
     const AudioLevelInfo local_level = meetingEngine_->localAudioLevel();
     const bool local_speaking = meetingEngine_->isLocalAudioSpeaking();
-    if (localMicBar_) {
-        localMicBar_->setValue(static_cast<int>(std::clamp(local_level.level * 100.0f, 0.0f, 100.0f)));
-    }
-    if (localMicStateLabel_) {
-        localMicStateLabel_->setText(local_speaking ? "说话中" : "未说话");
-        localMicStateLabel_->setStyleSheet(local_speaking ? "color:#27C93F;" : "color:#C8D1E0;");
+    if (localVideoWidget_) {
+        localVideoWidget_->setAudioStatus(local_level.level, local_speaking);
     }
 
     const auto remote_levels = meetingEngine_->remoteAudioLevels();
-    std::unordered_map<std::string, bool> remote_speaking_by_participant;
-    struct ParticipantAudioSnapshot {
-        float level = 0.0f;
-        float smoothedDb = -100.0f;
-        bool speaking = false;
-    };
-    std::unordered_map<std::string, ParticipantAudioSnapshot> participant_audio;
-
-    float max_remote_db = -100.0f;
-    std::string active_talker;
+    QHash<QString, bool> remote_speaking_by_participant;
+    struct ParticipantAudioSnapshot { float level = 0.0f; bool speaking = false; };
+    QHash<QString, ParticipantAudioSnapshot> participant_audio;
 
     for (const auto &entry : remote_levels) {
-        const auto owner_it = remoteAudioTrackOwners_.find(entry.first);
-        const std::string participant = owner_it != remoteAudioTrackOwners_.end() ? owner_it->second : entry.first;
+        const QString trackSid = QString::fromStdString(entry.first);
+        const auto owner_it = remoteAudioTrackOwners_.find(trackSid);
+        const QString participant = owner_it != remoteAudioTrackOwners_.end()
+            ? owner_it.value()
+            : trackSid;
 
         auto &snapshot = participant_audio[participant];
         snapshot.level = std::max(snapshot.level, entry.second.level);
-        snapshot.smoothedDb = std::max(snapshot.smoothedDb, entry.second.smoothed_db);
         snapshot.speaking = snapshot.speaking || entry.second.speaking;
 
         const bool speaking = entry.second.speaking;
-        remote_speaking_by_participant[participant] = remote_speaking_by_participant[participant] || speaking;
-
-        if (entry.second.smoothed_db > max_remote_db) {
-            max_remote_db = entry.second.smoothed_db;
-            active_talker = participant;
-        }
+        remote_speaking_by_participant[participant] = remote_speaking_by_participant.value(participant, false) || speaking;
     }
 
-    // 快速检查：如果远端音量和发言状态都没变，只更新本地、活跃发言人和 speaker 高亮
-    bool audioStateChanged = false;
-    if (lastRemoteAudioState_.size() != participant_audio.size()) {
-        audioStateChanged = true;
-    } else {
-        for (const auto &entry : participant_audio) {
-            const auto it = lastRemoteAudioState_.find(entry.first);
-            if (it == lastRemoteAudioState_.end() ||
-                std::abs(it->second.first - entry.second.level) > 0.01f ||
-                it->second.second != entry.second.speaking) {
-                audioStateChanged = true;
-                break;
-            }
-        }
-    }
-
-    if (audioStateChanged) {
-        // 更新缓存状态
-        lastRemoteAudioState_.clear();
-        for (const auto &entry : participant_audio) {
-            lastRemoteAudioState_[entry.first] = {entry.second.level, entry.second.speaking};
-        }
-    }
-
-    if (remoteAudioListLayout_) {
-        QSet<QString> participantsInUse;
-        for (const auto &entry : participant_audio) {
-            participantsInUse.insert(QString::fromStdString(entry.first));
-
-            auto &row = remoteAudioRows_[entry.first];
-            if (!row.row) {
-                row.row = new QWidget(remoteAudioListContainer_);
-                auto *rowLayout = new QHBoxLayout(row.row);
-                rowLayout->setContentsMargins(0, 0, 0, 0);
-                rowLayout->setSpacing(6);
-
-                row.nameLabel = new QLabel(QString::fromStdString(entry.first), row.row);
-                row.nameLabel->setMinimumWidth(80);
-                rowLayout->addWidget(row.nameLabel);
-
-                row.levelBar = new QProgressBar(row.row);
-                row.levelBar->setRange(0, 100);
-                row.levelBar->setTextVisible(false);
-                row.levelBar->setFixedWidth(110);
-                rowLayout->addWidget(row.levelBar);
-
-                row.stateLabel = new QLabel("未说话", row.row);
-                row.stateLabel->setMinimumWidth(52);
-                rowLayout->addWidget(row.stateLabel);
-
-                remoteAudioListLayout_->addWidget(row.row);
-            }
-
-            // 仅当状态变化时才更新 UI，避免频繁的字符串转换和样式更新
-            if (!audioStateChanged) {
-                continue;
-            }
-
-            if (row.nameLabel) {
-                row.nameLabel->setText(QString::fromStdString(entry.first));
-            }
-            if (row.levelBar) {
-                row.levelBar->setValue(static_cast<int>(std::clamp(entry.second.level * 100.0f, 0.0f, 100.0f)));
-            }
-            if (row.stateLabel) {
-                row.stateLabel->setText(entry.second.speaking ? "说话中" : "未说话");
-                row.stateLabel->setStyleSheet(entry.second.speaking ? "color:#27C93F;" : "color:#C8D1E0;");
-            }
+    for (auto widgetIt = participantWidgets_.cbegin(); widgetIt != participantWidgets_.cend(); ++widgetIt) {
+        const QString &participantId = widgetIt.key();
+        auto *participantWidget = widgetIt.value();
+        if (!participantWidget || participantId == localParticipantId_) {
+            continue;
         }
 
-        std::vector<std::string> staleParticipants;
-        staleParticipants.reserve(remoteAudioRows_.size());
-        for (const auto &entry : remoteAudioRows_) {
-            if (!participantsInUse.contains(QString::fromStdString(entry.first))) {
-                staleParticipants.push_back(entry.first);
-            }
-        }
-
-        for (const auto &participant : staleParticipants) {
-            auto it = remoteAudioRows_.find(participant);
-            if (it == remoteAudioRows_.end()) {
-                continue;
-            }
-            if (it->second.row) {
-                remoteAudioListLayout_->removeWidget(it->second.row);
-                delete it->second.row;
-            }
-            remoteAudioRows_.erase(it);
-        }
-    }
-
-    if (remoteTalkerLabel_ && audioStateChanged) {
-        if (active_talker.empty()) {
-            remoteTalkerLabel_->setText("远端发言: 无");
+        const auto it = participant_audio.find(participantId);
+        if (it == participant_audio.end()) {
+            participantWidget->setAudioStatus(0.0f, false);
         } else {
-            remoteTalkerLabel_->setText(QString("远端发言: %1").arg(QString::fromStdString(active_talker)));
+            participantWidget->setAudioStatus(it.value().level, it.value().speaking);
         }
-    }
-
-    if (audioStatusPanel_) {
-        const int leftMargin = 20;
-        const int topMargin = 20;
-        const int rightMargin = 20;
-        const int contentWidth = std::max(0, width() - leftMargin - rightMargin);
-        const int panelWidth = std::clamp(contentWidth / 2, 300, 620);
-        const int rowCount = static_cast<int>(remoteAudioRows_.size());
-        const int panelHeight = std::clamp(52 + rowCount * 24, 52, 220);
-        audioStatusPanel_->setGeometry(leftMargin + contentWidth - panelWidth, topMargin, panelWidth, panelHeight);
     }
 
     updateSpeakerHighlight(local_speaking, remote_speaking_by_participant);
@@ -469,11 +304,11 @@ void InMeeting::updateAudioStatusPanel()
 
 void InMeeting::updateSpeakerHighlight(
     bool localSpeaking,
-    const std::unordered_map<std::string, bool> &remoteSpeakingByParticipant)
+    const QHash<QString, bool> &remoteSpeakingByParticipant)
 {
-    for (const auto &entry : participantWidgets_) {
-        auto *videoWidget = entry.second;
-        auto participantId = entry.first;
+    for (auto widgetIt = participantWidgets_.cbegin(); widgetIt != participantWidgets_.cend(); ++widgetIt) {
+        auto *videoWidget = widgetIt.value();
+        const QString participantId = widgetIt.key();
         if (!videoWidget) {
             continue;
         }
@@ -483,7 +318,7 @@ void InMeeting::updateSpeakerHighlight(
             speaking = localSpeaking;
         } else {
             const auto it = remoteSpeakingByParticipant.find(participantId);
-            speaking = it != remoteSpeakingByParticipant.end() && it->second;
+            speaking = it != remoteSpeakingByParticipant.end() && it.value();
         }
 
         const auto stateIt = lastSpeakingStateByWidget_.find(videoWidget);
@@ -520,15 +355,15 @@ void InMeeting::updateVideoWidgets()
     orderedWidgets.reserve(participantWidgets_.size());
 
     auto localIt = participantWidgets_.find(localParticipantId_);
-    if (localIt != participantWidgets_.end() && localIt->second) {
-        orderedWidgets.push_back(localIt->second);
+    if (localIt != participantWidgets_.end() && localIt.value()) {
+        orderedWidgets.push_back(localIt.value());
     }
 
-    std::vector<std::pair<std::string, ParticipantWidget*>> remoteEntries;
+    std::vector<std::pair<QString, ParticipantWidget*>> remoteEntries;
     remoteEntries.reserve(participantWidgets_.size());
-    for (const auto &entry : participantWidgets_) {
-        if (entry.first != localParticipantId_ && entry.second) {
-            remoteEntries.emplace_back(entry.first, entry.second);
+    for (auto widgetIt = participantWidgets_.cbegin(); widgetIt != participantWidgets_.cend(); ++widgetIt) {
+        if (widgetIt.key() != localParticipantId_ && widgetIt.value()) {
+            remoteEntries.emplace_back(widgetIt.key(), widgetIt.value());
         }
     }
     std::sort(remoteEntries.begin(), remoteEntries.end(),
