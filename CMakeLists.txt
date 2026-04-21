@@ -47,7 +47,7 @@ set(PROJECT_HEADERS
     src/settingcommon.h
     src/myprofile.h
     src/sharescreen.h
-    src/videoglwidget.h
+    src/participantwidget.h
 )
 
 set(PROJECT_SOURCES
@@ -64,7 +64,7 @@ set(PROJECT_SOURCES
     src/settingcommon.cpp
     src/myprofile.cpp
     src/sharescreen.cpp
-    src/videoglwidget.cpp
+    src/participantwidget.cpp
     ${TS_FILES}
 )
 

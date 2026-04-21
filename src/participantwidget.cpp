@@ -1,12 +1,13 @@
-#include "videoglwidget.h"
+#include "participantwidget.h"
 #include "media_engine.h"
 
 #include <QVBoxLayout>
 #include <QPushButton>
 
-VideoGLWidget::VideoGLWidget(QWidget *parent)
+ParticipantWidget::ParticipantWidget(QWidget *parent)
     : QOpenGLWidget(parent)
-    , track_sid_("")
+    , audio_track_sid_("")
+    , video_track_sid_("")
 {
     QVBoxLayout *layout = new QVBoxLayout(this);
     QPushButton *btn = new QPushButton("视频");
@@ -14,7 +15,7 @@ VideoGLWidget::VideoGLWidget(QWidget *parent)
     layout->setAlignment(btn, Qt::AlignBottom | Qt::AlignCenter);
 }
 
-VideoGLWidget::~VideoGLWidget()
+ParticipantWidget::~ParticipantWidget()
 {
     makeCurrent();
     delete texture_;
@@ -22,7 +23,7 @@ VideoGLWidget::~VideoGLWidget()
     doneCurrent();
 }
 
-void VideoGLWidget::initializeGL()
+void ParticipantWidget::initializeGL()
 {
     initializeOpenGLFunctions();
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
@@ -50,16 +51,16 @@ void VideoGLWidget::initializeGL()
     program_.link();
 }
 
-void VideoGLWidget::paintGL()
+void ParticipantWidget::paintGL()
 {
     VideoFrameBuff tmpBuff{};
 
-    if (track_sid_.empty()) {
+    if (video_track_sid_.empty()) {
         glClear(GL_COLOR_BUFFER_BIT);
         return;
     }
 
-    if (MediaEngine::instance().copyVideoFrame(track_sid_, tmpBuff)) {
+    if (MediaEngine::instance().copyVideoFrame(video_track_sid_, tmpBuff)) {
         ensureTexture(tmpBuff.width, tmpBuff.height);
         if (texture_) {
             texture_->bind();
@@ -108,7 +109,7 @@ void VideoGLWidget::paintGL()
     program_.release();
 }
 
-void VideoGLWidget::ensureTexture(int width, int height)
+void ParticipantWidget::ensureTexture(int width, int height)
 {
     if (width <= 0 || height <= 0) {
         return;
@@ -131,7 +132,7 @@ void VideoGLWidget::ensureTexture(int width, int height)
     }
 }
 
-void VideoGLWidget::updateViewportForAspect(int frameWidth, int frameHeight)
+void ParticipantWidget::updateViewportForAspect(int frameWidth, int frameHeight)
 {
     const qreal dpr = devicePixelRatioF();
     const int view_w = static_cast<int>(width() * dpr);

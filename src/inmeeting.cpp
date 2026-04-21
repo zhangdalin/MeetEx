@@ -4,7 +4,7 @@
 #include "meeting_room.h"
 #include "meeting_def.h"
 #include "local_user.h"
-#include "videoglwidget.h"
+#include "participantwidget.h"
 
 #include <algorithm>
 #include <cmath>
@@ -107,9 +107,9 @@ InMeeting::InMeeting(QWidget *parent)
     meetingEngine_->joinMeeting();
     auto localUser = meetingEngine_->room()->getLocalUser();
     if (localUser) {
-        localVideoWidget_ = new VideoGLWidget(this);
+        localVideoWidget_ = new ParticipantWidget(this);
         localParticipantId_ = localUser->identity();
-        videoWidgets_[localParticipantId_] = localVideoWidget_;
+        participantWidgets_[localParticipantId_] = localVideoWidget_;
     }
 
     // default unmuted and video on
@@ -117,7 +117,7 @@ InMeeting::InMeeting(QWidget *parent)
     ui->muteBtn->setText("静音");
 
     if (localVideoWidget_) {
-        meetingEngine_->startVideo(localVideoWidget_->trackSid());
+        meetingEngine_->startVideo(localVideoWidget_->videoTrackSid());
     }
     ui->videoBtn->setText("关闭视频");
 
@@ -150,7 +150,7 @@ void InMeeting::toggleVideo()
         return;
     }
     if (button->text() == "开启视频") {
-        meetingEngine_->startVideo(localVideoWidget_->trackSid());
+        meetingEngine_->startVideo(localVideoWidget_->videoTrackSid());
         button->setText("关闭视频");
     } else {
         meetingEngine_->stopVideo();
@@ -209,6 +209,14 @@ void InMeeting::onParticipantJoined(const QString &participantId, const QString 
     qInfo() << __FUNCTION__
             << "new participant joined, name=" << participantName
             << "id=" << participantId;
+
+    auto participantIdStr = participantId.toStdString();
+
+    auto it = participantWidgets_.find(participantIdStr);
+    if (it == participantWidgets_.end()) {
+        auto *participantWidget = new ParticipantWidget(this);
+        participantWidgets_[participantIdStr] = participantWidget;
+    }
 }
 
 void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackName, 
@@ -219,27 +227,31 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
             << "track_name=" << trackName
             << "participant_id=" << participantId
             << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
-    switch (static_cast<TrackKind>(trackKind)) {
+
+    auto participantIdStr = participantId.toStdString();
+
+    auto it = participantWidgets_.find(participantIdStr);
+    if (it == participantWidgets_.end()) {
+        auto *participantWidget = new ParticipantWidget(this);
+        participantWidgets_[participantIdStr] = participantWidget;
+    } else if (it->second) {
+        it->second->setVideoTrackSid(trackSid.toStdString());
+    }
+
+    switch (static_cast<TrackKind>(trackKind))
+    {
     case TrackKind::AUDIO:
         remoteAudioTrackOwners_[trackSid.toStdString()] = participantId.toStdString();
+        participantWidgets_[participantIdStr]->setAudioTrackSid(trackSid.toStdString());
         break;
     case TrackKind::VIDEO:
-    {
-        auto participantIdStr = participantId.toStdString();
-        auto it = videoWidgets_.find(participantIdStr);
-        if (it == videoWidgets_.end()) {
-            auto *videoWidget = new VideoGLWidget(this);
-            videoWidget->setTrackSid(trackSid.toStdString());
-            videoWidgets_[participantIdStr] = videoWidget;
-        } else if (it->second) {
-            it->second->setTrackSid(trackSid.toStdString());
-        }
-        updateVideoWidgets();
-    }
+        participantWidgets_[participantIdStr]->setVideoTrackSid(trackSid.toStdString());
         break;
     default:
         break;
     }
+
+    updateVideoWidgets();
 }
 
 void InMeeting::closeEvent(QCloseEvent *event)
@@ -459,7 +471,7 @@ void InMeeting::updateSpeakerHighlight(
     bool localSpeaking,
     const std::unordered_map<std::string, bool> &remoteSpeakingByParticipant)
 {
-    for (const auto &entry : videoWidgets_) {
+    for (const auto &entry : participantWidgets_) {
         auto *videoWidget = entry.second;
         auto participantId = entry.first;
         if (!videoWidget) {
@@ -504,17 +516,17 @@ void InMeeting::updateVideoWidgets()
     }
 
     // 本地优先，远端按 id 排序——单次遍历直接收集指针，避免二次 find()
-    std::vector<VideoGLWidget*> orderedWidgets;
-    orderedWidgets.reserve(videoWidgets_.size());
+    std::vector<ParticipantWidget*> orderedWidgets;
+    orderedWidgets.reserve(participantWidgets_.size());
 
-    auto localIt = videoWidgets_.find(localParticipantId_);
-    if (localIt != videoWidgets_.end() && localIt->second) {
+    auto localIt = participantWidgets_.find(localParticipantId_);
+    if (localIt != participantWidgets_.end() && localIt->second) {
         orderedWidgets.push_back(localIt->second);
     }
 
-    std::vector<std::pair<std::string, VideoGLWidget*>> remoteEntries;
-    remoteEntries.reserve(videoWidgets_.size());
-    for (const auto &entry : videoWidgets_) {
+    std::vector<std::pair<std::string, ParticipantWidget*>> remoteEntries;
+    remoteEntries.reserve(participantWidgets_.size());
+    for (const auto &entry : participantWidgets_) {
         if (entry.first != localParticipantId_ && entry.second) {
             remoteEntries.emplace_back(entry.first, entry.second);
         }

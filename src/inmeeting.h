@@ -13,7 +13,7 @@
 #include <string>
 
 class MeetingEngine;
-class VideoGLWidget;
+class ParticipantWidget;
 
 namespace Ui {
 class InMeeting;
@@ -67,12 +67,12 @@ private:
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
     // every participantId handle a widget, local participantId is unique and fixed, remote participantId may come and go
-    std::unordered_map<std::string, VideoGLWidget*> videoWidgets_;
-    QPointer<VideoGLWidget> localVideoWidget_;
+    std::unordered_map<std::string, ParticipantWidget*> participantWidgets_;
+    QPointer<ParticipantWidget> localVideoWidget_;
     std::string localParticipantId_;
 
     std::unordered_map<std::string, std::string> remoteAudioTrackOwners_;
-    std::unordered_map<VideoGLWidget *, bool> lastSpeakingStateByWidget_;
+    std::unordered_map<ParticipantWidget *, bool> lastSpeakingStateByWidget_;
     std::unordered_map<std::string, RemoteAudioRowWidgets> remoteAudioRows_;
 
     QPointer<QWidget> audioStatusPanel_;
@@ -84,7 +84,7 @@ private:
     QPointer<QVBoxLayout> remoteAudioListLayout_;
 
     // 性能优化缓存
-    std::vector<VideoGLWidget*> cachedOrderedWidgets_;
+    std::vector<ParticipantWidget*> cachedOrderedWidgets_;
     int audioUpdateCounter_ = 0;
     std::unordered_map<std::string, std::pair<float, bool>> lastRemoteAudioState_;  // {participantId -> {level, speaking}}
 };
