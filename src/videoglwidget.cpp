@@ -6,9 +6,8 @@
 
 VideoGLWidget::VideoGLWidget(QWidget *parent)
     : QOpenGLWidget(parent)
-    , participant_identity_("")
     , track_sid_("")
-    , is_local_(false)
+    , is_local_(true)
 {
     QVBoxLayout *layout = new QVBoxLayout(this);
     QPushButton *btn = new QPushButton(is_local_ ? "本地视频" : "远程视频");
@@ -56,7 +55,7 @@ void VideoGLWidget::paintGL()
 {
     VideoFrameBuff tmpBuff{};
 
-    if (participant_identity_.empty() || track_sid_.empty()) {
+    if (track_sid_.empty()) {
         glClear(GL_COLOR_BUFFER_BIT);
         return;
     }

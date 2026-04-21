@@ -112,14 +112,14 @@ std::shared_ptr<LocalUser>& MeetingRoom::getLocalUser() {
     return localUser_;
 }
 
-std::shared_ptr<RemoteUser> MeetingRoom::getRemoteUser(const std::string &identity) {
+std::shared_ptr<RemoteUser> MeetingRoom::getRemoteUser(const std::string &id) {
     if (state_ != RoomState::CONNECTED) {
-        qWarning() << __FUNCTION__ << "getRemoteUser() called but not connected to room";
+        qWarning() << __FUNCTION__ << "called but not connected to room";
         return nullptr;
     }
-    auto remote_participant = this->remoteParticipant(identity);
+    auto remote_participant = this->remoteParticipant(id);
     if (!remote_participant) {
-        qWarning() << __FUNCTION__ << "No remote participant found with identity: " << QString::fromStdString(identity);
+        qWarning() << __FUNCTION__ << "No remote participant found with id: " << QString::fromStdString(id);
         return nullptr;
     }
     return std::make_shared<RemoteUser>(remote_participant);
@@ -128,7 +128,7 @@ std::shared_ptr<RemoteUser> MeetingRoom::getRemoteUser(const std::string &identi
 std::vector<std::shared_ptr<RemoteUser>> MeetingRoom::getRemoteUsers() {
     std::vector<std::shared_ptr<RemoteUser>> remote_users;
     if (state_ != RoomState::CONNECTED) {
-        qWarning() << __FUNCTION__ << "getRemoteUsers() called but not connected to room";
+        qWarning() << __FUNCTION__ << "called but not connected to room";
         return remote_users;
     }
     auto remote_participants = this->remoteParticipants();
@@ -149,20 +149,20 @@ void MeetingRoom::onParticipantConnected(livekit::Room &room, const livekit::Par
         return;
     }
 
-    const QString participant_identity = QString::fromStdString(ev.participant->identity());
+    const QString participant_id = QString::fromStdString(ev.participant->identity());
     const QString participant_name = QString::fromStdString(ev.participant->name());
-    qDebug() << __FUNCTION__ << "participant connected: identity="
-        << participant_identity
+    qDebug() << __FUNCTION__ << "participant connected: id="
+        << participant_id
         << "name=" << participant_name;
 
-    emit sigParticipantJoined(participant_identity, participant_name);
+    emit sigParticipantJoined(participant_id, participant_name);
 }
 
 void MeetingRoom::onParticipantsUpdated(livekit::Room &room, const livekit::ParticipantsUpdatedEvent &ev) {
     Q_UNUSED(room);
     for (const auto& participant : ev.participants) {
         if (participant) {
-            qDebug() << __FUNCTION__ << "participant identity=" << QString::fromStdString(participant->identity())
+            qDebug() << __FUNCTION__ << "participant id=" << QString::fromStdString(participant->identity())
                 << "name=" << QString::fromStdString(participant->name());
         }
     }
@@ -170,7 +170,7 @@ void MeetingRoom::onParticipantsUpdated(livekit::Room &room, const livekit::Part
 
 void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSubscribedEvent &ev) {
     Q_UNUSED(room);
-    const QString participant_identity = ev.participant
+    const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
         : QStringLiteral("<unknown>");
     const QString track_sid = ev.publication
@@ -179,8 +179,8 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
     const QString track_name = ev.publication
         ? QString::fromStdString(ev.publication->name())
         : QStringLiteral("<unknown>");
-    qDebug() << __FUNCTION__ << "track subscribed: participant_identity="
-        << participant_identity
+    qDebug() << __FUNCTION__ << "track subscribed: participant_id="
+        << participant_id
         << "track_sid=" << track_sid
         << "name=" << track_name
         << "kind=" << (ev.track ? trackKindToString(ev.track->kind()) : "<unknown>")
@@ -188,7 +188,7 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
     
     if (ev.track) {
         const int track_kind = static_cast<int>(ev.track->kind());
-        emit sigTrackSubscribed(track_sid, track_name, participant_identity, track_kind);
+        emit sigTrackSubscribed(track_sid, track_name, participant_id, track_kind);
     }
 
     // If this is a VIDEO track, create a VideoStream and attach to renderer

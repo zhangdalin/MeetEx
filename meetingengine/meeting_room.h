@@ -38,13 +38,13 @@ public:
     bool disconnect();
 
     std::shared_ptr<LocalUser>& getLocalUser();
-    std::shared_ptr<RemoteUser> getRemoteUser(const std::string &identity);
+    std::shared_ptr<RemoteUser> getRemoteUser(const std::string &id);
     std::vector<std::shared_ptr<RemoteUser>> getRemoteUsers();
 
 signals:
     void sigParticipantJoined(const QString &participantId, const QString &participantName);
     void sigTrackSubscribed(const QString &trackSid, const QString &trackName, 
-        const QString &participantIdentity, int trackKind);
+        const QString &participantId, int trackKind);
 
 private:
     std::string url_;

@@ -95,10 +95,6 @@ InMeeting::InMeeting(QWidget *parent)
     remoteAudioListLayout_->setSpacing(4);
     statusLayout->addWidget(remoteAudioListContainer_);
 
-    auto localVideoWidget = new VideoGLWidget(this);
-    localVideoWidget->setLocal(true);
-    videoWidgets_.push_back(localVideoWidget);
-
     connect(meetingEngine_->room(), &MeetingRoom::sigParticipantJoined,
             this, &InMeeting::onParticipantJoined);
     connect(meetingEngine_->room(), &MeetingRoom::sigTrackSubscribed,
@@ -112,15 +108,18 @@ InMeeting::InMeeting(QWidget *parent)
     meetingEngine_->joinMeeting();
     auto localUser = meetingEngine_->room()->getLocalUser();
     if (localUser) {
-        localVideoWidget->setParticipantIdentity(localUser->identity());
-        localVideoWidget->setLocal(true);
+        localVideoWidget_ = new VideoGLWidget(this);
+        localParticipantId_ = localUser->identity();
+        videoWidgets_[localParticipantId_] = localVideoWidget_;
     }
 
     // default unmuted and video on
     meetingEngine_->startAudio();
     ui->muteBtn->setText("静音");
 
-    meetingEngine_->startVideo(localVideoWidget->trackSid());
+    if (localVideoWidget_) {
+        meetingEngine_->startVideo(localVideoWidget_->trackSid());
+    }
     ui->videoBtn->setText("关闭视频");
 
     updateVideoWidgets();
@@ -148,8 +147,11 @@ void InMeeting::toggleVideo()
 {
     qInfo() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
+    if (!localVideoWidget_) {
+        return;
+    }
     if (button->text() == "开启视频") {
-        meetingEngine_->startVideo(videoWidgets_[0]->trackSid());
+        meetingEngine_->startVideo(localVideoWidget_->trackSid());
         button->setText("关闭视频");
     } else {
         meetingEngine_->stopVideo();
@@ -211,24 +213,30 @@ void InMeeting::onParticipantJoined(const QString &participantId, const QString 
 }
 
 void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackName, 
-    const QString &participantIdentity, int trackKind)
+    const QString &participantId, int trackKind)
 {
     qInfo() << __FUNCTION__ 
             << "track subscribed, track_sid=" << trackSid
             << "track_name=" << trackName
-            << "participant_identity=" << participantIdentity
+            << "participant_id=" << participantId
             << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
     switch (static_cast<TrackKind>(trackKind)) {
     case TrackKind::AUDIO:
-        remoteAudioTrackOwners_[trackSid.toStdString()] = participantIdentity.toStdString();
+        remoteAudioTrackOwners_[trackSid.toStdString()] = participantId.toStdString();
         break;
     case TrackKind::VIDEO:
     {
-        auto videoWidget = new VideoGLWidget(this);
-        videoWidget->setParticipantIdentity(participantIdentity.toStdString());
-        videoWidget->setTrackSid(trackSid.toStdString());
-        videoWidget->setLocal(false);
-        videoWidgets_.push_back(videoWidget);
+        auto participantIdStr = participantId.toStdString();
+        auto it = videoWidgets_.find(participantIdStr);
+        if (it == videoWidgets_.end()) {
+            auto *videoWidget = new VideoGLWidget(this);
+            videoWidget->setTrackSid(trackSid.toStdString());
+            videoWidget->setLocal(false);
+            videoWidgets_[participantIdStr] = videoWidget;
+        } else if (it->second) {
+            it->second->setTrackSid(trackSid.toStdString());
+            it->second->setLocal(false);
+        }
         updateVideoWidgets();
     }
         break;
@@ -278,24 +286,17 @@ void InMeeting::resizeEvent(QResizeEvent *event)
 
 void InMeeting::onTimer()
 {
-    for (int i = 0; i < ui->gridLayout->count(); ++i) {
-        QLayoutItem *item = ui->gridLayout->itemAt(i);
-        if (!item) {
-            continue;
-        }
-
-        QWidget *widget = item->widget();
-        if (!widget) {
-            continue;
-        }
-
-        auto *video_widget = qobject_cast<VideoGLWidget *>(widget);
-        if (video_widget) {
-            video_widget->update();
+    // 使用缓存的有序 widget 列表，避免每帧遍历 layout
+    for (auto *videoWidget : cachedOrderedWidgets_) {
+        if (videoWidget) {
+            videoWidget->update();
         }
     }
 
-    updateAudioStatusPanel();
+    // 降低音量 UI 更新频率：每 3 帧（~50ms）更新一次，保持 60fps 视频更新
+    if (++audioUpdateCounter_ % 3 == 0) {
+        updateAudioStatusPanel();
+    }
 }
 
 void InMeeting::updateAudioStatusPanel()
@@ -344,6 +345,30 @@ void InMeeting::updateAudioStatusPanel()
         }
     }
 
+    // 快速检查：如果远端音量和发言状态都没变，只更新本地、活跃发言人和 speaker 高亮
+    bool audioStateChanged = false;
+    if (lastRemoteAudioState_.size() != participant_audio.size()) {
+        audioStateChanged = true;
+    } else {
+        for (const auto &entry : participant_audio) {
+            const auto it = lastRemoteAudioState_.find(entry.first);
+            if (it == lastRemoteAudioState_.end() ||
+                std::abs(it->second.first - entry.second.level) > 0.01f ||
+                it->second.second != entry.second.speaking) {
+                audioStateChanged = true;
+                break;
+            }
+        }
+    }
+
+    if (audioStateChanged) {
+        // 更新缓存状态
+        lastRemoteAudioState_.clear();
+        for (const auto &entry : participant_audio) {
+            lastRemoteAudioState_[entry.first] = {entry.second.level, entry.second.speaking};
+        }
+    }
+
     if (remoteAudioListLayout_) {
         QSet<QString> participantsInUse;
         for (const auto &entry : participant_audio) {
@@ -371,6 +396,11 @@ void InMeeting::updateAudioStatusPanel()
                 rowLayout->addWidget(row.stateLabel);
 
                 remoteAudioListLayout_->addWidget(row.row);
+            }
+
+            // 仅当状态变化时才更新 UI，避免频繁的字符串转换和样式更新
+            if (!audioStateChanged) {
+                continue;
             }
 
             if (row.nameLabel) {
@@ -406,7 +436,7 @@ void InMeeting::updateAudioStatusPanel()
         }
     }
 
-    if (remoteTalkerLabel_) {
+    if (remoteTalkerLabel_ && audioStateChanged) {
         if (active_talker.empty()) {
             remoteTalkerLabel_->setText("远端发言: 无");
         } else {
@@ -432,7 +462,8 @@ void InMeeting::updateSpeakerHighlight(
     bool localSpeaking,
     const std::unordered_map<std::string, bool> &remoteSpeakingByParticipant)
 {
-    for (auto *videoWidget : videoWidgets_) {
+    for (const auto &entry : videoWidgets_) {
+        auto *videoWidget = entry.second;
         if (!videoWidget) {
             continue;
         }
@@ -441,7 +472,7 @@ void InMeeting::updateSpeakerHighlight(
         if (videoWidget->isLocal()) {
             speaking = localSpeaking;
         } else {
-            const auto it = remoteSpeakingByParticipant.find(videoWidget->participantIdentity());
+            const auto it = remoteSpeakingByParticipant.find(entry.first);
             speaking = it != remoteSpeakingByParticipant.end() && it->second;
         }
 
@@ -466,38 +497,62 @@ void InMeeting::updateSpeakerHighlight(
 }
 
 void InMeeting::updateVideoWidgets()
-{ 
+{
     qInfo() << __FUNCTION__;
-    const int n = videoWidgets_.size();
-    if (n <= 0) return;
 
-    // 方案A：固定2列
-    // const int cols = 2;
-
-    // 方案B：接近正方形
-    const int cols = std::max(1, static_cast<int>(std::ceil(std::sqrt(n))));
-    const int rows = (n + cols - 1) / cols;
-
-    // 先从 layout 移除（不 delete 控件）
+    // 先从 layout 移除（不 delete 控件，控件仍由父对象管理）
     while (QLayoutItem *item = ui->gridLayout->takeAt(0)) {
-        // item->widget() 仍由父对象管理
         delete item;
     }
 
-    // 按新行列重新放回
-    for (int i = 0; i < n; ++i) {
-        const int row = i / cols;
-        const int col = i % cols;
+    // 本地优先，远端按 id 排序——单次遍历直接收集指针，避免二次 find()
+    std::vector<VideoGLWidget*> orderedWidgets;
+    orderedWidgets.reserve(videoWidgets_.size());
 
-        ui->gridLayout->addWidget(videoWidgets_[i], row, col);
+    auto localIt = videoWidgets_.find(localParticipantId_);
+    if (localIt != videoWidgets_.end() && localIt->second) {
+        orderedWidgets.push_back(localIt->second);
     }
 
-    // 可选：设置列拉伸，让每列等宽
+    std::vector<std::pair<std::string, VideoGLWidget*>> remoteEntries;
+    remoteEntries.reserve(videoWidgets_.size());
+    for (const auto &entry : videoWidgets_) {
+        if (entry.first != localParticipantId_ && entry.second) {
+            remoteEntries.emplace_back(entry.first, entry.second);
+        }
+    }
+    std::sort(remoteEntries.begin(), remoteEntries.end(),
+              [](const auto &a, const auto &b) { return a.first < b.first; });
+    for (const auto &entry : remoteEntries) {
+        orderedWidgets.push_back(entry.second);
+    }
+
+    const int n = static_cast<int>(orderedWidgets.size());
+    if (n <= 0) return;
+
+    // 列数基于实际有效 widget 数量
+    const int cols = std::max(1, static_cast<int>(std::ceil(std::sqrt(n))));
+    const int rows = (n + cols - 1) / cols;
+
+    // 清除旧的拉伸因子，防止布局缩小时遗留残值
+    for (int c = 0; c < ui->gridLayout->columnCount(); ++c) {
+        ui->gridLayout->setColumnStretch(c, 0);
+    }
+    for (int r = 0; r < ui->gridLayout->rowCount(); ++r) {
+        ui->gridLayout->setRowStretch(r, 0);
+    }
+
+    for (int i = 0; i < n; ++i) {
+        ui->gridLayout->addWidget(orderedWidgets[i], i / cols, i % cols);
+    }
+
     for (int c = 0; c < cols; ++c) {
         ui->gridLayout->setColumnStretch(c, 1);
     }
-    // 可选：设置行拉伸，让每行等高
     for (int r = 0; r < rows; ++r) {
         ui->gridLayout->setRowStretch(r, 1);
     }
+
+    // 缓存有序 widget 指针供 onTimer 使用
+    cachedOrderedWidgets_ = orderedWidgets;
 }

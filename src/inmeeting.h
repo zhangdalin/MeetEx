@@ -43,7 +43,7 @@ public slots:
     void endMeeting();
     void onParticipantJoined(const QString &participantId, const QString &participantName);
     void onTrackSubscribed(const QString &trackSid, const QString &trackName, 
-        const QString &participantIdentity, int trackKind);
+        const QString &participantId, int trackKind);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -66,7 +66,10 @@ private:
 
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
-    std::vector<VideoGLWidget*> videoWidgets_;
+    std::unordered_map<std::string, VideoGLWidget*> videoWidgets_;
+    QPointer<VideoGLWidget> localVideoWidget_;
+    std::string localParticipantId_;
+
     std::unordered_map<std::string, std::string> remoteAudioTrackOwners_;
     std::unordered_map<VideoGLWidget *, bool> lastSpeakingStateByWidget_;
     std::unordered_map<std::string, RemoteAudioRowWidgets> remoteAudioRows_;
@@ -78,6 +81,11 @@ private:
     QPointer<QLabel> remoteTalkerLabel_;
     QPointer<QWidget> remoteAudioListContainer_;
     QPointer<QVBoxLayout> remoteAudioListLayout_;
+
+    // 性能优化缓存
+    std::vector<VideoGLWidget*> cachedOrderedWidgets_;
+    int audioUpdateCounter_ = 0;
+    std::unordered_map<std::string, std::pair<float, bool>> lastRemoteAudioState_;  // {participantId -> {level, speaking}}
 };
 
 #endif // INMEETING_H
