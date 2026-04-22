@@ -121,6 +121,43 @@ target_link_libraries(MeetEx PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
     meetingengine
 )
 
+if(WIN32)
+    set(_livekit_lib_dir "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/livekit/lib/$<IF:$<CONFIG:Debug>,Debug,Release>")
+
+    add_custom_command(TARGET MeetEx POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${_livekit_lib_dir}/livekit.dll"
+        "$<TARGET_FILE_DIR:MeetEx>/livekit.dll"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${_livekit_lib_dir}/livekit_ffi.dll"
+        "$<TARGET_FILE_DIR:MeetEx>/livekit_ffi.dll"
+    )
+
+    set(_qt_bin_hints "")
+    foreach(_prefix IN LISTS CMAKE_PREFIX_PATH)
+        if(EXISTS "${_prefix}/bin")
+            list(APPEND _qt_bin_hints "${_prefix}/bin")
+        endif()
+    endforeach()
+
+    find_program(WINDEPLOYQT_EXECUTABLE
+        NAMES windeployqt windeployqt.exe
+        HINTS ${_qt_bin_hints}
+    )
+
+    if(WINDEPLOYQT_EXECUTABLE)
+        add_custom_command(TARGET MeetEx POST_BUILD
+            COMMAND "${WINDEPLOYQT_EXECUTABLE}"
+                    --dir "$<TARGET_FILE_DIR:MeetEx>"
+                    "$<TARGET_FILE:MeetEx>"
+            COMMENT "Deploying Qt runtime dependencies with windeployqt"
+            VERBATIM
+        )
+    else()
+        message(WARNING "windeployqt not found; Qt runtime DLLs will not be deployed automatically.")
+    endif()
+endif()
+
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
 # explicit, fixed bundle identifier manually though.
