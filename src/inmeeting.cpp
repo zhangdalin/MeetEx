@@ -5,7 +5,7 @@
 #include "meeting_def.h"
 #include "local_user.h"
 #include "participant.h"
-#include "participantwidget.h"
+#include "glwidget.h"
 
 #include <algorithm>
 #include <cmath>
@@ -96,14 +96,14 @@ void InMeeting::toggleVideo()
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     const auto localIt = participantWidgets_.find(localParticipantId_);
     Participant *localParticipant = (localIt != participantWidgets_.end()) ? localIt.value() : nullptr;
-    ParticipantWidget *localVideoWidget = localParticipant ? localParticipant->getParticipantWidget() : nullptr;
-    if (!localVideoWidget) {
+    GLWidget *localGLWidget = localParticipant ? localParticipant->getGLWidget() : nullptr;
+    if (!localGLWidget) {
         return;
     }
     if (button->text() == "开启视频") {
         std::string localVideoSid;
         meetingEngine_->startVideo(localVideoSid);
-        localVideoWidget->setVideoTrackSid(QString::fromStdString(localVideoSid));
+        localGLWidget->setVideoTrackSid(QString::fromStdString(localVideoSid));
         button->setText("关闭视频");
     } else {
         meetingEngine_->stopVideo();
@@ -185,37 +185,37 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
 
     auto it = participantWidgets_.find(participantId);
     Participant *participantContainer = nullptr;
-    ParticipantWidget *participantWidget = nullptr;
+    GLWidget *glWidget = nullptr;
     if (it == participantWidgets_.end()) {
         participantContainer = new Participant(this);
         participantContainer->setParticipantName(resolveDisplayName(participantId, QString()));
         participantWidgets_[participantId] = participantContainer;
-        participantWidget = participantContainer->getParticipantWidget();
+        glWidget = participantContainer->getGLWidget();
     } else {
         participantContainer = it.value();
-        participantWidget = participantContainer ? participantContainer->getParticipantWidget() : nullptr;
+        glWidget = participantContainer ? participantContainer->getGLWidget() : nullptr;
     }
 
-    if (!participantWidget) {
+    if (!glWidget) {
         return;
     }
 
     switch (static_cast<TrackKind>(trackKind))
     {
     case TrackKind::AUDIO:
-        if (!participantWidget->audioTrackSid().isEmpty()) {
-            const QString oldAudioSid = participantWidget->audioTrackSid();
+        if (!glWidget->audioTrackSid().isEmpty()) {
+            const QString oldAudioSid = glWidget->audioTrackSid();
             const auto oldIt = audioTrackOwners_.find(oldAudioSid);
-            if (oldIt != audioTrackOwners_.end() && oldIt.value() == participantWidget) {
+            if (oldIt != audioTrackOwners_.end() && oldIt.value() == glWidget) {
                 audioTrackOwners_.erase(oldIt);
             }
         }
 
-        audioTrackOwners_[trackSid] = participantWidget;
-        participantWidget->setAudioTrackSid(trackSid);
+        audioTrackOwners_[trackSid] = glWidget;
+        glWidget->setAudioTrackSid(trackSid);
         break;
     case TrackKind::VIDEO:
-        participantWidget->setVideoTrackSid(trackSid);
+        glWidget->setVideoTrackSid(trackSid);
         break;
     default:
         break;
@@ -303,7 +303,7 @@ void InMeeting::updateAudioStatusPanel()
 
     const auto remote_levels = meetingEngine_->remoteAudioLevels();
     struct ParticipantAudioSnapshot { float level = 0.0f; bool speaking = false; };
-    std::unordered_map<ParticipantWidget *, ParticipantAudioSnapshot> participant_audio;
+    std::unordered_map<GLWidget *, ParticipantAudioSnapshot> participant_audio;
 
     for (const auto &entry : remote_levels) {
         const QString trackSid = QString::fromStdString(entry.first);
@@ -312,7 +312,7 @@ void InMeeting::updateAudioStatusPanel()
             continue;
         }
 
-        ParticipantWidget *owner = ownerIt.value().data();
+        GLWidget *owner = ownerIt.value().data();
         if (!owner) {
             audioTrackOwners_.erase(ownerIt);
             continue;
@@ -330,12 +330,12 @@ void InMeeting::updateAudioStatusPanel()
             continue;
         }
 
-        ParticipantWidget *participantWidget = participantContainer->getParticipantWidget();
-        if (!participantWidget) {
+        GLWidget *glWidget = participantContainer->getGLWidget();
+        if (!glWidget) {
             continue;
         }
 
-        const auto it = participant_audio.find(participantWidget);
+        const auto it = participant_audio.find(glWidget);
         if (it == participant_audio.end()) {
             participantContainer->setAudioStatus(0.0f, false);
         } else {
@@ -401,14 +401,14 @@ void InMeeting::updateVideoWidgets()
         ui->gridLayout->setRowStretch(r, 1);
     }
 
-    // 缓存有序 ParticipantWidget 指针供 onTimer 使用
-    std::vector<ParticipantWidget*> orderedWidgets;
+    // 缓存有序 GLWidget 指针供 onTimer 使用
+    std::vector<GLWidget*> orderedWidgets;
     orderedWidgets.reserve(orderedParticipants.size());
     for (auto *participant : orderedParticipants) {
         if (participant) {
-            ParticipantWidget *widget = participant->getParticipantWidget();
-            if (widget) {
-                orderedWidgets.push_back(widget);
+            GLWidget *glWidget = participant->getGLWidget();
+            if (glWidget) {
+                orderedWidgets.push_back(glWidget);
             }
         }
     }

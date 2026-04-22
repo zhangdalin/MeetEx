@@ -9,7 +9,7 @@ namespace Ui {
 class Participant;
 }
 
-class ParticipantWidget;
+class GLWidget;
 class QLabel;
 class QProgressBar;
 class QGraphicsDropShadowEffect;
@@ -22,7 +22,7 @@ public:
     explicit Participant(QWidget *parent = nullptr);
     ~Participant();
 
-    ParticipantWidget* getParticipantWidget() const { return participantWidget_; }
+    GLWidget* getGLWidget() const { return glWidget_; }
     void setParticipantName(const QString &name);
     void setAudioTrackSid(const QString &sid);
     void setVideoTrackSid(const QString &sid);
@@ -43,7 +43,7 @@ private:
 
 private:
     Ui::Participant *ui;
-    ParticipantWidget *participantWidget_ = nullptr;
+    GLWidget *glWidget_ = nullptr;
     QPointer<QWidget> audioOverlay_;
     QPointer<QLabel> nameLabel_;
     QPointer<QProgressBar> levelBar_;

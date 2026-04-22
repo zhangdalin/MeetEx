@@ -10,7 +10,7 @@
 
 class MeetingEngine;
 class Participant;
-class ParticipantWidget;
+class GLWidget;
 
 namespace Ui {
 class InMeeting;
@@ -59,15 +59,15 @@ private:
     QHash<QString, Participant*> participantWidgets_;
     QString localParticipantId_;
     
-    // audio track sid -> owner ParticipantWidget
-    QHash<QString, QPointer<ParticipantWidget>> audioTrackOwners_;
+    // audio track sid -> owner GLWidget
+    QHash<QString, QPointer<GLWidget>> audioTrackOwners_;
 
     // participantId -> generated Guest name when upstream name is empty
     QHash<QString, QString> guestNames_;
     int nextGuestIndex_ = 1;
 
     // 性能优化缓存
-    std::vector<ParticipantWidget*> cachedOrderedWidgets_;
+    std::vector<GLWidget*> cachedOrderedWidgets_;
     int audioUpdateCounter_ = 0;
 };
 

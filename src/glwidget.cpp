@@ -1,14 +1,14 @@
-#include "participantwidget.h"
+#include "glwidget.h"
 #include "media_engine.h"
 
-ParticipantWidget::ParticipantWidget(QWidget *parent)
+GLWidget::GLWidget(QWidget *parent)
     : QOpenGLWidget(parent)
     , audio_track_sid_()
     , video_track_sid_()
 {
 }
 
-ParticipantWidget::~ParticipantWidget()
+GLWidget::~GLWidget()
 {
     makeCurrent();
     delete texture_;
@@ -16,7 +16,7 @@ ParticipantWidget::~ParticipantWidget()
     doneCurrent();
 }
 
-void ParticipantWidget::setAudioTrackSid(const QString &audio_track_sid)
+void GLWidget::setAudioTrackSid(const QString &audio_track_sid)
 {
     if (audio_track_sid_ == audio_track_sid) {
         return;
@@ -25,7 +25,7 @@ void ParticipantWidget::setAudioTrackSid(const QString &audio_track_sid)
     audio_track_sid_ = audio_track_sid;
 }
 
-void ParticipantWidget::initializeGL()
+void GLWidget::initializeGL()
 {
     initializeOpenGLFunctions();
     glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
@@ -53,14 +53,14 @@ void ParticipantWidget::initializeGL()
     program_.link();
 }
 
-void ParticipantWidget::paintGL()
+void GLWidget::paintGL()
 {
     VideoFrameBuff tmpBuff{};
 
     if (video_track_sid_.isEmpty()) {
         glClear(GL_COLOR_BUFFER_BIT);
     
-            qDebug() << "ParticipantWidget::paintGL, size=" << width() << "x" << height() 
+            qDebug() << "GLWidget::paintGL, size=" << width() << "x" << height() 
                      << "video_track_sid=" << video_track_sid_;
         return;
     }
@@ -114,7 +114,7 @@ void ParticipantWidget::paintGL()
     program_.release();
 }
 
-void ParticipantWidget::ensureTexture(int width, int height)
+void GLWidget::ensureTexture(int width, int height)
 {
     if (width <= 0 || height <= 0) {
         return;
@@ -137,7 +137,7 @@ void ParticipantWidget::ensureTexture(int width, int height)
     }
 }
 
-void ParticipantWidget::updateViewportForAspect(int frameWidth, int frameHeight)
+void GLWidget::updateViewportForAspect(int frameWidth, int frameHeight)
 {
     const qreal dpr = devicePixelRatioF();
     const int view_w = static_cast<int>(width() * dpr);

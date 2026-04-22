@@ -1,6 +1,6 @@
 #include "participant.h"
 #include "ui_participant.h"
-#include "participantwidget.h"
+#include "glwidget.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
@@ -26,9 +26,9 @@ Participant::Participant(QWidget *parent)
     ui->verticalLayout->setContentsMargins(kBorderWidth, kBorderWidth, kBorderWidth, kBorderWidth);
     ui->verticalLayout->setSpacing(0);
 
-    // 创建 ParticipantWidget 并添加到布局
-    participantWidget_ = new ParticipantWidget(this);
-    ui->verticalLayout->addWidget(participantWidget_);
+    // 创建 GLWidget 并添加到布局
+    glWidget_ = new GLWidget(this);
+    ui->verticalLayout->addWidget(glWidget_);
 
     speakingGlow_ = new QGraphicsDropShadowEffect(this);
     speakingGlow_->setOffset(0, 0);
@@ -65,26 +65,26 @@ void Participant::setParticipantName(const QString &name)
 
 void Participant::setAudioTrackSid(const QString &sid)
 {
-    if (participantWidget_) {
-        participantWidget_->setAudioTrackSid(sid);
+    if (glWidget_) {
+        glWidget_->setAudioTrackSid(sid);
     }
 }
 
 void Participant::setVideoTrackSid(const QString &sid)
 {
-    if (participantWidget_) {
-        participantWidget_->setVideoTrackSid(sid);
+    if (glWidget_) {
+        glWidget_->setVideoTrackSid(sid);
     }
 }
 
 QString Participant::audioTrackSid() const
 {
-    return participantWidget_ ? participantWidget_->audioTrackSid() : QString();
+    return glWidget_ ? glWidget_->audioTrackSid() : QString();
 }
 
 QString Participant::videoTrackSid() const
 {
-    return participantWidget_ ? participantWidget_->videoTrackSid() : QString();
+    return glWidget_ ? glWidget_->videoTrackSid() : QString();
 }
 
 void Participant::setAudioStatus(float level, bool speaking)

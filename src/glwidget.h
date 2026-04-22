@@ -1,5 +1,5 @@
-#ifndef PARTICIPANTWIDGET_H
-#define PARTICIPANTWIDGET_H
+#ifndef GLWIDGET_H
+#define GLWIDGET_H
 
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
@@ -11,13 +11,13 @@
 #include <vector>
 
 struct VideoFrameBuff;
-class ParticipantWidget : public QOpenGLWidget, protected QOpenGLFunctions
+class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
 
 public:
-    explicit ParticipantWidget(QWidget *parent = nullptr);
-    ~ParticipantWidget() override;
+    explicit GLWidget(QWidget *parent = nullptr);
+    ~GLWidget() override;
 
     QString& audioTrackSid() { return audio_track_sid_; }
     void setAudioTrackSid(const QString &audio_track_sid);
@@ -41,4 +41,4 @@ private:
     QOpenGLTexture *texture_ = nullptr;
 };
 
-#endif // PARTICIPANTWIDGET_H
+#endif // GLWIDGET_H
