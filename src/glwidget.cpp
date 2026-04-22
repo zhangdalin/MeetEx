@@ -1,11 +1,18 @@
 #include "glwidget.h"
 #include "media_engine.h"
 
+#include <QSurfaceFormat>
+
 GLWidget::GLWidget(QWidget *parent)
     : QOpenGLWidget(parent)
     , audio_track_sid_()
     , video_track_sid_()
 {
+    QSurfaceFormat fmt = format();
+    fmt.setAlphaBufferSize(8);
+    setFormat(fmt);
+    setAutoFillBackground(false);
+    setAttribute(Qt::WA_NoSystemBackground, true);
 }
 
 GLWidget::~GLWidget()
@@ -28,7 +35,8 @@ void GLWidget::setAudioTrackSid(const QString &audio_track_sid)
 void GLWidget::initializeGL()
 {
     initializeOpenGLFunctions();
-    glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+    glDisable(GL_BLEND);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.45f);
 
     const char *vertex_shader =
         "attribute vec2 aPos;"
@@ -57,30 +65,39 @@ void GLWidget::paintGL()
 {
     VideoFrameBuff tmpBuff{};
 
-    if (video_track_sid_.isEmpty()) {
-        glClear(GL_COLOR_BUFFER_BIT);
-    
-            qDebug() << "GLWidget::paintGL, size=" << width() << "x" << height() 
-                     << "video_track_sid=" << video_track_sid_;
-        return;
-    }
+    // Force a consistent letterbox/pillarbox tint every frame.
+    glClearColor(0.0f, 0.0f, 0.0f, 0.45f);
+    glClear(GL_COLOR_BUFFER_BIT);
 
-    if (MediaEngine::instance().copyVideoFrame(video_track_sid_.toStdString(), tmpBuff)) {
-        ensureTexture(tmpBuff.width, tmpBuff.height);
-        if (texture_) {
-            texture_->bind();
-            texture_->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, tmpBuff.rgba.data());
-            texture_->release();
+    int frame_width = 0;
+    int frame_height = 0;
+
+    // Try to get new frame only if SID is not empty
+    if (!video_track_sid_.isEmpty()) {
+        const bool got_new_frame = MediaEngine::instance().copyVideoFrame(video_track_sid_.toStdString(), tmpBuff);
+        if (got_new_frame) {
+            frame_width = tmpBuff.width;
+            frame_height = tmpBuff.height;
+            ensureTexture(tmpBuff.width, tmpBuff.height);
+            if (texture_) {
+                texture_->bind();
+                texture_->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, tmpBuff.rgba.data());
+                texture_->release();
+            }
         }
     }
 
-    glClear(GL_COLOR_BUFFER_BIT);
+    // Use cached texture dimensions if no new frame or SID is empty
+    if (texture_ && frame_width <= 0) {
+        frame_width = texture_->width();
+        frame_height = texture_->height();
+    }
 
-    if (!texture_ || tmpBuff.width <= 0 || tmpBuff.height <= 0) {
+    if (!texture_ || frame_width <= 0 || frame_height <= 0) {
         return;
     }
 
-    updateViewportForAspect(tmpBuff.width, tmpBuff.height);
+    updateViewportForAspect(frame_width, frame_height);
 
     static const GLfloat vertices[] = {
         -1.0f, -1.0f,

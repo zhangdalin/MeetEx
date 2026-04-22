@@ -7,6 +7,7 @@
 
 #define VIDEO_WIDTH (1280)
 #define VIDEO_HEIGHT (720)
+#define VIDEO_FPS (30)
 #define VIDEO_TRACK_NAME "cam"
 
 

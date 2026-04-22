@@ -2,6 +2,8 @@
 #ifndef MEDIA_QCAM_H
 #define MEDIA_QCAM_H
 
+#include "media_def.h"
+
 #include <QObject>
 #include <QCamera>
 #include <QMediaCaptureSession>
@@ -28,8 +30,8 @@ public:
         int width, int height,
         int64_t timestampNs)>;
 
-    QCamSource(int desired_width = 1280, int desired_height = 720,
-               int desired_fps = 30,
+    QCamSource(int desired_width = VIDEO_WIDTH, int desired_height = VIDEO_HEIGHT,
+               int desired_fps = VIDEO_FPS,
                VideoCallback cb = nullptr,
                QObject *parent = nullptr);
 

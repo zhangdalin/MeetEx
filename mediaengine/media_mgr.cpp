@@ -1,4 +1,5 @@
 #include "media_mgr.h"
+#include "media_def.h"
 #include "media_qmic.h"
 #include "media_qcam.h"
 #include "media_qspk.h"
@@ -230,7 +231,7 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
     }
 
     cam_ = std::make_unique<QCamSource>(
-        1280, 720, 30,
+        VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_FPS,
         [source = cam_source_, buff = &(worker->frameBuff)](const uint8_t *pixels, int pitch, int width,
                             int height, int64_t timestampNs) {
             auto frame = livekit::VideoFrame::create(width, height, livekit::VideoBufferType::RGBA);
@@ -280,15 +281,15 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
 void MediaMgr::runFakeVideoCapLoop(const std::shared_ptr<livekit::VideoSource> &source,
                             VideoFrameBuff& frameBuff,
                             std::atomic<bool> &running_flag) {
-    auto frame = livekit::VideoFrame::create(1280, 720, livekit::VideoBufferType::BGRA);
-    const double framerate = 1.0 / 30.0;
+    auto frame = livekit::VideoFrame::create(VIDEO_WIDTH, VIDEO_HEIGHT, livekit::VideoBufferType::BGRA);
+    const double framerate = 1.0 / VIDEO_FPS;
 
     // Pre-allocate render buffer once; no heap allocation inside the loop
     {
         std::lock_guard<std::mutex> lock(frameBuff.mutex);
-        frameBuff.rgba.resize(static_cast<size_t>(1280 * 720 * 4));
-        frameBuff.width = 1280;
-        frameBuff.height = 720;
+        frameBuff.rgba.resize(static_cast<size_t>(VIDEO_WIDTH * VIDEO_HEIGHT * 4));
+        frameBuff.width = VIDEO_WIDTH;
+        frameBuff.height = VIDEO_HEIGHT;
     }
 
     while (running_flag.load(std::memory_order_relaxed)) {
