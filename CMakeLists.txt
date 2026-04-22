@@ -86,7 +86,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_HEADERS}
         ${PROJECT_FORMS}
         ${PROJECT_RESOURCES}
-        src/glwidget_new.h
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET MeetEx APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -118,6 +117,7 @@ target_include_directories(MeetEx PRIVATE
 
 target_link_libraries(MeetEx PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::OpenGLWidgets
+    avatar_tool
     mediaengine
     meetingengine
 )

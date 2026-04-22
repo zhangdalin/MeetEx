@@ -43,17 +43,20 @@ void GLWidget::setParticipantName(const QString &name)
 
     participant_name_ = name;
     if (!name.isEmpty()) {
-        const QImage avatar = AvatarGenerator::generateAvatar(name);
-        if (!avatar.isNull()) {
-            ensureAvatarTexture(avatar);
-        }
+        avatar_image_ = AvatarGenerator::generateAvatar(name);
+    } else {
+        avatar_image_ = QImage();
     }
+
+    avatar_texture_dirty_ = true;
+    update();
 }
 
 void GLWidget::initializeGL()
 {
     initializeOpenGLFunctions();
-    glDisable(GL_BLEND);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClearColor(0.0f, 0.0f, 0.0f, 0.45f);
 
     const char *vertex_shader =
@@ -68,8 +71,10 @@ void GLWidget::initializeGL()
     const char *fragment_shader =
         "varying vec2 vUv;"
         "uniform sampler2D uTex;"
+        "uniform float uAlpha;"
         "void main() {"
-        "  gl_FragColor = texture2D(uTex, vUv);"
+        "  vec4 color = texture2D(uTex, vUv);"
+        "  gl_FragColor = vec4(color.rgb, color.a * uAlpha);"
         "}";
 
     program_.addShaderFromSourceCode(QOpenGLShader::Vertex, vertex_shader);
@@ -82,10 +87,16 @@ void GLWidget::initializeGL()
 void GLWidget::paintGL()
 {
     VideoFrameBuff tmpBuff{};
+    constexpr float kFadeStep = 0.12f;
 
     // Force a consistent letterbox/pillarbox tint every frame.
     glClearColor(0.0f, 0.0f, 0.0f, 0.45f);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    if (avatar_texture_dirty_) {
+        ensureAvatarTexture(avatar_image_);
+        avatar_texture_dirty_ = false;
+    }
 
     int frame_width = 0;
     int frame_height = 0;
@@ -107,44 +118,48 @@ void GLWidget::paintGL()
         }
     }
 
-    // If no video frame, try to use avatar as fallback
+    if (has_video) {
+        video_fade_alpha_ = qMin(1.0f, video_fade_alpha_ + kFadeStep);
+    } else {
+        video_fade_alpha_ = 0.0f;
+    }
+
+    // If no video frame, always fall back to avatar instead of reusing the last video frame.
     if (!has_video && avatar_texture_) {
         frame_width = avatar_texture_->width();
         frame_height = avatar_texture_->height();
-    } else if (texture_ && frame_width <= 0) {
-        // Use cached video texture dimensions if no new frame
+    } else if (has_video && texture_) {
         frame_width = texture_->width();
         frame_height = texture_->height();
     }
 
-    // Select which texture to render: video > avatar > nothing
-    QOpenGLTexture *render_texture = nullptr;
-    if (has_video && texture_) {
-        render_texture = texture_;
-    } else if (!has_video && avatar_texture_) {
-        render_texture = avatar_texture_;
-    } else if (texture_) {
-        render_texture = texture_;
-    }
-
-    if (!render_texture || frame_width <= 0 || frame_height <= 0) {
+    if (frame_width <= 0 || frame_height <= 0) {
         return;
     }
 
     updateViewportForAspect(frame_width, frame_height);
 
     program_.bind();
-    render_texture->bind(0);
-    program_.setUniformValue("uTex", 0);
 
-    renderTexturedQuad();
+    if (has_video && avatar_texture_ && video_fade_alpha_ < 1.0f) {
+        renderTexturedQuad(avatar_texture_, 1.0f);
+        renderTexturedQuad(texture_, video_fade_alpha_);
+        update();
+    } else if (has_video && texture_) {
+        renderTexturedQuad(texture_, 1.0f);
+    } else if (avatar_texture_) {
+        renderTexturedQuad(avatar_texture_, 1.0f);
+    }
 
-    render_texture->release();
     program_.release();
 }
 
-void GLWidget::renderTexturedQuad()
+void GLWidget::renderTexturedQuad(QOpenGLTexture *texture, float alpha)
 {
+    if (!texture) {
+        return;
+    }
+
     static const GLfloat vertices[] = {
         -1.0f, -1.0f,
          1.0f, -1.0f,
@@ -159,6 +174,10 @@ void GLWidget::renderTexturedQuad()
         1.0f, 0.0f,
     };
 
+    texture->bind(0);
+    program_.setUniformValue("uTex", 0);
+    program_.setUniformValue("uAlpha", alpha);
+
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, vertices);
     glEnableVertexAttribArray(1);
@@ -168,6 +187,7 @@ void GLWidget::renderTexturedQuad()
 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
+    texture->release();
 }
 
 void GLWidget::ensureTexture(int width, int height)
@@ -195,13 +215,13 @@ void GLWidget::ensureTexture(int width, int height)
 
 void GLWidget::ensureAvatarTexture(const QImage &image)
 {
-    if (image.isNull()) {
-        return;
-    }
-
     if (avatar_texture_) {
         delete avatar_texture_;
         avatar_texture_ = nullptr;
+    }
+
+    if (image.isNull()) {
+        return;
     }
 
     QImage glImage = image.convertToFormat(QImage::Format_RGBA8888);
@@ -209,7 +229,6 @@ void GLWidget::ensureAvatarTexture(const QImage &image)
         return;
     }
 
-    makeCurrent();
     avatar_texture_ = new QOpenGLTexture(QOpenGLTexture::Target2D);
     avatar_texture_->setFormat(QOpenGLTexture::RGBA8_UNorm);
     avatar_texture_->setSize(glImage.width(), glImage.height());
@@ -219,7 +238,6 @@ void GLWidget::ensureAvatarTexture(const QImage &image)
     avatar_texture_->setMinificationFilter(QOpenGLTexture::Linear);
     avatar_texture_->setMagnificationFilter(QOpenGLTexture::Linear);
     avatar_texture_->setWrapMode(QOpenGLTexture::ClampToEdge);
-    doneCurrent();
 }
 
 void GLWidget::updateViewportForAspect(int frameWidth, int frameHeight)

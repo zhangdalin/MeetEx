@@ -36,12 +36,15 @@ private:
     void ensureTexture(int width, int height);
     void ensureAvatarTexture(const QImage &image);
     void updateViewportForAspect(int frameWidth, int frameHeight);
-    void renderTexturedQuad();
+    void renderTexturedQuad(QOpenGLTexture *texture, float alpha = 1.0f);
 
 private:
     QString audio_track_sid_;
     QString video_track_sid_;
     QString participant_name_;
+    QImage avatar_image_;
+    bool avatar_texture_dirty_ = false;
+    float video_fade_alpha_ = 0.0f;
 
     QOpenGLShaderProgram program_;
     QOpenGLTexture *texture_ = nullptr;
