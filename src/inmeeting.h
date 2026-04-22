@@ -9,6 +9,7 @@
 #include <vector>
 
 class MeetingEngine;
+class Participant;
 class ParticipantWidget;
 
 namespace Ui {
@@ -52,12 +53,12 @@ private:
 
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
-    // every participantId handle a widget
-    // participantId -> widget
-    QHash<QString, ParticipantWidget*> participantWidgets_;
+    // every participantId handle a Participant container
+    // participantId -> Participant
+    QHash<QString, Participant*> participantWidgets_;
     QString localParticipantId_;
     
-    // audio track sid -> owner widget
+    // audio track sid -> owner ParticipantWidget
     QHash<QString, QPointer<ParticipantWidget>> audioTrackOwners_;
 
     // 性能优化缓存

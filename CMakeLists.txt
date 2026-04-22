@@ -32,6 +32,7 @@ set(PROJECT_FORMS
     ui/settingcommon.ui
     ui/sharescreen.ui
     ui/myprofile.ui
+    ui/participant.ui
 )
 
 set(PROJECT_HEADERS
@@ -47,6 +48,7 @@ set(PROJECT_HEADERS
     src/settingcommon.h
     src/myprofile.h
     src/sharescreen.h
+    src/participant.h
     src/participantwidget.h
 )
 
@@ -64,6 +66,7 @@ set(PROJECT_SOURCES
     src/settingcommon.cpp
     src/myprofile.cpp
     src/sharescreen.cpp
+    src/participant.cpp
     src/participantwidget.cpp
     ${TS_FILES}
 )

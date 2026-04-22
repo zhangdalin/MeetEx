@@ -5,6 +5,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QProgressBar>
+#include <QStyle>
 #include <QWidget>
 
 #include <algorithm>
@@ -101,6 +102,9 @@ void ParticipantWidget::paintGL()
 
     if (video_track_sid_.isEmpty()) {
         glClear(GL_COLOR_BUFFER_BIT);
+    
+            qDebug() << "ParticipantWidget::paintGL, size=" << width() << "x" << height() 
+                     << "video_track_sid=" << video_track_sid_;
         return;
     }
 

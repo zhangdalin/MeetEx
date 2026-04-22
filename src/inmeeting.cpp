@@ -4,6 +4,7 @@
 #include "meeting_room.h"
 #include "meeting_def.h"
 #include "local_user.h"
+#include "participant.h"
 #include "participantwidget.h"
 
 #include <algorithm>
@@ -50,10 +51,10 @@ InMeeting::InMeeting(QWidget *parent)
     meetingEngine_->joinMeeting();
     auto localUser = meetingEngine_->room()->getLocalUser();
     if (localUser) {
-        auto *localVideoWidget = new ParticipantWidget(this);
+        auto *participantContainer = new Participant(this);
         localParticipantId_ = QString::fromStdString(localUser->identity());
-        localVideoWidget->setParticipantName("我");
-        participantWidgets_[localParticipantId_] = localVideoWidget;
+        participantContainer->setParticipantName("我");
+        participantWidgets_[localParticipantId_] = participantContainer;
     }
 
     // default unmuted and video on
@@ -94,7 +95,8 @@ void InMeeting::toggleVideo()
     qInfo() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     const auto localIt = participantWidgets_.find(localParticipantId_);
-    ParticipantWidget *localVideoWidget = (localIt != participantWidgets_.end()) ? localIt.value() : nullptr;
+    Participant *localParticipant = (localIt != participantWidgets_.end()) ? localIt.value() : nullptr;
+    ParticipantWidget *localVideoWidget = localParticipant ? localParticipant->getParticipantWidget() : nullptr;
     if (!localVideoWidget) {
         return;
     }
@@ -163,9 +165,9 @@ void InMeeting::onParticipantJoined(const QString &participantId, const QString 
 
     auto it = participantWidgets_.find(participantId);
     if (it == participantWidgets_.end()) {
-        auto *participantWidget = new ParticipantWidget(this);
-        participantWidget->setParticipantName(participantName);
-        participantWidgets_[participantId] = participantWidget;
+        auto *participantContainer = new Participant(this);
+        participantContainer->setParticipantName(participantName);
+        participantWidgets_[participantId] = participantContainer;
     } else if (it.value()) {
         it.value()->setParticipantName(participantName);
     }
@@ -181,13 +183,16 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
             << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
 
     auto it = participantWidgets_.find(participantId);
+    Participant *participantContainer = nullptr;
     ParticipantWidget *participantWidget = nullptr;
     if (it == participantWidgets_.end()) {
-        participantWidget = new ParticipantWidget(this);
-        participantWidget->setParticipantName(participantId);
-        participantWidgets_[participantId] = participantWidget;
+        participantContainer = new Participant(this);
+        participantContainer->setParticipantName(participantId);
+        participantWidgets_[participantId] = participantContainer;
+        participantWidget = participantContainer->getParticipantWidget();
     } else {
-        participantWidget = it.value();
+        participantContainer = it.value();
+        participantWidget = participantContainer ? participantContainer->getParticipantWidget() : nullptr;
     }
 
     if (!participantWidget) {
@@ -274,7 +279,10 @@ void InMeeting::updateAudioStatusPanel()
     const bool local_speaking = meetingEngine_->isLocalAudioSpeaking();
     const auto localIt = participantWidgets_.find(localParticipantId_);
     if (localIt != participantWidgets_.end() && localIt.value()) {
-        localIt.value()->setAudioStatus(local_level.level, local_speaking);
+        ParticipantWidget *localWidget = localIt.value()->getParticipantWidget();
+        if (localWidget) {
+            localWidget->setAudioStatus(local_level.level, local_speaking);
+        }
     }
 
     const auto remote_levels = meetingEngine_->remoteAudioLevels();
@@ -301,8 +309,13 @@ void InMeeting::updateAudioStatusPanel()
 
     for (auto widgetIt = participantWidgets_.cbegin(); widgetIt != participantWidgets_.cend(); ++widgetIt) {
         const QString &participantId = widgetIt.key();
-        auto *participantWidget = widgetIt.value();
-        if (!participantWidget || participantId == localParticipantId_) {
+        auto *participantContainer = widgetIt.value();
+        if (!participantContainer || participantId == localParticipantId_) {
+            continue;
+        }
+
+        ParticipantWidget *participantWidget = participantContainer->getParticipantWidget();
+        if (!participantWidget) {
             continue;
         }
 
@@ -325,15 +338,15 @@ void InMeeting::updateVideoWidgets()
     }
 
     // 本地优先，远端按 id 排序——单次遍历直接收集指针，避免二次 find()
-    std::vector<ParticipantWidget*> orderedWidgets;
-    orderedWidgets.reserve(participantWidgets_.size());
+    std::vector<Participant*> orderedParticipants;
+    orderedParticipants.reserve(participantWidgets_.size());
 
     auto localIt = participantWidgets_.find(localParticipantId_);
     if (localIt != participantWidgets_.end() && localIt.value()) {
-        orderedWidgets.push_back(localIt.value());
+        orderedParticipants.push_back(localIt.value());
     }
 
-    std::vector<std::pair<QString, ParticipantWidget*>> remoteEntries;
+    std::vector<std::pair<QString, Participant*>> remoteEntries;
     remoteEntries.reserve(participantWidgets_.size());
     for (auto widgetIt = participantWidgets_.cbegin(); widgetIt != participantWidgets_.cend(); ++widgetIt) {
         if (widgetIt.key() != localParticipantId_ && widgetIt.value()) {
@@ -343,10 +356,10 @@ void InMeeting::updateVideoWidgets()
     std::sort(remoteEntries.begin(), remoteEntries.end(),
               [](const auto &a, const auto &b) { return a.first < b.first; });
     for (const auto &entry : remoteEntries) {
-        orderedWidgets.push_back(entry.second);
+        orderedParticipants.push_back(entry.second);
     }
 
-    const int n = static_cast<int>(orderedWidgets.size());
+    const int n = static_cast<int>(orderedParticipants.size());
     if (n <= 0) return;
 
     // 列数基于实际有效 widget 数量
@@ -362,7 +375,7 @@ void InMeeting::updateVideoWidgets()
     }
 
     for (int i = 0; i < n; ++i) {
-        ui->gridLayout->addWidget(orderedWidgets[i], i / cols, i % cols);
+        ui->gridLayout->addWidget(orderedParticipants[i], i / cols, i % cols);
     }
 
     for (int c = 0; c < cols; ++c) {
@@ -372,6 +385,16 @@ void InMeeting::updateVideoWidgets()
         ui->gridLayout->setRowStretch(r, 1);
     }
 
-    // 缓存有序 widget 指针供 onTimer 使用
+    // 缓存有序 ParticipantWidget 指针供 onTimer 使用
+    std::vector<ParticipantWidget*> orderedWidgets;
+    orderedWidgets.reserve(orderedParticipants.size());
+    for (auto *participant : orderedParticipants) {
+        if (participant) {
+            ParticipantWidget *widget = participant->getParticipantWidget();
+            if (widget) {
+                orderedWidgets.push_back(widget);
+            }
+        }
+    }
     cachedOrderedWidgets_.swap(orderedWidgets);
 }
