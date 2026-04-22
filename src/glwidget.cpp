@@ -1,5 +1,6 @@
 #include "glwidget.h"
 #include "media_engine.h"
+#include "../tools/avatar_generator.h"
 
 #include <QSurfaceFormat>
 
@@ -20,6 +21,8 @@ GLWidget::~GLWidget()
     makeCurrent();
     delete texture_;
     texture_ = nullptr;
+    delete avatar_texture_;
+    avatar_texture_ = nullptr;
     doneCurrent();
 }
 
@@ -30,6 +33,21 @@ void GLWidget::setAudioTrackSid(const QString &audio_track_sid)
     }
 
     audio_track_sid_ = audio_track_sid;
+}
+
+void GLWidget::setParticipantName(const QString &name)
+{
+    if (participant_name_ == name) {
+        return;
+    }
+
+    participant_name_ = name;
+    if (!name.isEmpty()) {
+        const QImage avatar = AvatarGenerator::generateAvatar(name);
+        if (!avatar.isNull()) {
+            ensureAvatarTexture(avatar);
+        }
+    }
 }
 
 void GLWidget::initializeGL()
@@ -71,6 +89,7 @@ void GLWidget::paintGL()
 
     int frame_width = 0;
     int frame_height = 0;
+    bool has_video = false;
 
     // Try to get new frame only if SID is not empty
     if (!video_track_sid_.isEmpty()) {
@@ -78,6 +97,7 @@ void GLWidget::paintGL()
         if (got_new_frame) {
             frame_width = tmpBuff.width;
             frame_height = tmpBuff.height;
+            has_video = true;
             ensureTexture(tmpBuff.width, tmpBuff.height);
             if (texture_) {
                 texture_->bind();
@@ -87,18 +107,44 @@ void GLWidget::paintGL()
         }
     }
 
-    // Use cached texture dimensions if no new frame or SID is empty
-    if (texture_ && frame_width <= 0) {
+    // If no video frame, try to use avatar as fallback
+    if (!has_video && avatar_texture_) {
+        frame_width = avatar_texture_->width();
+        frame_height = avatar_texture_->height();
+    } else if (texture_ && frame_width <= 0) {
+        // Use cached video texture dimensions if no new frame
         frame_width = texture_->width();
         frame_height = texture_->height();
     }
 
-    if (!texture_ || frame_width <= 0 || frame_height <= 0) {
+    // Select which texture to render: video > avatar > nothing
+    QOpenGLTexture *render_texture = nullptr;
+    if (has_video && texture_) {
+        render_texture = texture_;
+    } else if (!has_video && avatar_texture_) {
+        render_texture = avatar_texture_;
+    } else if (texture_) {
+        render_texture = texture_;
+    }
+
+    if (!render_texture || frame_width <= 0 || frame_height <= 0) {
         return;
     }
 
     updateViewportForAspect(frame_width, frame_height);
 
+    program_.bind();
+    render_texture->bind(0);
+    program_.setUniformValue("uTex", 0);
+
+    renderTexturedQuad();
+
+    render_texture->release();
+    program_.release();
+}
+
+void GLWidget::renderTexturedQuad()
+{
     static const GLfloat vertices[] = {
         -1.0f, -1.0f,
          1.0f, -1.0f,
@@ -113,10 +159,6 @@ void GLWidget::paintGL()
         1.0f, 0.0f,
     };
 
-    program_.bind();
-    texture_->bind(0);
-    program_.setUniformValue("uTex", 0);
-
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, vertices);
     glEnableVertexAttribArray(1);
@@ -126,9 +168,6 @@ void GLWidget::paintGL()
 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
-
-    texture_->release();
-    program_.release();
 }
 
 void GLWidget::ensureTexture(int width, int height)
@@ -152,6 +191,35 @@ void GLWidget::ensureTexture(int width, int height)
         texture_->setMagnificationFilter(QOpenGLTexture::Linear);
         texture_->setWrapMode(QOpenGLTexture::ClampToEdge);
     }
+}
+
+void GLWidget::ensureAvatarTexture(const QImage &image)
+{
+    if (image.isNull()) {
+        return;
+    }
+
+    if (avatar_texture_) {
+        delete avatar_texture_;
+        avatar_texture_ = nullptr;
+    }
+
+    QImage glImage = image.convertToFormat(QImage::Format_RGBA8888);
+    if (glImage.isNull()) {
+        return;
+    }
+
+    makeCurrent();
+    avatar_texture_ = new QOpenGLTexture(QOpenGLTexture::Target2D);
+    avatar_texture_->setFormat(QOpenGLTexture::RGBA8_UNorm);
+    avatar_texture_->setSize(glImage.width(), glImage.height());
+    avatar_texture_->setMipLevels(1);
+    avatar_texture_->allocateStorage(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8);
+    avatar_texture_->setData(QOpenGLTexture::RGBA, QOpenGLTexture::UInt8, glImage.constBits());
+    avatar_texture_->setMinificationFilter(QOpenGLTexture::Linear);
+    avatar_texture_->setMagnificationFilter(QOpenGLTexture::Linear);
+    avatar_texture_->setWrapMode(QOpenGLTexture::ClampToEdge);
+    doneCurrent();
 }
 
 void GLWidget::updateViewportForAspect(int frameWidth, int frameHeight)

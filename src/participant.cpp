@@ -61,6 +61,10 @@ void Participant::setParticipantName(const QString &name)
     if (nameLabel_) {
         nameLabel_->setText(participantName_);
     }
+    
+    if (glWidget_) {
+        glWidget_->setParticipantName(name);
+    }
 }
 
 void Participant::setAudioTrackSid(const QString &sid)
