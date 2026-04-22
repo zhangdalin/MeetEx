@@ -12,6 +12,7 @@ class Participant;
 class ParticipantWidget;
 class QLabel;
 class QProgressBar;
+class QGraphicsDropShadowEffect;
 
 class Participant : public QWidget
 {
@@ -46,6 +47,7 @@ private:
     QPointer<QWidget> audioOverlay_;
     QPointer<QLabel> nameLabel_;
     QPointer<QProgressBar> levelBar_;
+    QPointer<QGraphicsDropShadowEffect> speakingGlow_;
     QString participantName_;
     int lastAudioLevel_ = -1;
     bool lastSpeaking_ = false;

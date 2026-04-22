@@ -50,6 +50,7 @@ private:
     void onTimer();
     void updateVideoWidgets();
     void updateAudioStatusPanel();
+    QString resolveDisplayName(const QString &participantId, const QString &participantName);
 
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingEngine> meetingEngine_;
@@ -60,6 +61,10 @@ private:
     
     // audio track sid -> owner ParticipantWidget
     QHash<QString, QPointer<ParticipantWidget>> audioTrackOwners_;
+
+    // participantId -> generated Guest name when upstream name is empty
+    QHash<QString, QString> guestNames_;
+    int nextGuestIndex_ = 1;
 
     // 性能优化缓存
     std::vector<ParticipantWidget*> cachedOrderedWidgets_;

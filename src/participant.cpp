@@ -5,6 +5,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QProgressBar>
+#include <QGraphicsDropShadowEffect>
 #include <QResizeEvent>
 #include <QVBoxLayout>
 
@@ -29,6 +30,13 @@ Participant::Participant(QWidget *parent)
     participantWidget_ = new ParticipantWidget(this);
     ui->verticalLayout->addWidget(participantWidget_);
 
+    speakingGlow_ = new QGraphicsDropShadowEffect(this);
+    speakingGlow_->setOffset(0, 0);
+    speakingGlow_->setBlurRadius(8);
+    speakingGlow_->setColor(QColor(39, 201, 63, 230));
+    speakingGlow_->setEnabled(false);
+    setGraphicsEffect(speakingGlow_);
+
     setupAudioOverlay();
     updateSpeakingStyle(false);
 }
@@ -40,6 +48,11 @@ Participant::~Participant()
 
 void Participant::setParticipantName(const QString &name)
 {
+    const QString trimmedName = name.trimmed();
+    if (trimmedName.isEmpty() && !participantName_.trimmed().isEmpty()) {
+        return;
+    }
+
     if (participantName_ == name) {
         return;
     }
@@ -95,38 +108,32 @@ void Participant::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
     if (audioOverlay_) {
+        const int margin = 8;
+        const QSize s = audioOverlay_->sizeHint();
+        const int w = qMin(s.width(), width() - 2 * margin);
+        const int h = s.height();
+        audioOverlay_->setGeometry(margin, height() - h - margin, w, h);
         audioOverlay_->raise();
     }
 }
 
 void Participant::setupAudioOverlay()
 {
-    if (!participantWidget_) {
-        return;
-    }
-
-    audioOverlay_ = new QWidget(participantWidget_);
+    // overlay 挂到 Participant 自身，通过 resizeEvent 定位到左下角
+    // 不在 QOpenGLWidget 上添加任何 layout
+    audioOverlay_ = new QWidget(this);
+    audioOverlay_->setAttribute(Qt::WA_TransparentForMouseEvents);
     audioOverlay_->setStyleSheet(
         "background-color: rgba(10, 14, 20, 145);"
-        "border: 1px solid rgba(100, 115, 135, 130);"
-        "border-radius: 6px;");
+        "border: none;"
+        "border-radius: 4px;");
 
-    auto *rootLayout = new QVBoxLayout(participantWidget_);
-    rootLayout->setContentsMargins(8, 8, 8, 8);
-    rootLayout->addStretch();
-    rootLayout->addWidget(audioOverlay_);
+    auto *row = new QHBoxLayout(audioOverlay_);
+    row->setContentsMargins(6, 4, 6, 4);
+    row->setSpacing(4);
 
-    auto *overlayLayout = new QVBoxLayout(audioOverlay_);
-    overlayLayout->setContentsMargins(8, 6, 8, 6);
-    overlayLayout->setSpacing(4);
-
-    auto *topRow = new QHBoxLayout();
-    topRow->setSpacing(6);
-    overlayLayout->addLayout(topRow);
-
-    nameLabel_ = new QLabel("参与者", audioOverlay_);
-    nameLabel_->setStyleSheet("color:#E8EDF5;");
-    topRow->addWidget(nameLabel_, 1);
+    nameLabel_ = new QLabel("Guest", audioOverlay_);
+    nameLabel_->setStyleSheet("color:#E8EDF5; background:transparent; border:none; font-size:14px; font-weight:500;");
 
     levelBar_ = new QProgressBar(audioOverlay_);
     levelBar_->setRange(0, 100);
@@ -145,23 +152,30 @@ void Participant::setupAudioOverlay()
         " border-radius: 2px;"
         " background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #27C93F, stop:1 #0B8A2C);"
         "}");
-    topRow->addWidget(levelBar_);
+    row->addWidget(levelBar_);
+    row->addWidget(nameLabel_, 1);
+
+    audioOverlay_->adjustSize();
 }
 
 void Participant::updateSpeakingStyle(bool speaking)
 {
+    if (speakingGlow_) {
+        speakingGlow_->setEnabled(speaking);
+    }
+
     if (speaking) {
         setStyleSheet(
             "#ParticipantContainer {"
-            " border: 2px solid #27C93F;"
-            " border-radius: 6px;"
+            " border: 1px solid #27C93F;"
+            " border-radius: 8px;"
             " background-color: #0D1218;"
             "}");
     } else {
         setStyleSheet(
             "#ParticipantContainer {"
             " border: 1px solid #2A3442;"
-            " border-radius: 6px;"
+            " border-radius: 8px;"
             " background-color: #0D1218;"
             "}");
     }

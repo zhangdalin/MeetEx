@@ -53,7 +53,7 @@ InMeeting::InMeeting(QWidget *parent)
     if (localUser) {
         auto *participantContainer = new Participant(this);
         localParticipantId_ = QString::fromStdString(localUser->identity());
-        participantContainer->setParticipantName("我");
+        participantContainer->setParticipantName("Me");
         participantWidgets_[localParticipantId_] = participantContainer;
     }
 
@@ -164,12 +164,13 @@ void InMeeting::onParticipantJoined(const QString &participantId, const QString 
             << "id=" << participantId;
 
     auto it = participantWidgets_.find(participantId);
+    const QString displayName = resolveDisplayName(participantId, participantName);
     if (it == participantWidgets_.end()) {
         auto *participantContainer = new Participant(this);
-        participantContainer->setParticipantName(participantName);
+        participantContainer->setParticipantName(displayName);
         participantWidgets_[participantId] = participantContainer;
     } else if (it.value()) {
-        it.value()->setParticipantName(participantName);
+        it.value()->setParticipantName(displayName);
     }
 }
 
@@ -187,7 +188,7 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
     ParticipantWidget *participantWidget = nullptr;
     if (it == participantWidgets_.end()) {
         participantContainer = new Participant(this);
-        participantContainer->setParticipantName(participantId);
+        participantContainer->setParticipantName(resolveDisplayName(participantId, QString()));
         participantWidgets_[participantId] = participantContainer;
         participantWidget = participantContainer->getParticipantWidget();
     } else {
@@ -221,6 +222,24 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
     }
 
     updateVideoWidgets();
+}
+
+QString InMeeting::resolveDisplayName(const QString &participantId, const QString &participantName)
+{
+    const QString trimmedName = participantName.trimmed();
+    if (!trimmedName.isEmpty()) {
+        guestNames_.remove(participantId);
+        return trimmedName;
+    }
+
+    const auto it = guestNames_.find(participantId);
+    if (it != guestNames_.end()) {
+        return it.value();
+    }
+
+    const QString guestName = QString("Guest%1").arg(nextGuestIndex_++);
+    guestNames_[participantId] = guestName;
+    return guestName;
 }
 
 void InMeeting::closeEvent(QCloseEvent *event)
