@@ -279,10 +279,7 @@ void InMeeting::updateAudioStatusPanel()
     const bool local_speaking = meetingEngine_->isLocalAudioSpeaking();
     const auto localIt = participantWidgets_.find(localParticipantId_);
     if (localIt != participantWidgets_.end() && localIt.value()) {
-        ParticipantWidget *localWidget = localIt.value()->getParticipantWidget();
-        if (localWidget) {
-            localWidget->setAudioStatus(local_level.level, local_speaking);
-        }
+        localIt.value()->setAudioStatus(local_level.level, local_speaking);
     }
 
     const auto remote_levels = meetingEngine_->remoteAudioLevels();
@@ -321,9 +318,9 @@ void InMeeting::updateAudioStatusPanel()
 
         const auto it = participant_audio.find(participantWidget);
         if (it == participant_audio.end()) {
-            participantWidget->setAudioStatus(0.0f, false);
+            participantContainer->setAudioStatus(0.0f, false);
         } else {
-            participantWidget->setAudioStatus(it->second.level, it->second.speaking);
+            participantContainer->setAudioStatus(it->second.level, it->second.speaking);
         }
     }
 }

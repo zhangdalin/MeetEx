@@ -5,17 +5,10 @@
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
 #include <QOpenGLWidget>
-#include <QPointer>
 #include <QString>
-
-class QLabel;
-class QProgressBar;
-class QWidget;
 
 #include <cstdint>
 #include <vector>
-#include <string>
-#include <memory>
 
 struct VideoFrameBuff;
 class ParticipantWidget : public QOpenGLWidget, protected QOpenGLFunctions
@@ -32,9 +25,6 @@ public:
     QString& videoTrackSid() { return video_track_sid_; }
     void setVideoTrackSid(const QString &video_track_sid) { video_track_sid_ = video_track_sid; }
 
-    void setParticipantName(const QString &name);
-    void setAudioStatus(float level, bool speaking);
-
 protected:
     void initializeGL() override;
     void paintGL() override;
@@ -42,10 +32,6 @@ protected:
 private:
     void ensureTexture(int width, int height);
     void updateViewportForAspect(int frameWidth, int frameHeight);
-    void updateSpeakingStyle(bool speaking);
-
-private:
-    void setupOverlay();
 
 private:
     QString audio_track_sid_;
@@ -53,15 +39,6 @@ private:
 
     QOpenGLShaderProgram program_;
     QOpenGLTexture *texture_ = nullptr;
-
-    QPointer<QWidget> audioOverlay_;
-    QPointer<QLabel> nameLabel_;
-    QPointer<QLabel> stateLabel_;
-    QPointer<QProgressBar> levelBar_;
-
-    QString participantName_;
-    int lastAudioLevel_ = -1;
-    bool lastSpeaking_ = false;
 };
 
 #endif // PARTICIPANTWIDGET_H
