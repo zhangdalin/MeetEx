@@ -133,6 +133,8 @@ bool MeetingRoom::connect(){
 }
 
 bool MeetingRoom::disconnect() {
+    MediaEngine::instance().stopAllAudioPlay();
+    MediaEngine::instance().stopAllVideoRender();
     if (state_ == RoomState::DISCONNECTED) {
         qWarning() << __FUNCTION__ << "called but already disconnected";
         return true;
