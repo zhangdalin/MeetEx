@@ -28,8 +28,11 @@ public:
     bool startAudioPlay(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid);
     bool startVideoRender(const std::shared_ptr<livekit::VideoStream> &video_stream, const std::string &track_sid);
 
-    void stopAudioPlay();
-    void stopVideoRender();
+    void stopAudioPlay(const std::string& track_sid);
+    void stopVideoRender(const std::string& track_sid);
+
+    void stopAllAudioPlay();
+    void stopAllVideoRender();
 
     bool copyVideoFrame(const std::string &track_sid, VideoFrameBuff& frameBuff);
     AudioLevelInfo localAudioLevel() const;

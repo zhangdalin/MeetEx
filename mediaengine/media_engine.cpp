@@ -6,11 +6,10 @@
 
 MediaEngine::MediaEngine()
     : media_mgr_(std::make_shared<MediaMgr>()) {
-
 }
 
 void MediaEngine::printLiveKitVersion() {
-    qInfo() << __FUNCTION__ <<  __FUNCTION__
+    qInfo() << __FUNCTION__
             << "LiveKit version:" << LIVEKIT_BUILD_VERSION_FULL << "("
             << LIVEKIT_BUILD_FLAVOR << ", commit" << LIVEKIT_BUILD_COMMIT
             << ", built" << LIVEKIT_BUILD_DATE << ")";
@@ -19,19 +18,19 @@ void MediaEngine::printLiveKitVersion() {
 bool MediaEngine::init() {
     printLiveKitVersion();
 
-    if(!livekit::initialize()) {
-        qCritical() << __FUNCTION__ <<  __FUNCTION__ << "Failed to initialize LiveKit";
+    if(!livekit::initialize(livekit::LogLevel::Trace, livekit::LogSink::kConsole)) {
+        qCritical() << __FUNCTION__ << "Failed to initialize LiveKit";
         return false;
     }
 
-    qInfo() << __FUNCTION__ <<  __FUNCTION__ << "Media engine initialized successfully.";
+    qInfo() << __FUNCTION__ << "Media engine initialized successfully.";
 
     return true;
 }
 
 bool MediaEngine::fini() {
     livekit::shutdown();
-    qInfo() << __FUNCTION__ <<  __FUNCTION__ << "Media engine finalized successfully.";
+    qInfo() << __FUNCTION__ << "Media engine finalized successfully.";
     return true;
 }
 
@@ -51,15 +50,15 @@ bool MediaEngine::startLocalAudio(livekit::LocalParticipant* participant, std::s
         auto audioPub = participant->publishTrack(audioTrack, audioOpts);
         sid = audioPub->sid();
         qInfo() << __FUNCTION__ << "Published track:"
-            << "SID: " << audioPub->sid()
-            << "Name: " << audioPub->name()
-            << "Kind: " << trackKindToString(audioPub->kind())
-            << "Source: " << trackSourceToString(audioPub->source())
-            << "Simulcasted: " << (audioPub->simulcasted() ? "enabled" : "disabled")
-            << "Muted: " << (audioPub->muted() ? "yes" : "no");
+            << "SID:" << audioPub->sid()
+            << "Name:" << audioPub->name()
+            << "Kind:" << trackKindToString(audioPub->kind())
+            << "Source:" << trackSourceToString(audioPub->source())
+            << "Simulcasted:" << (audioPub->simulcasted() ? "enabled" : "disabled")
+            << "Muted:" << (audioPub->muted() ? "yes" : "no");
     }
     catch (const std::exception &e) {
-        qCritical() << __FUNCTION__ << "Failed to publish audio track: " << e.what();
+        qCritical() << __FUNCTION__ << "Failed to publish audio track:" << e.what();
     }
 
     return media_mgr_->startMic(audioSource);
@@ -88,15 +87,15 @@ bool MediaEngine::startLocalVideo(livekit::LocalParticipant* participant, std::s
         auto videoPub = participant->publishTrack(videoTrack, videoOpts);
         sid = videoPub->sid();
         qInfo() << __FUNCTION__ << "Published track:"
-            << "SID: " << videoPub->sid()
-            << "Name: " << videoPub->name()
-            << "Kind: " << trackKindToString(videoPub->kind())
-            << "Source: " << trackSourceToString(videoPub->source())
-            << "Simulcasted: " << (videoPub->simulcasted() ? "enabled" : "disabled")
-            << "Muted: " << (videoPub->muted() ? "yes" : "no");
+            << "SID:" << videoPub->sid()
+            << "Name:" << videoPub->name()
+            << "Kind:" << trackKindToString(videoPub->kind())
+            << "Source:" << trackSourceToString(videoPub->source())
+            << "Simulcasted:" << (videoPub->simulcasted() ? "enabled" : "disabled")
+            << "Muted:" << (videoPub->muted() ? "yes" : "no");
     }
     catch (const std::exception &e) {
-        qCritical() << __FUNCTION__ << "Failed to publish video track: " << e.what();
+        qCritical() << __FUNCTION__ << "Failed to publish video track:" << e.what();
     }
 
     return media_mgr_->startCamera(videoSource, sid);
@@ -125,11 +124,19 @@ bool MediaEngine::startVideoRender(const std::shared_ptr<livekit::VideoStream> &
     return media_mgr_->startRender(video_stream, track_sid);
 }
 
-void MediaEngine::stopAudioPlay() {
+void MediaEngine::stopAudioPlay(const std::string& track_sid) {
+    media_mgr_->stopPlayback(track_sid);
+}
+
+void MediaEngine::stopVideoRender(const std::string& track_sid) {
+    media_mgr_->stopRender(track_sid);
+}
+
+void MediaEngine::stopAllAudioPlay() {
     media_mgr_->stopAllPlayback();
 }
 
-void MediaEngine::stopVideoRender() {
+void MediaEngine::stopAllVideoRender() {
     media_mgr_->stopAllRenders();
 }
 

@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <QString>
+#include <QStringList>
 #include <QObject>
 
 #include "livekit/room.h"
@@ -67,8 +68,35 @@ public:
 
 signals:
     void sigParticipantJoined(const QString &participantId, const QString &participantName);
-    void sigTrackSubscribed(const QString &trackSid, const QString &trackName, 
-        const QString &participantId, int trackKind);
+    void sigParticipantLeft(const QString &participantId, const QString &participantName);
+
+    void sigLocalTrackPublished(const QString &trackSid, const QString &trackName);
+    void sigLocalTrackUnpublished(const QString &trackSid, const QString &trackName);
+    void sigLocalTrackSubscribed(const QString &trackSid, const QString &trackName);
+
+    void sigTrackPublished(const QString &trackSid, const QString &trackName, const QString &participantId);
+    void sigTrackUnpublished(const QString &trackSid, const QString &trackName, const QString &participantId);
+    void sigTrackSubscribed(const QString &trackSid, const QString &trackName, const QString &participantId, int trackKind);
+    void sigTrackUnsubscribed(const QString &trackSid, const QString &trackName, const QString &participantId, int trackKind);
+    void sigTrackSubscriptionFailed(const QString &trackSid, const QString &participantId, const QString &errorMessage);
+    void sigTrackMuted(const QString &trackSid, const QString &trackName, const QString &participantId);
+    void sigTrackUnmuted(const QString &trackSid, const QString &trackName, const QString &participantId);
+
+    void sigActiveSpeakersChanged(const QStringList &participantIds);
+    void sigRoomMetadataChanged(const QString &oldMetadata, const QString &newMetadata);
+    void sigRoomSidChanged(const QString &newSid);
+    void sigRoomUpdated();
+    void sigRoomMoved();
+
+    void sigParticipantMetadataChanged(const QString &participantId, const QString &oldMetadata, const QString &newMetadata);
+    void sigParticipantAttributesChanged(const QString &participantId, const QStringList &changedAttributes);
+    void sigParticipantEncryptionStatusChanged(const QString &participantId, bool encrypted);
+
+    void sigConnectionQualityChanged(const QString &participantId, livekit::ConnectionQuality quality);
+    void sigConnectionStateChanged(livekit::ConnectionState state);
+    void sigDisconnected(livekit::DisconnectReason reason);
+    void sigReconnecting();
+    void sigReconnected();
 
 private:
     std::string url_;

@@ -39,7 +39,10 @@ public slots:
     void openApps();
     void endMeeting();
     void onParticipantJoined(const QString &participantId, const QString &participantName);
+    void onParticipantLeft(const QString &participantId, const QString &participantName);
     void onTrackSubscribed(const QString &trackSid, const QString &trackName, 
+        const QString &participantId, int trackKind);
+    void onTrackUnsubscribed(const QString &trackSid, const QString &trackName,
         const QString &participantId, int trackKind);
 
 protected:
@@ -56,7 +59,7 @@ private:
     std::unique_ptr<MeetingEngine> meetingEngine_;
     // every participantId handle a Participant container
     // participantId -> Participant
-    QHash<QString, Participant*> participantWidgets_;
+    QHash<QString, Participant*> participants_;
     QString localParticipantId_;
     
     // audio track sid -> owner GLWidget

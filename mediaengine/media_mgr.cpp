@@ -472,6 +472,33 @@ void MediaMgr::playbackLoop(const std::string &track_sid, const std::shared_ptr<
     }
 }
 
+void MediaMgr::stopPlayback(const std::string& track_sid) {
+    std::shared_ptr<PlaybackWorker> worker = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(playback_mutex_);
+        auto it = playback_.find(track_sid);
+        if (it != playback_.end()) {
+            worker = it->second;
+            playback_.erase(it);
+        }
+    }
+
+    if (worker) {
+        worker->running.store(false, std::memory_order_relaxed);
+        if (worker->thread.joinable()) {
+            worker->thread.join();
+        }
+        worker->stream.reset();
+    }
+
+    // Remove this track from the mixer
+    {
+        std::lock_guard<std::mutex> lk(mix_mutex_);
+        mix_tracks_.erase(track_sid);
+    }
+    resetRemoteAudioLevel(track_sid);
+}
+
 void MediaMgr::stopAllPlayback() {
     std::vector<std::shared_ptr<PlaybackWorker>> workers;
     {
@@ -610,6 +637,26 @@ bool MediaMgr::startRender(const std::shared_ptr<livekit::VideoStream> &video_st
     }
 
     return true;
+}
+
+void MediaMgr::stopRender(const std::string &track_sid) {
+    std::shared_ptr<RenderWorker> worker = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(renders_mutex_);
+        auto it = renders_.find(track_sid);
+        if (it != renders_.end()) {
+            worker = it->second;
+            renders_.erase(it);
+        }
+    }
+
+    if (worker) {
+        worker->running.store(false, std::memory_order_relaxed);
+        if (worker->thread.joinable()) {
+            worker->thread.join();
+        }
+        worker->stream.reset();
+    }
 }
 
 void MediaMgr::stopAllRenders() {

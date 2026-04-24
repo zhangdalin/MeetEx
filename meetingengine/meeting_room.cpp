@@ -7,6 +7,51 @@
 
 #include <QDebug>
 
+namespace {
+
+const char* disconnectReasonToString(livekit::DisconnectReason reason) {
+    switch (reason) {
+        case livekit::DisconnectReason::Unknown: return "Unknown";
+        case livekit::DisconnectReason::ClientInitiated: return "ClientInitiated";
+        case livekit::DisconnectReason::DuplicateIdentity: return "DuplicateIdentity";
+        case livekit::DisconnectReason::ServerShutdown: return "ServerShutdown";
+        case livekit::DisconnectReason::ParticipantRemoved: return "ParticipantRemoved";
+        case livekit::DisconnectReason::RoomDeleted: return "RoomDeleted";
+        case livekit::DisconnectReason::StateMismatch: return "StateMismatch";
+        case livekit::DisconnectReason::JoinFailure: return "JoinFailure";
+        case livekit::DisconnectReason::Migration: return "Migration";
+        case livekit::DisconnectReason::SignalClose: return "SignalClose";
+        case livekit::DisconnectReason::RoomClosed: return "RoomClosed";
+        case livekit::DisconnectReason::UserUnavailable: return "UserUnavailable";
+        case livekit::DisconnectReason::UserRejected: return "UserRejected";
+        case livekit::DisconnectReason::SipTrunkFailure: return "SipTrunkFailure";
+        case livekit::DisconnectReason::ConnectionTimeout: return "ConnectionTimeout";
+        case livekit::DisconnectReason::MediaFailure: return "MediaFailure";
+        default: return "Unknown";
+    }
+}
+
+const char* connectionQualityToString(livekit::ConnectionQuality quality) {
+    switch (quality) {
+        case livekit::ConnectionQuality::Poor: return "Poor";
+        case livekit::ConnectionQuality::Good: return "Good";
+        case livekit::ConnectionQuality::Excellent: return "Excellent";
+        case livekit::ConnectionQuality::Lost: return "Lost";
+        default: return "Unknown";
+    }
+}
+
+const char* connectionStateToString(livekit::ConnectionState state) {
+    switch (state) {
+        case livekit::ConnectionState::Disconnected: return "Disconnected";
+        case livekit::ConnectionState::Connected: return "Connected";
+        case livekit::ConnectionState::Reconnecting: return "Reconnecting";
+        default: return "Unknown";
+    }
+}
+
+}
+
 MeetingRoom::MeetingRoom()
     : QObject(nullptr)
     , livekit::Room()
@@ -71,25 +116,25 @@ bool MeetingRoom::connect(){
 
     auto info = room_info();
     qInfo() << __FUNCTION__ << "Connected to room:"
-        << "SID: " << (info.sid ? *info.sid : "(none)")
-        << "Name: " << info.name
-        << "Metadata: " << info.metadata
-        << "Max participants: " << info.max_participants
-        << "Num participants: " << info.num_participants
-        << "Num publishers: " << info.num_publishers
-        << "Active recording: " << (info.active_recording ? "yes" : "no")
-        << "Empty timeout (s): " << info.empty_timeout
-        << "Departure timeout (s): " << info.departure_timeout
-        << "Lossy DC low threshold: " << info.lossy_dc_buffered_amount_low_threshold
-        << "Reliable DC low threshold: " << info.reliable_dc_buffered_amount_low_threshold
-        << "Creation time (ms): " << info.creation_time;
+        << "SID:" << (info.sid ? *info.sid : "(none)")
+        << "Name:" << info.name
+        << "Metadata:" << info.metadata
+        << "Max participants:" << info.max_participants
+        << "Num participants:" << info.num_participants
+        << "Num publishers:" << info.num_publishers
+        << "Active recording:" << (info.active_recording ? "yes" : "no")
+        << "Empty timeout (s):" << info.empty_timeout
+        << "Departure timeout (s):" << info.departure_timeout
+        << "Lossy DC low threshold:" << info.lossy_dc_buffered_amount_low_threshold
+        << "Reliable DC low threshold:" << info.reliable_dc_buffered_amount_low_threshold
+        << "Creation time (ms):" << info.creation_time;
 
     return res;
 }
 
 bool MeetingRoom::disconnect() {
     if (state_ == RoomState::DISCONNECTED) {
-        qWarning() << __FUNCTION__ << "MeetingRoom::disconnect() called but already disconnected";
+        qWarning() << __FUNCTION__ << "called but already disconnected";
         return true;
     }
     setDelegate(nullptr);
@@ -102,7 +147,7 @@ bool MeetingRoom::disconnect() {
 
 std::shared_ptr<LocalUser>& MeetingRoom::getLocalUser() {
     if (state_ != RoomState::CONNECTED) {
-        qWarning() << __FUNCTION__ << "getLocalUser() called but not connected to room";
+        qWarning() << __FUNCTION__ << "called but not connected to room";
         // Return empty shared_ptr to indicate no local user available
         return localUser_;
     }
@@ -119,7 +164,7 @@ std::shared_ptr<RemoteUser> MeetingRoom::getRemoteUser(const std::string &id) {
     }
     auto remote_participant = this->remoteParticipant(id);
     if (!remote_participant) {
-        qWarning() << __FUNCTION__ << "No remote participant found with id: " << QString::fromStdString(id);
+        qWarning() << __FUNCTION__ << "No remote participant found with id:" << QString::fromStdString(id);
         return nullptr;
     }
     return std::make_shared<RemoteUser>(remote_participant);
@@ -172,19 +217,19 @@ void MeetingRoom::onTrackSubscribed(livekit::Room &room, const livekit::TrackSub
     Q_UNUSED(room);
     const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_sid = ev.publication
         ? QString::fromStdString(ev.publication->sid())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_name = ev.publication
         ? QString::fromStdString(ev.publication->name())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     qDebug() << __FUNCTION__ << "track subscribed: participant_id="
         << participant_id
         << "track_sid=" << track_sid
         << "name=" << track_name
-        << "kind=" << (ev.track ? trackKindToString(ev.track->kind()) : "<unknown>")
-        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : "<unknown>");
+        << "kind=" << (ev.track ? trackKindToString(ev.track->kind()) : "")
+        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : "");
     
     if (ev.track) {
         const int track_kind = static_cast<int>(ev.track->kind());
@@ -223,10 +268,10 @@ void MeetingRoom::onParticipantDisconnected(livekit::Room &room, const livekit::
     Q_UNUSED(room);
     const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString participant_name = ev.participant
         ? QString::fromStdString(ev.participant->name())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     qDebug() << __FUNCTION__ << "participant disconnected: id="
         << participant_id
         << "name=" << participant_name
@@ -239,15 +284,15 @@ void MeetingRoom::onLocalTrackPublished(livekit::Room &room, const livekit::Loca
     Q_UNUSED(room);
     const QString track_sid = ev.publication
         ? QString::fromStdString(ev.publication->sid())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_name = ev.publication
         ? QString::fromStdString(ev.publication->name())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     qDebug() << __FUNCTION__ << "local track published: track_sid="
         << track_sid
         << "name=" << track_name
-        << "kind=" << (ev.track ? trackKindToString(ev.track->kind()) : "<unknown>")
-        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : "<unknown>");
+        << "kind=" << (ev.track ? trackKindToString(ev.track->kind()) : "")
+        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : "");
 
     emit sigLocalTrackPublished(track_sid, track_name);
 }
@@ -256,10 +301,10 @@ void MeetingRoom::onLocalTrackUnpublished(livekit::Room &room, const livekit::Lo
     Q_UNUSED(room);
     const QString track_sid = ev.publication
         ? QString::fromStdString(ev.publication->sid())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_name = ev.publication
         ? QString::fromStdString(ev.publication->name())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     qDebug() << __FUNCTION__ << "local track unpublished: track_sid="
         << track_sid
         << "name=" << track_name;
@@ -269,15 +314,16 @@ void MeetingRoom::onLocalTrackUnpublished(livekit::Room &room, const livekit::Lo
 
 void MeetingRoom::onLocalTrackSubscribed(livekit::Room &room, const livekit::LocalTrackSubscribedEvent &ev){
     Q_UNUSED(room);
-    const QString track_sid = ev.publication
-        ? QString::fromStdString(ev.publication->sid())
-        : QStringLiteral("<unknown>");
-    const QString track_name = ev.publication
-        ? QString::fromStdString(ev.publication->name())
-        : QStringLiteral("<unknown>");
+    const QString track_sid = ev.track
+        ? QString::fromStdString(ev.track->sid())
+        : QStringLiteral("");
+    const QString track_name = ev.track
+        ? QString::fromStdString(ev.track->name())
+        : QStringLiteral("");
     qDebug() << __FUNCTION__ << "local track subscribed: track_sid="
         << track_sid
-        << "name=" << track_name;
+        << "name=" << track_name
+        << "kind=" << (ev.track ? trackKindToString(ev.track->kind()) : "");
 
     emit sigLocalTrackSubscribed(track_sid, track_name);
 }
@@ -286,19 +332,19 @@ void MeetingRoom::onTrackPublished(livekit::Room &room, const livekit::TrackPubl
     Q_UNUSED(room);
     const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_sid = ev.publication
         ? QString::fromStdString(ev.publication->sid())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_name = ev.publication
         ? QString::fromStdString(ev.publication->name())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     qDebug() << __FUNCTION__ << "track published: participant_id="
         << participant_id
         << "track_sid=" << track_sid
         << "name=" << track_name
-        << "kind=" << (ev.publication ? trackKindToString(ev.publication->kind()) : "<unknown>")
-        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : "<unknown>");
+        << "kind=" << (ev.publication ? trackKindToString(ev.publication->kind()) : "")
+        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : "");
 
     emit sigTrackPublished(track_sid, track_name, participant_id);
 }
@@ -307,13 +353,13 @@ void MeetingRoom::onTrackUnpublished(livekit::Room &room, const livekit::TrackUn
     Q_UNUSED(room);
     const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_sid = ev.publication
         ? QString::fromStdString(ev.publication->sid())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_name = ev.publication
         ? QString::fromStdString(ev.publication->name())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     qDebug() << __FUNCTION__ << "track unpublished: participant_id="
         << participant_id
         << "track_sid=" << track_sid
@@ -326,26 +372,36 @@ void MeetingRoom::onTrackUnsubscribed(livekit::Room &room, const livekit::TrackU
     Q_UNUSED(room);
     const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_sid = ev.publication
         ? QString::fromStdString(ev.publication->sid())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_name = ev.publication
         ? QString::fromStdString(ev.publication->name())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     qDebug() << __FUNCTION__ << "track unsubscribed: participant_id="
         << participant_id
         << "track_sid=" << track_sid
         << "name=" << track_name;
+    
+    if (ev.track) {
+        const int track_kind = static_cast<int>(ev.track->kind());
+        emit sigTrackUnsubscribed(track_sid, track_name, participant_id, track_kind);
+    }
 
-    emit sigTrackUnsubscribed(track_sid, track_name, participant_id);
+    if (ev.track && ev.track->kind() == livekit::TrackKind::KIND_VIDEO) {
+        MediaEngine::instance().stopVideoRender(track_sid.toStdString());
+    }
+    else if (ev.track && ev.track->kind() == livekit::TrackKind::KIND_AUDIO) {
+        MediaEngine::instance().stopAudioPlay(track_sid.toStdString());
+    }
 }
 
 void MeetingRoom::onTrackSubscriptionFailed(livekit::Room &room, const livekit::TrackSubscriptionFailedEvent &ev){
     Q_UNUSED(room);
     const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_sid = QString::fromStdString(ev.track_sid);
     const QString error_msg = QString::fromStdString(ev.error);
     qDebug() << __FUNCTION__ << "track subscription failed: participant_id="
@@ -360,13 +416,13 @@ void MeetingRoom::onTrackMuted(livekit::Room &room, const livekit::TrackMutedEve
     Q_UNUSED(room);
     const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_sid = ev.publication
         ? QString::fromStdString(ev.publication->sid())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_name = ev.publication
         ? QString::fromStdString(ev.publication->name())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     qDebug() << __FUNCTION__ << "track muted: participant_id="
         << participant_id
         << "track_sid=" << track_sid
@@ -379,13 +435,13 @@ void MeetingRoom::onTrackUnmuted(livekit::Room &room, const livekit::TrackUnmute
     Q_UNUSED(room);
     const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_sid = ev.publication
         ? QString::fromStdString(ev.publication->sid())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString track_name = ev.publication
         ? QString::fromStdString(ev.publication->name())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     qDebug() << __FUNCTION__ << "track unmuted: participant_id="
         << participant_id
         << "track_sid=" << track_sid
@@ -397,12 +453,12 @@ void MeetingRoom::onTrackUnmuted(livekit::Room &room, const livekit::TrackUnmute
 void MeetingRoom::onActiveSpeakersChanged(livekit::Room &room, const livekit::ActiveSpeakersChangedEvent &ev){
     Q_UNUSED(room);
     QStringList active_speaker_ids;
-    for (const auto& participant : ev.active_speakers) {
+    for (const auto& participant : ev.speakers) {
         if (participant) {
             active_speaker_ids << QString::fromStdString(participant->identity());
         }
     }
-    qDebug() << __FUNCTION__ << "active speakers changed: " << active_speaker_ids.join(", ");
+    qDebug() << __FUNCTION__ << "active speakers changed:" << active_speaker_ids.join(", ");
 
     emit sigActiveSpeakersChanged(active_speaker_ids);
 }
@@ -428,17 +484,17 @@ void MeetingRoom::onRoomUpdated(livekit::Room &room, const livekit::RoomUpdatedE
     Q_UNUSED(room);
     const auto& info = ev.info;
     qDebug() << __FUNCTION__ << "room updated: SID=" << (info.sid ? QString::fromStdString(*info.sid) : "(none)")
-        << "Name: " << QString::fromStdString(info.name)
-        << "Metadata: " << QString::fromStdString(info.metadata)
-        << "Max participants: " << info.max_participants
-        << "Num participants: " << info.num_participants
-        << "Num publishers: " << info.num_publishers
-        << "Active recording: " << (info.active_recording ? "yes" : "no")
-        << "Empty timeout (s): " << info.empty_timeout
-        << "Departure timeout (s): " << info.departure_timeout
-        << "Lossy DC low threshold: " << info.lossy_dc_buffered_amount_low_threshold
-        << "Reliable DC low threshold: " << info.reliable_dc_buffered_amount_low_threshold
-        << "Creation time (ms): " << info.creation_time;
+        << "Name:" << QString::fromStdString(info.name)
+        << "Metadata:" << QString::fromStdString(info.metadata)
+        << "Max participants:" << info.max_participants
+        << "Num participants:" << info.num_participants
+        << "Num publishers:" << info.num_publishers
+        << "Active recording:" << (info.active_recording ? "yes" : "no")
+        << "Empty timeout (s):" << info.empty_timeout
+        << "Departure timeout (s):" << info.departure_timeout
+        << "Lossy DC low threshold:" << info.lossy_dc_buffered_amount_low_threshold
+        << "Reliable DC low threshold:" << info.reliable_dc_buffered_amount_low_threshold
+        << "Creation time (ms):" << info.creation_time;
 
     emit sigRoomUpdated();
 }
@@ -447,17 +503,17 @@ void MeetingRoom::onRoomMoved(livekit::Room &room, const livekit::RoomMovedEvent
     Q_UNUSED(room);
     const auto& info = ev.info;
     qDebug() << __FUNCTION__ << "moved to new room: SID=" << (info.sid ? QString::fromStdString(*info.sid) : "(none)")
-        << "Name: " << QString::fromStdString(info.name)
-        << "Metadata: " << QString::fromStdString(info.metadata)
-        << "Max participants: " << info.max_participants
-        << "Num participants: " << info.num_participants
-        << "Num publishers: " << info.num_publishers
-        << "Active recording: " << (info.active_recording ? "yes" : "no")
-        << "Empty timeout (s): " << info.empty_timeout
-        << "Departure timeout (s): " << info.departure_timeout
-        << "Lossy DC low threshold: " << info.lossy_dc_buffered_amount_low_threshold
-        << "Reliable DC low threshold: " << info.reliable_dc_buffered_amount_low_threshold
-        << "Creation time (ms): " << info.creation_time;
+        << "Name:" << QString::fromStdString(info.name)
+        << "Metadata:" << QString::fromStdString(info.metadata)
+        << "Max participants:" << info.max_participants
+        << "Num participants:" << info.num_participants
+        << "Num publishers:" << info.num_publishers
+        << "Active recording:" << (info.active_recording ? "yes" : "no")
+        << "Empty timeout (s):" << info.empty_timeout
+        << "Departure timeout (s):" << info.departure_timeout
+        << "Lossy DC low threshold:" << info.lossy_dc_buffered_amount_low_threshold
+        << "Reliable DC low threshold:" << info.reliable_dc_buffered_amount_low_threshold
+        << "Creation time (ms):" << info.creation_time;
 
     emit sigRoomMoved();
 }
@@ -466,7 +522,7 @@ void MeetingRoom::onParticipantMetadataChanged(livekit::Room &room, const liveki
     Q_UNUSED(room);
     const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     const QString old_metadata = QString::fromStdString(ev.old_metadata);
     const QString new_metadata = QString::fromStdString(ev.new_metadata);
     qDebug() << __FUNCTION__ << "participant metadata changed: participant_id="
@@ -481,31 +537,35 @@ void MeetingRoom::onParticipantAttributesChanged(livekit::Room &room, const live
     Q_UNUSED(room);
     const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
+    QStringList changed_attributes;
+    for (const auto& attr : ev.changed_attributes) {
+        changed_attributes << QString::fromStdString(attr.key + "=" + attr.value);
+    }
     qDebug() << __FUNCTION__ << "participant attributes changed: participant_id="
         << participant_id
-        << "changed attributes: " << QStringList(ev.changed_attributes.begin(), ev.changed_attributes.end()).join(", ");
+        << "changed attributes:" << changed_attributes.join(", ");
 
-    emit sigParticipantAttributesChanged(participant_id, ev.changed_attributes);
+    emit sigParticipantAttributesChanged(participant_id, changed_attributes);
 }
 
 void MeetingRoom::onParticipantEncryptionStatusChanged(livekit::Room &room, const livekit::ParticipantEncryptionStatusChangedEvent &ev){
     Q_UNUSED(room);
     const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     qDebug() << __FUNCTION__ << "participant encryption status changed: participant_id="
         << participant_id
-        << "encryption enabled: " << (ev.encryption_enabled ? "yes" : "no");
+        << "encryption enabled:" << (ev.is_encrypted ? "yes" : "no");
 
-    emit sigParticipantEncryptionStatusChanged(participant_id, ev.encryption_enabled);
+    emit sigParticipantEncryptionStatusChanged(participant_id, ev.is_encrypted);
 }
 
 void MeetingRoom::onConnectionQualityChanged(livekit::Room &room, const livekit::ConnectionQualityChangedEvent &ev){
     Q_UNUSED(room);
     const QString participant_id = ev.participant
         ? QString::fromStdString(ev.participant->identity())
-        : QStringLiteral("<unknown>");
+        : QStringLiteral("");
     qDebug() << __FUNCTION__ << "connection quality changed: participant_id="
         << participant_id
         << "quality=" << connectionQualityToString(ev.quality);

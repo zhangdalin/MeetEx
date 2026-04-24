@@ -60,6 +60,7 @@ public:
 
     // Playback (remote audio playback)
     bool startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid);
+    void stopPlayback(const std::string& track_sid);
     void stopAllPlayback();
 
     AudioLevelInfo localAudioLevel() const;
@@ -69,8 +70,8 @@ public:
     std::unordered_map<std::string, AudioLevelInfo> remoteAudioLevels() const;
 
     // Renderer (remote video rendering)
-    // Following APIs must be called on main thread
     bool startRender(const std::shared_ptr<livekit::VideoStream> &video_stream, const std::string &track_sid);
+    void stopRender(const std::string &track_sid);
     void stopAllRenders();
 
     bool copyVideoFrame(const std::string &track_sid, VideoFrameBuff& frameBuff);
