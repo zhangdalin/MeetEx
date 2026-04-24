@@ -31,8 +31,32 @@ public:
         bool e2ee = false, bool single_peer_connection = false);
 
     void onParticipantConnected(livekit::Room &room, const livekit::ParticipantConnectedEvent &ev) override;
-    void onParticipantsUpdated(livekit::Room &, const livekit::ParticipantsUpdatedEvent &ev) override;
+    void onParticipantsUpdated(livekit::Room &room, const livekit::ParticipantsUpdatedEvent &ev) override;
+    void onParticipantDisconnected(livekit::Room &room, const livekit::ParticipantDisconnectedEvent &ev) override;
+    void onLocalTrackPublished(livekit::Room &room, const livekit::LocalTrackPublishedEvent &ev) override;
+    void onLocalTrackUnpublished(livekit::Room &room, const livekit::LocalTrackUnpublishedEvent &ev) override;
+    void onLocalTrackSubscribed(livekit::Room &room, const livekit::LocalTrackSubscribedEvent &ev) override;
+    void onTrackPublished(livekit::Room &room, const livekit::TrackPublishedEvent &ev) override;
+    void onTrackUnpublished(livekit::Room &room, const livekit::TrackUnpublishedEvent &ev) override;
     void onTrackSubscribed(livekit::Room &room, const livekit::TrackSubscribedEvent &ev) override;
+    void onTrackUnsubscribed(livekit::Room &room, const livekit::TrackUnsubscribedEvent &ev) override;
+    void onTrackSubscriptionFailed(livekit::Room &room, const livekit::TrackSubscriptionFailedEvent &ev) override;
+    void onTrackMuted(livekit::Room &room, const livekit::TrackMutedEvent &ev) override;
+    void onTrackUnmuted(livekit::Room &room, const livekit::TrackUnmutedEvent &ev) override;
+    void onActiveSpeakersChanged(livekit::Room &room, const livekit::ActiveSpeakersChangedEvent &ev) override;
+    void onRoomMetadataChanged(livekit::Room &room, const livekit::RoomMetadataChangedEvent &ev) override;
+    void onRoomSidChanged(livekit::Room &room, const livekit::RoomSidChangedEvent &ev) override;
+    void onRoomUpdated(livekit::Room &room, const livekit::RoomUpdatedEvent &ev) override;
+    void onRoomMoved(livekit::Room &room, const livekit::RoomMovedEvent &ev) override;
+    void onParticipantMetadataChanged(livekit::Room &room, const livekit::ParticipantMetadataChangedEvent &ev) override;
+    void onParticipantAttributesChanged(livekit::Room &room, const livekit::ParticipantAttributesChangedEvent &ev) override;
+    void onParticipantEncryptionStatusChanged(livekit::Room &room, const livekit::ParticipantEncryptionStatusChangedEvent &ev) override;
+    void onConnectionQualityChanged(livekit::Room &room, const livekit::ConnectionQualityChangedEvent &ev) override;
+    void onConnectionStateChanged(livekit::Room &room, const livekit::ConnectionStateChangedEvent &ev) override;
+    void onDisconnected(livekit::Room &room, const livekit::DisconnectedEvent &ev) override;
+    void onReconnecting(livekit::Room &room, const livekit::ReconnectingEvent &ev) override;
+    void onReconnected(livekit::Room &room, const livekit::ReconnectedEvent &ev) override;
+
 
     bool connect();
     bool disconnect();

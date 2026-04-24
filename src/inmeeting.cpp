@@ -107,6 +107,7 @@ void InMeeting::toggleVideo()
         button->setText("关闭视频");
     } else {
         meetingEngine_->stopVideo();
+        localGLWidget->setVideoTrackSid(QString());
         button->setText("开启视频");
     }
 }

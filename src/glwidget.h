@@ -24,7 +24,7 @@ public:
     void setAudioTrackSid(const QString &audio_track_sid);
 
     QString& videoTrackSid() { return video_track_sid_; }
-    void setVideoTrackSid(const QString &video_track_sid) { video_track_sid_ = video_track_sid; }
+    void setVideoTrackSid(const QString &video_track_sid);
 
     void setParticipantName(const QString &name);
 

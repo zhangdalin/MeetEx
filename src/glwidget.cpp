@@ -35,6 +35,20 @@ void GLWidget::setAudioTrackSid(const QString &audio_track_sid)
     audio_track_sid_ = audio_track_sid;
 }
 
+void GLWidget::setVideoTrackSid(const QString &video_track_sid)
+{
+    if (video_track_sid_ == video_track_sid) {
+        return;
+    }
+
+    video_track_sid_ = video_track_sid;
+    if (video_track_sid_.isEmpty()) {
+        video_fade_alpha_ = 0.0f;
+    }
+
+    update();
+}
+
 void GLWidget::setParticipantName(const QString &name)
 {
     if (participant_name_ == name) {

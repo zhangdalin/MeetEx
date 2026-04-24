@@ -120,19 +120,19 @@ void drawDefaultPortraitBackground(QPainter &p, const QSize &size, const AvatarO
     p.setPen(Qt::NoPen);
     p.setBrush(opt.silhouetteColor);
 
-    const qreal headRadius = w * 0.15;
-    const QPointF headCenter(w * 0.5, h * 0.32);
+    const qreal headRadius = w * 0.05;
+    const QPointF headCenter(w * 0.5, h * 0.43);
     p.drawEllipse(headCenter, headRadius, headRadius);
 
     QPainterPath shoulders;
-    shoulders.moveTo(w * 0.19, h * 0.81);
-    shoulders.cubicTo(w * 0.20, h * 0.52, w * 0.80, h * 0.52, w * 0.81, h * 0.81);
+    shoulders.moveTo(w * 0.375, h * 0.60);
+    shoulders.cubicTo(w * 0.39, h * 0.54, w * 0.61, h * 0.54, w * 0.625, h * 0.60);
     shoulders.closeSubpath();
     p.drawPath(shoulders);
 }
 
 void applyCircularMask(QImage &image) {
-    const int diameter = std::min(image.width(), image.height());
+    const int diameter = static_cast<int>(std::min(image.width(), image.height()) * 0.425);
     const int offsetX = (image.width() - diameter) / 2;
     const int offsetY = (image.height() - diameter) / 2;
 
@@ -166,12 +166,12 @@ QImage AvatarGenerator::generateAvatar(const QString &userName) {
     drawDefaultPortraitBackground(painter, size, options);
 
     const QString initials = initialsFromName(userName);
-    const int pixelSize = std::max(64, static_cast<int>(size.width() * 0.34));
+    const int pixelSize = std::max(24, static_cast<int>(size.width() * 0.13));
 
     QFont font(QStringLiteral("Microsoft YaHei"));
     font.setBold(true);
     font.setPixelSize(pixelSize);
-    font.setLetterSpacing(QFont::AbsoluteSpacing, std::max(6.0, size.width() * 0.015));
+    font.setLetterSpacing(QFont::AbsoluteSpacing, std::max(2.0, size.width() * 0.005));
     painter.setFont(font);
 
     painter.setPen(options.textColor);
