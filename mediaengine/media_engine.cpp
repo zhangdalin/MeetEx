@@ -4,6 +4,32 @@
 
 #include <QDebug>
 
+void forwardLiveKitLog(livekit::LogLevel level,
+                       const std::string &logger_name,
+                       const std::string &message) {
+    const QString logger = QString::fromStdString(logger_name);
+    const QString text = QString::fromStdString(message);
+
+    switch (level) {
+    case livekit::LogLevel::Trace:
+    case livekit::LogLevel::Debug:
+        qDebug().noquote() << "[LIVEKIT]" << logger << text;
+        break;
+    case livekit::LogLevel::Info:
+        qInfo().noquote() << "[LIVEKIT]" << logger << text;
+        break;
+    case livekit::LogLevel::Warn:
+        qWarning().noquote() << "[LIVEKIT]" << logger << text;
+        break;
+    case livekit::LogLevel::Error:
+    case livekit::LogLevel::Critical:
+        qCritical().noquote() << "[LIVEKIT]" << logger << text;
+        break;
+    case livekit::LogLevel::Off:
+        break;
+    }
+}
+
 MediaEngine::MediaEngine()
     : media_mgr_(std::make_shared<MediaMgr>()) {
 }
@@ -18,10 +44,12 @@ void MediaEngine::printLiveKitVersion() {
 bool MediaEngine::init() {
     printLiveKitVersion();
 
-    if(!livekit::initialize(livekit::LogLevel::Trace, livekit::LogSink::kConsole)) {
+    if(!livekit::initialize(livekit::LogLevel::Trace, livekit::LogSink::kCallback)) {
         qCritical() << __FUNCTION__ << "Failed to initialize LiveKit";
         return false;
     }
+
+    livekit::setLogCallback(forwardLiveKitLog);
 
     qInfo() << __FUNCTION__ << "Media engine initialized successfully.";
 

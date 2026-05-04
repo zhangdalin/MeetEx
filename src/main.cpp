@@ -39,8 +39,8 @@ void customMessageHandler(QtMsgType type, const QMessageLogContext &context, con
 
 int main(int argc, char *argv[])
 {
-    logFile.setFileName("exmeet.log");
-    if (logFile.open(QIODevice::Append | QIODevice::Text)) {
+    logFile.setFileName("meetex.log");
+    if (logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
         logStream.setDevice(&logFile);
         qInstallMessageHandler(customMessageHandler);
     }
