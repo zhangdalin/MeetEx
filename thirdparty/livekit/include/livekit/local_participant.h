@@ -17,6 +17,9 @@
 #pragma once
 
 #include "livekit/ffi_handle.h"
+#include "livekit/local_audio_track.h"
+#include "livekit/local_data_track.h"
+#include "livekit/local_video_track.h"
 #include "livekit/participant.h"
 #include "livekit/room_event_types.h"
 #include "livekit/rpc_error.h"
@@ -55,6 +58,7 @@ class LocalParticipant : public Participant {
 public:
   using PublicationMap =
       std::unordered_map<std::string, std::shared_ptr<LocalTrackPublication>>;
+  using TrackMap = std::unordered_map<std::string, std::weak_ptr<Track>>;
 
   /**
    * Type of callback used to handle incoming RPC method invocations.
@@ -74,10 +78,13 @@ public:
                    std::unordered_map<std::string, std::string> attributes,
                    ParticipantKind kind, DisconnectReason reason);
 
-  /// Track publications associated with this participant, keyed by track SID.
-  const PublicationMap &trackPublications() const noexcept {
-    return track_publications_;
-  }
+  /**
+   * Track publications for this participant, keyed by publication SID.
+   *
+   * Built on each call from published local tracks (see \ref publishTrack).
+   * Expired track handles are removed from the internal map while building.
+   */
+  PublicationMap trackPublications() const;
 
   /**
    * Publish arbitrary data to the room.
@@ -95,7 +102,13 @@ public:
                    const std::string &topic = {});
 
   /**
-   * Publish SIP DTMF message.
+   * Publish a SIP DTMF (phone keypad) tone into the room.
+   *
+   * Only meaningful when a SIP trunk is bridging a phone call into the
+   * room.  See SipDtmfData for background on SIP and DTMF.
+   *
+   * @param code  DTMF code (0-15).
+   * @param digit Human-readable digit string (e.g. "5", "#").
    */
   void publishDtmf(int code, const std::string &digit);
 
@@ -124,9 +137,32 @@ public:
    *
    * Throws std::runtime_error on error (e.g. publish failure).
    */
-  std::shared_ptr<LocalTrackPublication>
-  publishTrack(const std::shared_ptr<Track> &track,
-               const TrackPublishOptions &options);
+  void publishTrack(const std::shared_ptr<Track> &track,
+                    const TrackPublishOptions &options);
+
+  /**
+   * Create a \ref LocalVideoTrack backed by the given \ref VideoSource,
+   * publish it, and return the track.
+   *
+   * The caller retains ownership of \p source and should use it directly
+   * for frame capture on the video thread.
+   */
+  std::shared_ptr<LocalVideoTrack>
+  publishVideoTrack(const std::string &name,
+                    const std::shared_ptr<VideoSource> &source,
+                    TrackSource track_source);
+
+  /**
+   * Create a \ref LocalAudioTrack backed by the given \ref AudioSource,
+   * publish it, and return the track.
+   *
+   * The caller retains ownership of \p source and should use it directly
+   * for frame capture on the audio thread.
+   */
+  std::shared_ptr<LocalAudioTrack>
+  publishAudioTrack(const std::string &name,
+                    const std::shared_ptr<AudioSource> &source,
+                    TrackSource track_source);
 
   /**
    * Unpublish a track from the room by SID.
@@ -134,6 +170,32 @@ public:
    * If the publication exists in the local map, it is removed.
    */
   void unpublishTrack(const std::string &track_sid);
+
+  /**
+   * Publish a data track to the room.
+   *
+   * Data tracks carry arbitrary binary frames and are independent of the
+   * audio/video track hierarchy. The returned LocalDataTrack can push
+   * frames via tryPush() and be unpublished via
+   * LocalDataTrack::unpublishDataTrack() or
+   * LocalParticipant::unpublishDataTrack().
+   *
+   * @param name  Unique track name visible to other participants.
+   * @return The published track on success, or a typed error describing why
+   *         publication failed.
+   */
+  Result<std::shared_ptr<LocalDataTrack>, PublishDataTrackError>
+  publishDataTrack(const std::string &name);
+
+  /**
+   * Unpublish a data track from the room.
+   *
+   * Delegates to LocalDataTrack::unpublishDataTrack(). After this call,
+   * tryPush() on the track will fail and the track cannot be re-published.
+   *
+   * @param track  The data track to unpublish. Null is ignored.
+   */
+  void unpublishDataTrack(const std::shared_ptr<LocalDataTrack> &track);
 
   /**
    * Initiate an RPC call to a remote participant.
@@ -211,7 +273,11 @@ protected:
   friend class Room;
 
 private:
-  PublicationMap track_publications_;
+  /// Publication SID → local track (\ref unpublishTrack clears the track’s
+  /// cached publication). \c mutable so \ref trackPublications() const can
+  /// prune expired \c weak_ptr entries.
+  mutable TrackMap published_tracks_by_sid_;
+
   std::unordered_map<std::string, RpcHandler> rpc_handlers_;
 
   // Shared state for RPC invocation tracking. Using shared_ptr so the state

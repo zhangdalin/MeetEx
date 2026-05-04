@@ -29,6 +29,7 @@ namespace livekit {
 class Track;
 class Participant;
 class RemoteParticipant;
+class RemoteDataTrack;
 class LocalTrackPublication;
 class RemoteTrackPublication;
 class TrackPublication;
@@ -100,7 +101,7 @@ enum class DisconnectReason {
   RoomClosed,
   UserUnavailable,
   UserRejected,
-  SipTrunkFailure,
+  SipTrunkFailure, ///< SIP (telephony) trunk connection failed
   ConnectionTimeout,
   MediaFailure
 };
@@ -117,10 +118,17 @@ struct UserPacketData {
 };
 
 /**
- * SIP DTMF payload carried via data packets.
+ * SIP (Session Initiation Protocol) DTMF payload carried via data packets.
+ *
+ * SIP is a signalling protocol used in VoIP telephony. LiveKit supports
+ * SIP trunking, which bridges traditional phone calls into LiveKit rooms.
+ * DTMF (Dual-Tone Multi-Frequency) tones are the signals generated when
+ * phone keypad buttons are pressed (0-9, *, #). This struct surfaces
+ * those tones so that applications handling SIP-bridged calls can react
+ * to caller input (e.g. IVR menu selection).
  */
 struct SipDtmfData {
-  /** DTMF code value. */
+  /** Numeric DTMF code (0-15, mapping to 0-9, *, #, A-D). */
   std::uint32_t code = 0;
 
   /** Human-readable digit representation (e.g. "1", "#"). */
@@ -300,6 +308,17 @@ struct AudioEncodingOptions {
 };
 
 /**
+ * Optional RTP packet-trailer features for published video tracks.
+ */
+struct PacketTrailerFeatures {
+  /** Embed a user-supplied wall-clock timestamp. */
+  bool user_timestamp = false;
+
+  /** Embed a monotonically increasing frame identifier. */
+  bool frame_id = false;
+};
+
+/**
  * Options for publishing a track to the room.
  */
 struct TrackPublishOptions {
@@ -329,6 +348,9 @@ struct TrackPublishOptions {
 
   /** Enable pre-connect buffering for lower startup latency. */
   std::optional<bool> preconnect_buffer;
+
+  /** Optional packet-trailer features to enable for published video. */
+  PacketTrailerFeatures packet_trailer_features{};
 };
 
 // ---------------------------------------------------------
@@ -717,6 +739,26 @@ struct E2eeStateChangedEvent {
 
   /** New encryption state. */
   EncryptionState state = EncryptionState::New;
+};
+
+/**
+ * Fired when a participant publishes a data track.
+ *
+ * Data tracks are independent of the audio/video track hierarchy.
+ * The application must call RemoteDataTrack::subscribe() to start
+ * receiving frames.
+ */
+struct DataTrackPublishedEvent {
+  /** The newly published remote data track. */
+  std::shared_ptr<RemoteDataTrack> track;
+};
+
+/**
+ * Fired when a remote participant unpublishes a data track.
+ */
+struct DataTrackUnpublishedEvent {
+  /** SID of the track that was unpublished. */
+  std::string sid;
 };
 
 } // namespace livekit

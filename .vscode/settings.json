@@ -1,4 +1,7 @@
 {
+    "cmake.buildDirectory": "${workspaceFolder}/build/vscode-msvc2022-debug",
+    "cmake.generator": "Visual Studio 17 2022",
+    "cmake.generatorPlatform": "x64",
     "cmake.configureSettings": {
         "CMAKE_PREFIX_PATH": "C:/Qt/6.10.2/msvc2022_64"
     },

@@ -21,6 +21,9 @@
 #include "livekit/e2ee.h"
 #include "livekit/ffi_handle.h"
 #include "livekit/room_event_types.h"
+#include "livekit/subscription_thread_dispatcher.h"
+
+#include <cstdint>
 #include <memory>
 #include <mutex>
 
@@ -76,7 +79,7 @@ struct RoomOptions {
   // Enable single peer connection mode. When true, uses one RTCPeerConnection
   // for both publishing and subscribing instead of two separate connections.
   // Falls back to dual peer connection if the server doesn't support single PC.
-  bool single_peer_connection = false;
+  bool single_peer_connection = true;
 
   // Optional WebRTC configuration (ICE policy, servers, etc.)
   std::optional<RtcConfig> rtc_config;
@@ -233,7 +236,88 @@ public:
    */
   E2EEManager *e2eeManager() const;
 
+  // ---------------------------------------------------------------
+  // Frame callbacks
+  // ---------------------------------------------------------------
+
+  /**
+   * @brief Sets the audio frame callback via SubscriptionThreadDispatcher.
+   */
+  void setOnAudioFrameCallback(const std::string &participant_identity,
+                               TrackSource source, AudioFrameCallback callback,
+                               const AudioStream::Options &opts = {});
+
+  /**
+   * @brief Sets the audio frame callback via SubscriptionThreadDispatcher.
+   */
+  void setOnAudioFrameCallback(const std::string &participant_identity,
+                               const std::string &track_name,
+                               AudioFrameCallback callback,
+                               const AudioStream::Options &opts = {});
+
+  /**
+   * @brief Sets the video frame callback via SubscriptionThreadDispatcher.
+   */
+  void setOnVideoFrameCallback(const std::string &participant_identity,
+                               TrackSource source, VideoFrameCallback callback,
+                               const VideoStream::Options &opts = {});
+
+  /**
+   * @brief Sets the video frame callback via SubscriptionThreadDispatcher.
+   */
+  void setOnVideoFrameCallback(const std::string &participant_identity,
+                               const std::string &track_name,
+                               VideoFrameCallback callback,
+                               const VideoStream::Options &opts = {});
+
+  /**
+   * @brief Sets the video frame event callback via
+   * SubscriptionThreadDispatcher.
+   */
+  void setOnVideoFrameEventCallback(const std::string &participant_identity,
+                                    const std::string &track_name,
+                                    VideoFrameEventCallback callback,
+                                    const VideoStream::Options &opts = {});
+
+  /**
+   * @brief Clears the audio frame callback via SubscriptionThreadDispatcher.
+   */
+  void clearOnAudioFrameCallback(const std::string &participant_identity,
+                                 TrackSource source);
+  /**
+   * @brief Clears the audio frame callback via SubscriptionThreadDispatcher.
+   */
+  void clearOnAudioFrameCallback(const std::string &participant_identity,
+                                 const std::string &track_name);
+
+  /**
+   * @brief Clears the video frame callback via SubscriptionThreadDispatcher.
+   */
+  void clearOnVideoFrameCallback(const std::string &participant_identity,
+                                 TrackSource source);
+
+  /**
+   * @brief Clears the video frame callback via SubscriptionThreadDispatcher.
+   */
+  void clearOnVideoFrameCallback(const std::string &participant_identity,
+                                 const std::string &track_name);
+
+  /**
+   * @brief Adds a data frame callback via SubscriptionThreadDispatcher.
+   */
+  DataFrameCallbackId
+  addOnDataFrameCallback(const std::string &participant_identity,
+                         const std::string &track_name,
+                         DataFrameCallback callback);
+
+  /**
+   * @brief Removes the data frame callback via SubscriptionThreadDispatcher.
+   */
+  void removeOnDataFrameCallback(DataFrameCallbackId id);
+
 private:
+  friend class RoomCallbackTest;
+
   mutable std::mutex lock_;
   ConnectionState connection_state_ = ConnectionState::Disconnected;
   RoomDelegate *delegate_ = nullptr; // Not owned
@@ -251,6 +335,7 @@ private:
       byte_stream_readers_;
   // E2EE
   std::unique_ptr<E2EEManager> e2ee_manager_;
+  std::shared_ptr<SubscriptionThreadDispatcher> subscription_thread_dispatcher_;
 
   // FfiClient listener ID (0 means no listener registered)
   int listener_id_{0};

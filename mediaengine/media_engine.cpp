@@ -75,15 +75,20 @@ bool MediaEngine::startLocalAudio(livekit::LocalParticipant* participant, std::s
     try {
         // publishTrack takes std::shared_ptr<Track>, LocalAudioTrack derives from
         // Track
-        auto audioPub = participant->publishTrack(audioTrack, audioOpts);
-        sid = audioPub->sid();
-        qInfo() << __FUNCTION__ << "Published track:"
-            << "SID:" << audioPub->sid()
-            << "Name:" << audioPub->name()
-            << "Kind:" << trackKindToString(audioPub->kind())
-            << "Source:" << trackSourceToString(audioPub->source())
-            << "Simulcasted:" << (audioPub->simulcasted() ? "enabled" : "disabled")
-            << "Muted:" << (audioPub->muted() ? "yes" : "no");
+        participant->publishTrack(audioTrack, audioOpts);
+        if (const auto audioPub = audioTrack->publication()) {
+            sid = audioPub->sid();
+            qInfo() << __FUNCTION__ << "Published track:"
+                << "SID:" << audioPub->sid()
+                << "Name:" << audioPub->name()
+                << "Kind:" << trackKindToString(audioPub->kind())
+                << "Source:" << trackSourceToString(audioPub->source())
+                << "Simulcasted:" << (audioPub->simulcasted() ? "enabled" : "disabled")
+                << "Muted:" << (audioPub->muted() ? "yes" : "no");
+        } else {
+            sid = audioTrack->sid();
+            qWarning() << __FUNCTION__ << "Audio track published but no publication metadata available yet.";
+        }
     }
     catch (const std::exception &e) {
         qCritical() << __FUNCTION__ << "Failed to publish audio track:" << e.what();
@@ -112,15 +117,20 @@ bool MediaEngine::startLocalVideo(livekit::LocalParticipant* participant, std::s
     try {
         // publishTrack takes std::shared_ptr<Track>, LocalVideoTrack derives from
         // Track
-        auto videoPub = participant->publishTrack(videoTrack, videoOpts);
-        sid = videoPub->sid();
-        qInfo() << __FUNCTION__ << "Published track:"
-            << "SID:" << videoPub->sid()
-            << "Name:" << videoPub->name()
-            << "Kind:" << trackKindToString(videoPub->kind())
-            << "Source:" << trackSourceToString(videoPub->source())
-            << "Simulcasted:" << (videoPub->simulcasted() ? "enabled" : "disabled")
-            << "Muted:" << (videoPub->muted() ? "yes" : "no");
+        participant->publishTrack(videoTrack, videoOpts);
+        if (const auto videoPub = videoTrack->publication()) {
+            sid = videoPub->sid();
+            qInfo() << __FUNCTION__ << "Published track:"
+                << "SID:" << videoPub->sid()
+                << "Name:" << videoPub->name()
+                << "Kind:" << trackKindToString(videoPub->kind())
+                << "Source:" << trackSourceToString(videoPub->source())
+                << "Simulcasted:" << (videoPub->simulcasted() ? "enabled" : "disabled")
+                << "Muted:" << (videoPub->muted() ? "yes" : "no");
+        } else {
+            sid = videoTrack->sid();
+            qWarning() << __FUNCTION__ << "Video track published but no publication metadata available yet.";
+        }
     }
     catch (const std::exception &e) {
         qCritical() << __FUNCTION__ << "Failed to publish video track:" << e.what();

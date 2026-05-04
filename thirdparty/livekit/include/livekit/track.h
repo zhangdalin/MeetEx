@@ -25,9 +25,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include <iostream>
-
 namespace livekit {
+
+class LocalTrackPublication;
 
 enum class TrackKind {
   KIND_UNKNOWN = 0,
@@ -85,6 +85,8 @@ public:
   std::optional<bool> simulcasted() const noexcept { return simulcasted_; }
   std::optional<uint32_t> width() const noexcept { return width_; }
   std::optional<uint32_t> height() const noexcept { return height_; }
+  // std::string can actually throw, suppressing for now to maintain API compatibility
+  // NOLINTNEXTLINE(bugprone-exception-escape)
   std::optional<std::string> mime_type() const noexcept { return mime_type_; }
 
   // Handle access
@@ -93,6 +95,13 @@ public:
 
   // Async get stats
   std::future<std::vector<RtcStats>> getStats() const;
+
+  /// After publishing a local track, associates the \ref LocalTrackPublication
+  /// with this track. Default implementation is a no-op (e.g. remote tracks).
+  virtual void setPublication(
+      const std::shared_ptr<LocalTrackPublication> &publication) noexcept {
+    (void)publication;
+  }
 
   // Internal updates (called by Room)
   void setStreamState(StreamState s) noexcept { state_ = s; }
