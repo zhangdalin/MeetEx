@@ -148,6 +148,45 @@ std::vector<std::shared_ptr<RemoteUser>> MeetingSession::remoteUsers() const {
     return engine_->remoteUsers();
 }
 
+QString MeetingSession::getParticipantDisplayName(const QString &participantId, const QString &participantName)
+{
+    const std::string pid = participantId.toStdString();
+    const QString trimmedName = participantName.trimmed();
+
+    if (!trimmedName.isEmpty()) {
+        participantDisplayNames_[pid] = participantName.toStdString();
+        return trimmedName;
+    }
+
+    const auto it = participantDisplayNames_.find(pid);
+    if (it != participantDisplayNames_.end()) {
+        return QString::fromStdString(it->second);
+    }
+
+    const QString guestName = QString("Guest%1").arg(nextGuestIndex_++);
+    participantDisplayNames_[pid] = guestName.toStdString();
+    return guestName;
+}
+
+QString MeetingSession::getParticipantIdByTrackSid(const QString &trackSid) const
+{
+    const auto it = trackToParticipantMap_.find(trackSid.toStdString());
+    if (it != trackToParticipantMap_.end()) {
+        return QString::fromStdString(it->second);
+    }
+    return QString();
+}
+
+void MeetingSession::mapTrackToParticipant(const QString &trackSid, const QString &participantId)
+{
+    trackToParticipantMap_[trackSid.toStdString()] = participantId.toStdString();
+}
+
+void MeetingSession::unmapTrack(const QString &trackSid)
+{
+    trackToParticipantMap_.erase(trackSid.toStdString());
+}
+
 void MeetingSession::bindEngineSignals() {
     auto *room = engine_->room();
     QObject::connect(room, &MeetingRoom::sigParticipantJoined,

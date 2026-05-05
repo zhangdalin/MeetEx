@@ -77,6 +77,14 @@ public:
     std::unordered_map<std::string, AudioLevelInfo> remoteAudioLevels() const;
     std::vector<std::shared_ptr<RemoteUser>> remoteUsers() const;
 
+    // Participant display name resolution
+    QString getParticipantDisplayName(const QString &participantId, const QString &participantName);
+
+    // Track to participant mapping
+    QString getParticipantIdByTrackSid(const QString &trackSid) const;
+    void mapTrackToParticipant(const QString &trackSid, const QString &participantId);
+    void unmapTrack(const QString &trackSid);
+
 signals:
     void sigParticipantJoined(const QString &participantId, const QString &participantName);
     void sigParticipantLeft(const QString &participantId, const QString &participantName);
@@ -102,6 +110,13 @@ private:
     MeetingSessionMediaState cameraState_ = MeetingSessionMediaState::Off;
     std::string localVideoTrackSid_;
     bool started_ = false;
+
+    // Participant name cache: participantId -> generated name if empty
+    std::unordered_map<std::string, std::string> participantDisplayNames_;
+    int nextGuestIndex_ = 1;
+
+    // Track SID to participant ID mapping
+    std::unordered_map<std::string, std::string> trackToParticipantMap_;
 };
 
 #endif // MEETING_SESSION_H

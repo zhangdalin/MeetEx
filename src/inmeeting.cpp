@@ -42,6 +42,7 @@ InMeeting::InMeeting(const MeetingSessionCtx &context, QWidget *parent)
 {
     ui->setupUi(this);
 
+    // Connect participant signals
     connect(meetingSession_.get(), &MeetingSession::sigParticipantJoined,
             this, &InMeeting::onParticipantJoined);
     connect(meetingSession_.get(), &MeetingSession::sigParticipantLeft,
@@ -51,19 +52,27 @@ InMeeting::InMeeting(const MeetingSessionCtx &context, QWidget *parent)
     connect(meetingSession_.get(), &MeetingSession::sigTrackUnsubscribed,
             this, &InMeeting::onTrackUnsubscribed);
 
+    // Connect state change signals for UI updates
+    connect(meetingSession_.get(), &MeetingSession::sigMicrophoneStateChanged,
+            this, &InMeeting::updateButtonStates);
+    connect(meetingSession_.get(), &MeetingSession::sigCameraStateChanged,
+            this, &InMeeting::updateButtonStates);
+
+    // Timer for video rendering and periodic updates
     auto *timer = new QTimer(this);
     timer->setInterval(16);
     connect(timer, &QTimer::timeout, this, &InMeeting::onTimer);
     timer->start();
 
     if (meetingSession_->start()) {
-        initializeLocalParticipant();
+        localParticipantId_ = meetingSession_->localParticipantId();
+        auto *participant = new Participant(this);
+        participant->setParticipantName(context.displayName.trimmed().isEmpty() ? "Me" : context.displayName);
+        participants_[localParticipantId_] = participant;
     }
 
     ui->tabWidget->setVisible(false);
-    ui->muteBtn->setText(meetingSession_->microphoneState() == MeetingSessionMediaState::On ? "静音" : "解除静音");
-    ui->videoBtn->setText(meetingSession_->cameraState() == MeetingSessionMediaState::On ? "关闭视频" : "开启视频");
-
+    updateButtonStates();
     updateVideoWidgets();
 }
 
@@ -75,36 +84,30 @@ InMeeting::~InMeeting()
 void InMeeting::toggleMute()
 {
     qInfo() << __FUNCTION__;
-    QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (meetingSession_->microphoneState() == MeetingSessionMediaState::On) {
         meetingSession_->stopAudio();
-        button->setText("解除静音");
     } else {
-        if (meetingSession_->startAudio()) {
-            button->setText("静音");
-        }
+        meetingSession_->startAudio();
     }
 }
 
 void InMeeting::toggleVideo()
 {
     qInfo() << __FUNCTION__;
-    QPushButton *button = qobject_cast<QPushButton *>(sender());
     const auto localIt = participants_.find(localParticipantId_);
     Participant *localParticipant = (localIt != participants_.end()) ? localIt.value() : nullptr;
     GLWidget *localGLWidget = localParticipant ? localParticipant->getGLWidget() : nullptr;
     if (!localGLWidget) {
         return;
     }
+
     if (meetingSession_->cameraState() != MeetingSessionMediaState::On) {
         if (meetingSession_->startVideo()) {
             localGLWidget->setVideoTrackSid(meetingSession_->localVideoTrackSid());
-            button->setText("关闭视频");
         }
     } else {
         meetingSession_->stopVideo();
         localGLWidget->setVideoTrackSid(QString());
-        button->setText("开启视频");
     }
 }
 
@@ -174,7 +177,7 @@ void InMeeting::onParticipantJoined(const QString &participantId, const QString 
             << "id=" << participantId;
 
     auto it = participants_.find(participantId);
-    const QString displayName = resolveDisplayName(participantId, participantName);
+    const QString displayName = meetingSession_->getParticipantDisplayName(participantId, participantName);
     if (it == participants_.end()) {
         auto *participant = new Participant(this);
         participant->setParticipantName(displayName);
@@ -201,8 +204,6 @@ void InMeeting::onParticipantLeft(const QString &participantId, const QString &p
         participants_.erase(it);
     }
 
-    guestNames_.remove(participantId);
-
     updateAudioStatusPanel();
     updateVideoWidgets();
 }
@@ -216,12 +217,16 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
             << "participant_id=" << participantId
             << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
 
+    // Map track to participant in session
+    meetingSession_->mapTrackToParticipant(trackSid, participantId);
+
     auto it = participants_.find(participantId);
     Participant *participant = nullptr;
     GLWidget *glWidget = nullptr;
+
     if (it == participants_.end()) {
         participant = new Participant(this);
-        participant->setParticipantName(resolveDisplayName(participantId, QString()));
+        participant->setParticipantName(meetingSession_->getParticipantDisplayName(participantId, QString()));
         participants_[participantId] = participant;
         glWidget = participant->getGLWidget();
     } else {
@@ -233,18 +238,8 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
         return;
     }
 
-    switch (static_cast<TrackKind>(trackKind))
-    {
+    switch (static_cast<TrackKind>(trackKind)) {
     case TrackKind::AUDIO:
-        if (!glWidget->audioTrackSid().isEmpty()) {
-            const QString oldAudioSid = glWidget->audioTrackSid();
-            const auto oldIt = audioTrackOwners_.find(oldAudioSid);
-            if (oldIt != audioTrackOwners_.end() && oldIt.value() == glWidget) {
-                audioTrackOwners_.erase(oldIt);
-            }
-        }
-
-        audioTrackOwners_[trackSid] = glWidget;
         glWidget->setAudioTrackSid(trackSid);
         break;
     case TrackKind::VIDEO:
@@ -267,22 +262,15 @@ void InMeeting::onTrackUnsubscribed(const QString &trackSid, const QString &trac
             << "participant_id=" << participantId
             << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
 
+    // Unmap track from participant in session
+    meetingSession_->unmapTrack(trackSid);
+
     auto participantIt = participants_.find(participantId);
-    Participant *participant =
-        (participantIt != participants_.end()) ? participantIt.value() : nullptr;
+    Participant *participant = (participantIt != participants_.end()) ? participantIt.value() : nullptr;
     GLWidget *glWidget = participant ? participant->getGLWidget() : nullptr;
 
     switch (static_cast<TrackKind>(trackKind)) {
-    case TrackKind::AUDIO: {
-        const auto ownerIt = audioTrackOwners_.find(trackSid);
-        if (ownerIt != audioTrackOwners_.end()) {
-            GLWidget *owner = ownerIt.value().data();
-            if (owner && owner->audioTrackSid() == trackSid) {
-                owner->setAudioTrackSid(QString());
-            }
-            audioTrackOwners_.erase(ownerIt);
-        }
-
+    case TrackKind::AUDIO:
         if (glWidget && glWidget->audioTrackSid() == trackSid) {
             glWidget->setAudioTrackSid(QString());
         }
@@ -290,7 +278,6 @@ void InMeeting::onTrackUnsubscribed(const QString &trackSid, const QString &trac
             participant->setAudioStatus(0.0f, false);
         }
         break;
-    }
     case TrackKind::VIDEO:
         if (glWidget && glWidget->videoTrackSid() == trackSid) {
             glWidget->setVideoTrackSid(QString());
@@ -304,22 +291,48 @@ void InMeeting::onTrackUnsubscribed(const QString &trackSid, const QString &trac
     updateVideoWidgets();
 }
 
-QString InMeeting::resolveDisplayName(const QString &participantId, const QString &participantName)
+void InMeeting::updateAudioStatusPanel()
 {
-    const QString trimmedName = participantName.trimmed();
-    if (!trimmedName.isEmpty()) {
-        guestNames_.remove(participantId);
-        return trimmedName;
+    if (!meetingSession_) {
+        return;
     }
 
-    const auto it = guestNames_.find(participantId);
-    if (it != guestNames_.end()) {
-        return it.value();
+    const AudioLevelInfo local_level = meetingSession_->localAudioLevel();
+    const bool local_speaking = meetingSession_->isLocalAudioSpeaking();
+    const auto localIt = participants_.find(localParticipantId_);
+    if (localIt != participants_.end() && localIt.value()) {
+        localIt.value()->setAudioStatus(local_level.level, local_speaking);
     }
 
-    const QString guestName = QString("Guest%1").arg(nextGuestIndex_++);
-    guestNames_[participantId] = guestName;
-    return guestName;
+    // Get remote audio levels and update participants
+    const auto remote_levels = meetingSession_->remoteAudioLevels();
+    std::unordered_map<QString, AudioLevelInfo> participantAudioMap;
+
+    for (const auto &entry : remote_levels) {
+        const QString trackSid = QString::fromStdString(entry.first);
+        const QString participantId = meetingSession_->getParticipantIdByTrackSid(trackSid);
+        if (!participantId.isEmpty()) {
+            auto &audioInfo = participantAudioMap[participantId];
+            audioInfo.level = std::max(audioInfo.level, entry.second.level);
+            audioInfo.speaking = audioInfo.speaking || entry.second.speaking;
+        }
+    }
+
+    // Update all participants' audio status
+    for (auto it = participants_.begin(); it != participants_.end(); ++it) {
+        const QString &participantId = it.key();
+        auto *participant = it.value();
+        if (!participant || participantId == localParticipantId_) {
+            continue;
+        }
+
+        const auto audioIt = participantAudioMap.find(participantId);
+        if (audioIt == participantAudioMap.end()) {
+            participant->setAudioStatus(0.0f, false);
+        } else {
+            participant->setAudioStatus(audioIt->second.level, audioIt->second.speaking);
+        }
+    }
 }
 
 void InMeeting::closeEvent(QCloseEvent *event)
@@ -369,60 +382,18 @@ void InMeeting::onTimer()
     }
 }
 
-void InMeeting::updateAudioStatusPanel()
+void InMeeting::updateButtonStates()
 {
+    // Update button texts based on MeetingSession state
     if (!meetingSession_) {
         return;
     }
 
-    const AudioLevelInfo local_level = meetingSession_->localAudioLevel();
-    const bool local_speaking = meetingSession_->isLocalAudioSpeaking();
-    const auto localIt = participants_.find(localParticipantId_);
-    if (localIt != participants_.end() && localIt.value()) {
-        localIt.value()->setAudioStatus(local_level.level, local_speaking);
-    }
+    const auto micState = meetingSession_->microphoneState();
+    const auto camState = meetingSession_->cameraState();
 
-    const auto remote_levels = meetingSession_->remoteAudioLevels();
-    struct ParticipantAudioSnapshot { float level = 0.0f; bool speaking = false; };
-    std::unordered_map<GLWidget *, ParticipantAudioSnapshot> participant_audio;
-
-    for (const auto &entry : remote_levels) {
-        const QString trackSid = QString::fromStdString(entry.first);
-        const auto ownerIt = audioTrackOwners_.find(trackSid);
-        if (ownerIt == audioTrackOwners_.end()) {
-            continue;
-        }
-
-        GLWidget *owner = ownerIt.value().data();
-        if (!owner) {
-            audioTrackOwners_.erase(ownerIt);
-            continue;
-        }
-
-        auto &snapshot = participant_audio[owner];
-        snapshot.level = std::max(snapshot.level, entry.second.level);
-        snapshot.speaking = snapshot.speaking || entry.second.speaking;
-    }
-
-    for (auto widgetIt = participants_.cbegin(); widgetIt != participants_.cend(); ++widgetIt) {
-        const QString &participantId = widgetIt.key();
-        auto *participant = widgetIt.value();
-        if (!participant || participantId == localParticipantId_) {
-            continue;
-        }
-
-        GLWidget *glWidget = participant->getGLWidget();
-        if (!glWidget) {
-            continue;
-        }
-
-        const auto it = participant_audio.find(glWidget);
-        if (it == participant_audio.end()) {
-            participant->setAudioStatus(0.0f, false);
-        } else {
-            participant->setAudioStatus(it->second.level, it->second.speaking);
-        }
-    }
+    ui->muteBtn->setText(micState == MeetingSessionMediaState::On ? "静音" : "解除静音");
+    ui->videoBtn->setText(camState == MeetingSessionMediaState::On ? "关闭视频" : "开启视频");
 }
 
 void InMeeting::updateVideoWidgets()
@@ -494,24 +465,4 @@ void InMeeting::updateVideoWidgets()
         }
     }
     cachedOrderedWidgets_.swap(orderedWidgets);
-}
-
-void InMeeting::initializeLocalParticipant()
-{
-    localParticipantId_ = meetingSession_->localParticipantId();
-    if (localParticipantId_.isEmpty()) {
-        return;
-    }
-
-    auto *participant = participants_.value(localParticipantId_, nullptr);
-    if (!participant) {
-        participant = new Participant(this);
-        participants_[localParticipantId_] = participant;
-    }
-
-    const QString displayName = meetingSession_->context().displayName.trimmed().isEmpty()
-        ? QStringLiteral("Me")
-        : meetingSession_->context().displayName.trimmed();
-    participant->setParticipantName(displayName);
-    participant->setVideoTrackSid(meetingSession_->localVideoTrackSid());
 }

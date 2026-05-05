@@ -55,22 +55,14 @@ private:
     void onTimer();
     void updateVideoWidgets();
     void updateAudioStatusPanel();
-    QString resolveDisplayName(const QString &participantId, const QString &participantName);
-    void initializeLocalParticipant();
+    void updateButtonStates();  // Reflect session state to UI buttons
+    void onSessionStateChanged();
 
     Ui::InMeeting *ui;
     std::unique_ptr<MeetingSession> meetingSession_;
-    // every participantId handle a Participant container
-    // participantId -> Participant
+    // UI participants list: participantId -> Participant widget
     QHash<QString, Participant*> participants_;
     QString localParticipantId_;
-    
-    // audio track sid -> owner GLWidget
-    QHash<QString, QPointer<GLWidget>> audioTrackOwners_;
-
-    // participantId -> generated Guest name when upstream name is empty
-    QHash<QString, QString> guestNames_;
-    int nextGuestIndex_ = 1;
 
     // 性能优化缓存
     std::vector<GLWidget*> cachedOrderedWidgets_;
