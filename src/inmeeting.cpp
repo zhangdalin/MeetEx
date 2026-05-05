@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <QtGlobal>
 #include <QtMath>
+#include <QListWidget>
+#include <QVBoxLayout>
 #include <QTimer>
 
 extern std::unique_ptr<QWidget> home;
@@ -66,7 +68,14 @@ InMeeting::InMeeting(const MeetingSessionCtx &context, QWidget *parent)
     if (meetingSession_->start()) {
         localParticipantId_ = meetingSession_->localParticipantId();
         auto *participant = new Participant(this);
-        participant->setParticipantName(context.displayName.trimmed().isEmpty() ? "Me" : context.displayName);
+        QString localDisplayName = meetingSession_->localParticipantName().trimmed();
+        if (localDisplayName.isEmpty()) {
+            localDisplayName = context.displayName.trimmed();
+        }
+        if (localDisplayName.isEmpty()) {
+            localDisplayName = localParticipantId_;
+        }
+        participant->setParticipantName(formatMemberDisplayName(localParticipantId_, localDisplayName));
         participants_[localParticipantId_] = participant;
 
         // If camera was auto-started during session start, set the video track to local participant
@@ -79,6 +88,8 @@ InMeeting::InMeeting(const MeetingSessionCtx &context, QWidget *parent)
     }
 
     ui->tabWidget->setVisible(false);
+    ensureMemberListWidget();
+    updateMemberList();
     updateButtonStates();
     updateVideoWidgets();
 }
@@ -138,6 +149,8 @@ void InMeeting::sendMsg()
 void InMeeting::toggleMember()
 {
     qInfo() << __FUNCTION__;
+    ensureMemberListWidget();
+    updateMemberList();
     toggleSideTab(0);
 }
 
@@ -171,6 +184,7 @@ void InMeeting::onParticipantJoined(const QString &participantId, const QString 
 
     ensureParticipantWidget(participantId, participantName);
 
+    updateMemberList();
     refreshParticipantViews();
 }
 
@@ -192,6 +206,7 @@ void InMeeting::onParticipantLeft(const QString &participantId, const QString &p
         participants_.erase(it);
     }
 
+    updateMemberList();
     refreshParticipantViews();
 }
 
@@ -241,6 +256,23 @@ void InMeeting::onTrackUnsubscribed(const QString &trackSid, const QString &trac
         participant->setAudioStatus(0.0f, false);
     }
 
+    const bool hasAudioTrack = !participant->audioTrackSid().isEmpty();
+    const bool hasVideoTrack = !participant->videoTrackSid().isEmpty();
+    if (participantId != localParticipantId_ && !hasAudioTrack && !hasVideoTrack) {
+        meetingSession_->clearParticipantData(participantId);
+
+        auto it = participants_.find(participantId);
+        if (it != participants_.end()) {
+            Participant *participantToRemove = it.value();
+            if (participantToRemove) {
+                participantToRemove->deleteLater();
+            }
+            participants_.erase(it);
+        }
+
+        updateMemberList();
+    }
+
     refreshParticipantViews();
 }
 
@@ -263,6 +295,80 @@ void InMeeting::toggleSideTab(int tabIndex)
     }
 }
 
+QString InMeeting::formatMemberDisplayName(const QString &participantId, const QString &baseName) const
+{
+    const QString trimmedName = baseName.trimmed();
+    if (participantId == localParticipantId_) {
+        if (trimmedName.endsWith(QStringLiteral("(我)"))) {
+            return trimmedName;
+        }
+        return QStringLiteral("%1 (我)").arg(trimmedName);
+    }
+    return trimmedName;
+}
+
+void InMeeting::ensureMemberListWidget()
+{
+    if (memberListWidget_) {
+        return;
+    }
+
+    if (!ui->memberTab) {
+        return;
+    }
+
+    auto *layout = qobject_cast<QVBoxLayout *>(ui->memberTab->layout());
+    if (!layout) {
+        layout = new QVBoxLayout(ui->memberTab);
+        layout->setContentsMargins(8, 8, 8, 8);
+        layout->setSpacing(6);
+    }
+
+    auto *listWidget = new QListWidget(ui->memberTab);
+    listWidget->setObjectName(QStringLiteral("memberListWidget"));
+    layout->addWidget(listWidget);
+    memberListWidget_ = listWidget;
+}
+
+void InMeeting::updateMemberList()
+{
+    ensureMemberListWidget();
+    if (!memberListWidget_) {
+        return;
+    }
+
+    memberListWidget_->clear();
+
+    QStringList participantIds;
+    participantIds.reserve(participants_.size());
+
+    if (!localParticipantId_.isEmpty() && participants_.contains(localParticipantId_)) {
+        participantIds << localParticipantId_;
+    }
+
+    QStringList remoteIds;
+    for (auto it = participants_.cbegin(); it != participants_.cend(); ++it) {
+        if (it.key() != localParticipantId_) {
+            remoteIds << it.key();
+        }
+    }
+    std::sort(remoteIds.begin(), remoteIds.end());
+    participantIds.append(remoteIds);
+
+    for (const QString &participantId : participantIds) {
+        Participant *participant = participantById(participantId);
+        if (!participant) {
+            continue;
+        }
+
+        QString displayName = participant->participantName().trimmed();
+        if (displayName.isEmpty()) {
+            displayName = meetingSession_->getParticipantDisplayName(participantId, QString());
+        }
+        memberListWidget_->addItem(formatMemberDisplayName(participantId, displayName));
+    }
+}
+
 Participant *InMeeting::participantById(const QString &participantId) const
 {
     const auto it = participants_.find(participantId);
@@ -273,12 +379,16 @@ Participant *InMeeting::ensureParticipantWidget(const QString &participantId,
     const QString &participantNameHint)
 {
     if (Participant *existing = participantById(participantId)) {
+        const QString displayName = meetingSession_->getParticipantDisplayName(participantId, participantNameHint);
+        if (!displayName.trimmed().isEmpty()) {
+            existing->setParticipantName(formatMemberDisplayName(participantId, displayName));
+        }
         return existing;
     }
 
     const QString displayName = meetingSession_->getParticipantDisplayName(participantId, participantNameHint);
     auto *participant = new Participant(this);
-    participant->setParticipantName(displayName);
+    participant->setParticipantName(formatMemberDisplayName(participantId, displayName));
     participants_[participantId] = participant;
     return participant;
 }

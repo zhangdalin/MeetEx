@@ -14,6 +14,7 @@ struct MeetingSessionCtx;
 class MeetingSession;
 class Participant;
 class GLWidget;
+class QListWidget;
 
 namespace Ui {
 class InMeeting;
@@ -60,6 +61,9 @@ private:
     void updateButtonStates();  // Reflect session state to UI buttons
     void refreshParticipantViews();
     void toggleSideTab(int tabIndex);
+    QString formatMemberDisplayName(const QString &participantId, const QString &baseName) const;
+    void ensureMemberListWidget();
+    void updateMemberList();
     Participant *participantById(const QString &participantId) const;
     Participant *ensureParticipantWidget(const QString &participantId,
         const QString &participantNameHint = QString());
@@ -72,6 +76,7 @@ private:
     // UI participants list: participantId -> Participant widget
     QHash<QString, Participant*> participants_;
     QString localParticipantId_;
+    QPointer<QListWidget> memberListWidget_;
 
     // 性能优化缓存
     QVector<GLWidget*> cachedOrderedWidgets_;

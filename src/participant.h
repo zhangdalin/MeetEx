@@ -23,6 +23,7 @@ public:
     ~Participant();
 
     GLWidget* getGLWidget() const { return glWidget_; }
+    QString participantName() const { return participantName_; }
     void setParticipantName(const QString &name);
     void setAudioTrackSid(const QString &sid);
     void setVideoTrackSid(const QString &sid);

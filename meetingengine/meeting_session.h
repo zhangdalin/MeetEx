@@ -83,6 +83,7 @@ public:
     void stopVideo();
 
     QString localParticipantId() const;
+    QString localParticipantName() const;
     QString localVideoTrackSid() const;
 
     MeetingSessionRoomState roomState() const { return roomState_; }

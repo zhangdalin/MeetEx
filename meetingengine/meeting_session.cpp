@@ -230,6 +230,13 @@ QString MeetingSession::localParticipantId() const {
     return QString::fromStdString(localParticipant_->identity());
 }
 
+QString MeetingSession::localParticipantName() const {
+    if (!localParticipant_) {
+        return QString();
+    }
+    return QString::fromStdString(localParticipant_->name());
+}
+
 QString MeetingSession::localVideoTrackSid() const {
     return localVideoTrackSid_;
 }
@@ -274,6 +281,11 @@ QString MeetingSession::getParticipantDisplayName(const QString &participantId, 
     // Check if we already have a cached name for this participant
     const auto it = participantDisplayNames_.find(participantId);
     if (it != participantDisplayNames_.end()) {
+        // Prefer the latest non-empty participant name over generated Guest names.
+        if (!trimmedName.isEmpty() && it.value() != trimmedName) {
+            participantDisplayNames_[participantId] = trimmedName;
+            return trimmedName;
+        }
         return it.value();
     }
 
@@ -565,11 +577,19 @@ void MeetingSession::onParticipantConnected(livekit::Room &room, const livekit::
 
 void MeetingSession::onParticipantsUpdated(livekit::Room &room, const livekit::ParticipantsUpdatedEvent &ev) {
     Q_UNUSED(room);
+    const QString localId = localParticipantId();
     for (const auto &participant : ev.participants) {
         if (participant) {
+            const QString participantId = QString::fromStdString(participant->identity());
+            const QString participantName = QString::fromStdString(participant->name());
             qDebug() << __FUNCTION__ << "participant id="
-                << QString::fromStdString(participant->identity())
-                << "name=" << QString::fromStdString(participant->name());
+                << participantId
+                << "name=" << participantName;
+
+            if (!participantId.isEmpty() && participantId != localId) {
+                const QString resolvedName = getParticipantDisplayName(participantId, participantName);
+                emit sigParticipantJoined(participantId, resolvedName);
+            }
         }
     }
 }
