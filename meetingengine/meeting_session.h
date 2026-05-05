@@ -85,6 +85,9 @@ public:
     void mapTrackToParticipant(const QString &trackSid, const QString &participantId);
     void unmapTrack(const QString &trackSid);
 
+    // Cleanup participant data when participant leaves
+    void clearParticipantData(const QString &participantId);
+
 signals:
     void sigParticipantJoined(const QString &participantId, const QString &participantName);
     void sigParticipantLeft(const QString &participantId, const QString &participantName);

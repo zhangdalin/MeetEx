@@ -153,16 +153,21 @@ QString MeetingSession::getParticipantDisplayName(const QString &participantId, 
     const std::string pid = participantId.toStdString();
     const QString trimmedName = participantName.trimmed();
 
+    // Check if we already have a cached name for this participant
+    const auto it = participantDisplayNames_.find(pid);
+    if (it != participantDisplayNames_.end()) {
+        // Already cached - return cached value unless input name is not empty and cache was empty
+        // (means cache has either a real name or generated Guest name, keep it)
+        return QString::fromStdString(it->second);
+    }
+
+    // No cache yet - use provided name if available, otherwise generate Guest name
     if (!trimmedName.isEmpty()) {
         participantDisplayNames_[pid] = participantName.toStdString();
         return trimmedName;
     }
 
-    const auto it = participantDisplayNames_.find(pid);
-    if (it != participantDisplayNames_.end()) {
-        return QString::fromStdString(it->second);
-    }
-
+    // Generate a Guest name for this participant
     const QString guestName = QString("Guest%1").arg(nextGuestIndex_++);
     participantDisplayNames_[pid] = guestName.toStdString();
     return guestName;
@@ -185,6 +190,23 @@ void MeetingSession::mapTrackToParticipant(const QString &trackSid, const QStrin
 void MeetingSession::unmapTrack(const QString &trackSid)
 {
     trackToParticipantMap_.erase(trackSid.toStdString());
+}
+
+void MeetingSession::clearParticipantData(const QString &participantId)
+{
+    const std::string pid = participantId.toStdString();
+
+    // Remove participant display name from cache
+    participantDisplayNames_.erase(pid);
+
+    // Remove all track mappings for this participant
+    for (auto it = trackToParticipantMap_.begin(); it != trackToParticipantMap_.end();) {
+        if (it->second == pid) {
+            it = trackToParticipantMap_.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 void MeetingSession::bindEngineSignals() {

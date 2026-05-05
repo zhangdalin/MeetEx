@@ -177,14 +177,14 @@ void InMeeting::onParticipantJoined(const QString &participantId, const QString 
             << "id=" << participantId;
 
     auto it = participants_.find(participantId);
-    const QString displayName = meetingSession_->getParticipantDisplayName(participantId, participantName);
     if (it == participants_.end()) {
+        // New participant - create widget and cache display name
+        const QString displayName = meetingSession_->getParticipantDisplayName(participantId, participantName);
         auto *participant = new Participant(this);
         participant->setParticipantName(displayName);
         participants_[participantId] = participant;
-    } else if (it.value()) {
-        it.value()->setParticipantName(displayName);
     }
+    // If participant already exists, we don't need to do anything (tracks will be subscribed later)
 
     updateAudioStatusPanel();
     updateVideoWidgets();
@@ -195,6 +195,10 @@ void InMeeting::onParticipantLeft(const QString &participantId, const QString &p
             << "participant left, name=" << participantName
             << "id=" << participantId;
 
+    // Clean up participant data in meeting session (clears name cache and track mappings)
+    meetingSession_->clearParticipantData(participantId);
+
+    // Remove participant widget from UI
     auto it = participants_.find(participantId);
     if (it != participants_.end()) {
         Participant *participant = it.value();
@@ -225,11 +229,14 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
     GLWidget *glWidget = nullptr;
 
     if (it == participants_.end()) {
+        // Participant widget doesn't exist yet - create it
+        const QString displayName = meetingSession_->getParticipantDisplayName(participantId, QString());
         participant = new Participant(this);
-        participant->setParticipantName(meetingSession_->getParticipantDisplayName(participantId, QString()));
+        participant->setParticipantName(displayName);
         participants_[participantId] = participant;
         glWidget = participant->getGLWidget();
     } else {
+        // Participant widget exists - use it
         participant = it.value();
         glWidget = participant ? participant->getGLWidget() : nullptr;
     }
@@ -238,6 +245,7 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
         return;
     }
 
+    // Set the track SID on the GL widget based on track kind
     switch (static_cast<TrackKind>(trackKind)) {
     case TrackKind::AUDIO:
         glWidget->setAudioTrackSid(trackSid);
@@ -265,21 +273,34 @@ void InMeeting::onTrackUnsubscribed(const QString &trackSid, const QString &trac
     // Unmap track from participant in session
     meetingSession_->unmapTrack(trackSid);
 
+    // Get participant and clear the track from its GL widget
     auto participantIt = participants_.find(participantId);
-    Participant *participant = (participantIt != participants_.end()) ? participantIt.value() : nullptr;
+    if (participantIt == participants_.end()) {
+        return;  // Participant already removed
+    }
+
+    Participant *participant = participantIt.value();
     GLWidget *glWidget = participant ? participant->getGLWidget() : nullptr;
 
+    if (!glWidget) {
+        return;
+    }
+
+    // Clear the specific track from GL widget
     switch (static_cast<TrackKind>(trackKind)) {
     case TrackKind::AUDIO:
-        if (glWidget && glWidget->audioTrackSid() == trackSid) {
+        // Only clear if this is the audio track for this widget
+        if (glWidget->audioTrackSid() == trackSid) {
             glWidget->setAudioTrackSid(QString());
         }
+        // Reset audio status for participant
         if (participant) {
             participant->setAudioStatus(0.0f, false);
         }
         break;
     case TrackKind::VIDEO:
-        if (glWidget && glWidget->videoTrackSid() == trackSid) {
+        // Only clear if this is the video track for this widget
+        if (glWidget->videoTrackSid() == trackSid) {
             glWidget->setVideoTrackSid(QString());
         }
         break;
@@ -297,6 +318,7 @@ void InMeeting::updateAudioStatusPanel()
         return;
     }
 
+    // Update local participant audio status
     const AudioLevelInfo local_level = meetingSession_->localAudioLevel();
     const bool local_speaking = meetingSession_->isLocalAudioSpeaking();
     const auto localIt = participants_.find(localParticipantId_);
@@ -304,30 +326,35 @@ void InMeeting::updateAudioStatusPanel()
         localIt.value()->setAudioStatus(local_level.level, local_speaking);
     }
 
-    // Get remote audio levels and update participants
-    const auto remote_levels = meetingSession_->remoteAudioLevels();
+    // Build participant ID -> audio level map from remote audio levels
+    // This is more efficient than looking up participantId for each track
     std::unordered_map<QString, AudioLevelInfo> participantAudioMap;
+    const auto remote_levels = meetingSession_->remoteAudioLevels();
 
     for (const auto &entry : remote_levels) {
         const QString trackSid = QString::fromStdString(entry.first);
         const QString participantId = meetingSession_->getParticipantIdByTrackSid(trackSid);
+        
         if (!participantId.isEmpty()) {
             auto &audioInfo = participantAudioMap[participantId];
+            // Aggregate audio levels for participant (take max level, any speaking = speaking)
             audioInfo.level = std::max(audioInfo.level, entry.second.level);
             audioInfo.speaking = audioInfo.speaking || entry.second.speaking;
         }
     }
 
-    // Update all participants' audio status
+    // Update all remote participants' audio status
     for (auto it = participants_.begin(); it != participants_.end(); ++it) {
         const QString &participantId = it.key();
         auto *participant = it.value();
+        
         if (!participant || participantId == localParticipantId_) {
             continue;
         }
 
         const auto audioIt = participantAudioMap.find(participantId);
         if (audioIt == participantAudioMap.end()) {
+            // No audio for this participant
             participant->setAudioStatus(0.0f, false);
         } else {
             participant->setAudioStatus(audioIt->second.level, audioIt->second.speaking);
