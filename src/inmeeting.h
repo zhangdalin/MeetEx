@@ -1,12 +1,14 @@
 #ifndef INMEETING_H
 #define INMEETING_H
 
+#include "meeting_def.h"
+
 #include <QWidget>
 #include <QString>
 #include <QPointer>
 #include <QHash>
-#include <memory>
-#include <vector>
+#include <QScopedPointer>
+#include <QVector>
 
 struct MeetingSessionCtx;
 class MeetingSession;
@@ -56,16 +58,23 @@ private:
     void updateVideoWidgets();
     void updateAudioStatusPanel();
     void updateButtonStates();  // Reflect session state to UI buttons
-    void onSessionStateChanged();
+    void refreshParticipantViews();
+    void toggleSideTab(int tabIndex);
+    Participant *participantById(const QString &participantId) const;
+    Participant *ensureParticipantWidget(const QString &participantId,
+        const QString &participantNameHint = QString());
+    GLWidget *participantGlWidget(const QString &participantId) const;
+    void applyTrackToWidget(GLWidget *glWidget, TrackKind trackKind, const QString &trackSid) const;
+    void clearTrackFromWidget(GLWidget *glWidget, TrackKind trackKind, const QString &trackSid) const;
 
     Ui::InMeeting *ui;
-    std::unique_ptr<MeetingSession> meetingSession_;
+    QScopedPointer<MeetingSession> meetingSession_;
     // UI participants list: participantId -> Participant widget
     QHash<QString, Participant*> participants_;
     QString localParticipantId_;
 
     // 性能优化缓存
-    std::vector<GLWidget*> cachedOrderedWidgets_;
+    QVector<GLWidget*> cachedOrderedWidgets_;
     int audioUpdateCounter_ = 0;
 };
 

@@ -98,7 +98,7 @@ bool MediaEngine::startLocalAudio(livekit::LocalParticipant* participant, std::s
 }
 
 void MediaEngine::stopLocalAudio(livekit::LocalParticipant* participant, const std::string& sid) {
-    if (!sid.empty()) {
+    if (participant && !sid.empty()) {
         participant->unpublishTrack(sid);
     }
     media_mgr_->stopMic();
@@ -140,7 +140,7 @@ bool MediaEngine::startLocalVideo(livekit::LocalParticipant* participant, std::s
 }
 
 void MediaEngine::stopLocalVideo(livekit::LocalParticipant* participant, const std::string& sid) {
-    if (!sid.empty()) {
+    if (participant && !sid.empty()) {
         participant->unpublishTrack(sid);
     }
     media_mgr_->stopCamera();

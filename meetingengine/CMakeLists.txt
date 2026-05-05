@@ -1,11 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 add_library(meetingengine STATIC
-    meeting_engine.cpp
     meeting_session.cpp
-    meeting_room.cpp
-    local_user.cpp
-    remote_user.cpp
 )
 
 target_include_directories(meetingengine
