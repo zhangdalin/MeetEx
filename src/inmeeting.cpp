@@ -1,9 +1,8 @@
 #include "inmeeting.h"
 #include "ui_inmeeting.h"
-#include "meeting_engine.h"
-#include "meeting_room.h"
+#include "meeting_session.h"
 #include "meeting_def.h"
-#include "local_user.h"
+#include "remote_user.h"
 #include "participant.h"
 #include "glwidget.h"
 
@@ -32,19 +31,24 @@ static const char* trackKindToMediaTypeString(TrackKind track_kind) {
 }
 
 InMeeting::InMeeting(QWidget *parent)
+    : InMeeting(MeetingSessionCtx::developmentDefaults(), parent)
+{
+}
+
+InMeeting::InMeeting(const MeetingSessionCtx &context, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::InMeeting)
-    , meetingEngine_(std::make_unique<MeetingEngine>())
+    , meetingSession_(std::make_unique<MeetingSession>(context, this))
 {
     ui->setupUi(this);
 
-    connect(meetingEngine_->room(), &MeetingRoom::sigParticipantJoined,
+    connect(meetingSession_.get(), &MeetingSession::sigParticipantJoined,
             this, &InMeeting::onParticipantJoined);
-    connect(meetingEngine_->room(), &MeetingRoom::sigParticipantLeft,
+    connect(meetingSession_.get(), &MeetingSession::sigParticipantLeft,
             this, &InMeeting::onParticipantLeft);
-    connect(meetingEngine_->room(), &MeetingRoom::sigTrackSubscribed,
+    connect(meetingSession_.get(), &MeetingSession::sigTrackSubscribed,
             this, &InMeeting::onTrackSubscribed);
-    connect(meetingEngine_->room(), &MeetingRoom::sigTrackUnsubscribed,
+    connect(meetingSession_.get(), &MeetingSession::sigTrackUnsubscribed,
             this, &InMeeting::onTrackUnsubscribed);
 
     auto *timer = new QTimer(this);
@@ -52,26 +56,12 @@ InMeeting::InMeeting(QWidget *parent)
     connect(timer, &QTimer::timeout, this, &InMeeting::onTimer);
     timer->start();
 
-    meetingEngine_->joinMeeting();
-    auto localUser = meetingEngine_->room()->getLocalUser();
-    if (localUser) {
-        auto *participant = new Participant(this);
-        localParticipantId_ = QString::fromStdString(localUser->identity());
-        participant->setParticipantName("Me");
-        participants_[localParticipantId_] = participant;
+    if (meetingSession_->start()) {
+        initializeLocalParticipant();
     }
 
-    // default unmuted and video on
-    meetingEngine_->startAudio();
-    ui->muteBtn->setText("静音");
-
-    const auto localIt = participants_.find(localParticipantId_);
-    if (localIt != participants_.end() && localIt.value()) {
-        std::string localVideoSid;
-        meetingEngine_->startVideo(localVideoSid);
-        localIt.value()->setVideoTrackSid(QString::fromStdString(localVideoSid));
-    }
-    ui->videoBtn->setText("关闭视频");
+    ui->muteBtn->setText(meetingSession_->microphoneState() == MeetingSessionMediaState::On ? "静音" : "解除静音");
+    ui->videoBtn->setText(meetingSession_->cameraState() == MeetingSessionMediaState::On ? "关闭视频" : "开启视频");
 
     updateVideoWidgets();
 }
@@ -85,12 +75,13 @@ void InMeeting::toggleMute()
 {
     qInfo() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
-    if (button->text() == "静音") {
-        meetingEngine_->stopAudio();
+    if (meetingSession_->microphoneState() == MeetingSessionMediaState::On) {
+        meetingSession_->stopAudio();
         button->setText("解除静音");
     } else {
-        meetingEngine_->startAudio();
-        button->setText("静音");
+        if (meetingSession_->startAudio()) {
+            button->setText("静音");
+        }
     }
 }
 
@@ -104,13 +95,13 @@ void InMeeting::toggleVideo()
     if (!localGLWidget) {
         return;
     }
-    if (button->text() == "开启视频") {
-        std::string localVideoSid;
-        meetingEngine_->startVideo(localVideoSid);
-        localGLWidget->setVideoTrackSid(QString::fromStdString(localVideoSid));
-        button->setText("关闭视频");
+    if (meetingSession_->cameraState() != MeetingSessionMediaState::On) {
+        if (meetingSession_->startVideo()) {
+            localGLWidget->setVideoTrackSid(meetingSession_->localVideoTrackSid());
+            button->setText("关闭视频");
+        }
     } else {
-        meetingEngine_->stopVideo();
+        meetingSession_->stopVideo();
         localGLWidget->setVideoTrackSid(QString());
         button->setText("开启视频");
     }
@@ -138,7 +129,7 @@ void InMeeting::sendMsg()
 void InMeeting::showMember()
 {
     qInfo() << __FUNCTION__;
-    auto remote_users = meetingEngine_->room()->getRemoteUsers();
+    auto remote_users = meetingSession_->remoteUsers();
 }
 
 void InMeeting::inviteUser()
@@ -319,7 +310,7 @@ QString InMeeting::resolveDisplayName(const QString &participantId, const QStrin
 
 void InMeeting::closeEvent(QCloseEvent *event)
 {
-    meetingEngine_->endMeeting();
+    meetingSession_->shutdown();
     emit sigClosing();
     QWidget::closeEvent(event);
 }
@@ -365,18 +356,18 @@ void InMeeting::onTimer()
 
 void InMeeting::updateAudioStatusPanel()
 {
-    if (!meetingEngine_) {
+    if (!meetingSession_) {
         return;
     }
 
-    const AudioLevelInfo local_level = meetingEngine_->localAudioLevel();
-    const bool local_speaking = meetingEngine_->isLocalAudioSpeaking();
+    const AudioLevelInfo local_level = meetingSession_->localAudioLevel();
+    const bool local_speaking = meetingSession_->isLocalAudioSpeaking();
     const auto localIt = participants_.find(localParticipantId_);
     if (localIt != participants_.end() && localIt.value()) {
         localIt.value()->setAudioStatus(local_level.level, local_speaking);
     }
 
-    const auto remote_levels = meetingEngine_->remoteAudioLevels();
+    const auto remote_levels = meetingSession_->remoteAudioLevels();
     struct ParticipantAudioSnapshot { float level = 0.0f; bool speaking = false; };
     std::unordered_map<GLWidget *, ParticipantAudioSnapshot> participant_audio;
 
@@ -488,4 +479,24 @@ void InMeeting::updateVideoWidgets()
         }
     }
     cachedOrderedWidgets_.swap(orderedWidgets);
+}
+
+void InMeeting::initializeLocalParticipant()
+{
+    localParticipantId_ = meetingSession_->localParticipantId();
+    if (localParticipantId_.isEmpty()) {
+        return;
+    }
+
+    auto *participant = participants_.value(localParticipantId_, nullptr);
+    if (!participant) {
+        participant = new Participant(this);
+        participants_[localParticipantId_] = participant;
+    }
+
+    const QString displayName = meetingSession_->context().displayName.trimmed().isEmpty()
+        ? QStringLiteral("Me")
+        : meetingSession_->context().displayName.trimmed();
+    participant->setParticipantName(displayName);
+    participant->setVideoTrackSid(meetingSession_->localVideoTrackSid());
 }

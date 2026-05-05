@@ -28,6 +28,9 @@ public:
     explicit MeetingRoom();
     ~MeetingRoom();
 
+    void setConnectionInfo(const std::string &url, const std::string &token,
+        const std::string &e2eeKey = std::string());
+
     void setRoomOptions(bool auto_subscribe = true, bool dynacast = false, 
         bool e2ee = false, bool single_peer_connection = false);
 

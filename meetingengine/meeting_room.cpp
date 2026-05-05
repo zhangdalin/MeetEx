@@ -9,6 +9,21 @@
 
 namespace {
 
+QString redactTokenForLog(const std::string &token) {
+    if (token.empty()) {
+        return QString();
+    }
+
+    constexpr int kVisiblePrefix = 6;
+    constexpr int kVisibleSuffix = 4;
+    const QString value = QString::fromStdString(token);
+    if (value.size() <= (kVisiblePrefix + kVisibleSuffix)) {
+        return QStringLiteral("<redacted>");
+    }
+
+    return value.left(kVisiblePrefix) + QStringLiteral("...") + value.right(kVisibleSuffix);
+}
+
 const char* disconnectReasonToString(livekit::DisconnectReason reason) {
     switch (reason) {
         case livekit::DisconnectReason::Unknown: return "Unknown";
@@ -71,6 +86,13 @@ MeetingRoom::~MeetingRoom() {
     }
 }
 
+void MeetingRoom::setConnectionInfo(const std::string &url, const std::string &token,
+    const std::string &e2eeKey) {
+    url_ = url;
+    token_ = token;
+    e2ee_key_ = e2eeKey;
+}
+
 void MeetingRoom::setRoomOptions(bool auto_subscribe, bool dynacast, bool e2ee, bool single_peer_connection) {
     options_.auto_subscribe = auto_subscribe;
     options_.dynacast = dynacast;
@@ -94,7 +116,7 @@ void MeetingRoom::setRoomOptions(bool auto_subscribe, bool dynacast, bool e2ee, 
     }
 
     qInfo() << __FUNCTION__ << "set room option with Url:" << QString::fromStdString(url_) << "\n"
-        << "Token:" << QString::fromStdString(token_) << "\n"
+        << "Token:" << redactTokenForLog(token_) << "\n"
         << "Auto Subscribe:" << (auto_subscribe ? "enabled" : "disabled") << "\n"
         << "Dynacast:" << (dynacast ? "enabled" : "disabled") << "\n"
         << "Single Peer Connection:" << (single_peer_connection ? "enabled" : "disabled") << "\n"

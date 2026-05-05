@@ -9,6 +9,12 @@
 - 凭据、会议创建和录制控制应先接入后端服务，再进入产品化阶段。
 - 用小型控制器和服务边界承接业务逻辑，避免大规模重写。
 
+## 当前状态
+
+- 阶段 0 已完成，项目结构和范围文档已建立。
+- 阶段 1 已开始，`MeetingSession` 已落入 `meetingengine`，会中页已改为通过会话层驱动会议。
+- 阶段 1 仍未完成，动态会议创建、加入参数采集、目录服务和后端联调尚未接通。
+
 ## 阶段 0: 文档和基线整理
 
 目标: 让项目现状、结构和下一步范围清晰可读。
@@ -29,9 +35,21 @@
 
 目标: 将固定开发房间改为动态会议创建和加入。
 
-实施计划见 `docs/superpowers/plans/2026-05-05-real-meeting-entry.md`。
+当前已完成的首批客户端收敛工作:
 
-阶段 1 的首批客户端链路已落地，包括入会请求模型、开发环境目录服务、后端 HTTP 目录服务边界、会话上下文和会话控制器；后端真实服务联调、多人验收和后续协作能力仍按阶段推进。
+- `MeetingSessionCtx` 和 `MeetingSessionJoinOptions` 已落地。
+- `MeetingSession` 已作为单场会议会话控制器接管 `MeetingEngine`。
+- `InMeeting` 已不再直接持有 `MeetingEngine`。
+- `MeetingRoom` 已支持从外部注入 LiveKit URL 和 token。
+- 连接日志已开始执行 token 脱敏。
+
+本阶段仍待完成:
+
+- `JoinMeeting` 收集会议号、显示名和入会选项，并显式构造 `MeetingSessionCtx`。
+- `Home::onQuickMeeting()` 不再直接打开默认会中页，而是先完成快速会议目录查询。
+- 引入 `MeetingService`，屏蔽开发默认值和后端 HTTP 实现差异。
+- 加入失败和 token 失败的用户提示。
+- 去掉产品构建对固定 LiveKit token 的依赖。
 
 交付:
 

@@ -8,7 +8,8 @@
 #include <memory>
 #include <vector>
 
-class MeetingEngine;
+struct MeetingSessionCtx;
+class MeetingSession;
 class Participant;
 class GLWidget;
 
@@ -22,6 +23,7 @@ class InMeeting : public QWidget
 
 public:
     explicit InMeeting(QWidget *parent = nullptr);
+    explicit InMeeting(const MeetingSessionCtx &context, QWidget *parent = nullptr);
     ~InMeeting();
 
 signals:
@@ -54,9 +56,10 @@ private:
     void updateVideoWidgets();
     void updateAudioStatusPanel();
     QString resolveDisplayName(const QString &participantId, const QString &participantName);
+    void initializeLocalParticipant();
 
     Ui::InMeeting *ui;
-    std::unique_ptr<MeetingEngine> meetingEngine_;
+    std::unique_ptr<MeetingSession> meetingSession_;
     // every participantId handle a Participant container
     // participantId -> Participant
     QHash<QString, Participant*> participants_;

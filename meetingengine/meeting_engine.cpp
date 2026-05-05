@@ -10,6 +10,11 @@ MeetingEngine::MeetingEngine()
     MediaEngine::instance().init();
 };
 
+void MeetingEngine::configureConnection(const std::string &url, const std::string &token,
+    const std::string &e2eeKey) {
+    room_->setConnectionInfo(url, token, e2eeKey);
+}
+
 MeetingEngine::~MeetingEngine() {
     MediaEngine::instance().fini();
     room_.reset();
@@ -102,4 +107,8 @@ bool MeetingEngine::isRemoteAudioSpeaking(const std::string &trackSid) const {
 
 std::unordered_map<std::string, AudioLevelInfo> MeetingEngine::remoteAudioLevels() const {
     return MediaEngine::instance().remoteAudioLevels();
+}
+
+std::vector<std::shared_ptr<RemoteUser>> MeetingEngine::remoteUsers() const {
+    return room_->getRemoteUsers();
 }

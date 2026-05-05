@@ -7,16 +7,20 @@
 MeetEx 应在现有可运行 LiveKit 客户端基础上继续演进，不建议推倒重写。推荐保留当前三层结构:
 
 - `src/` 和 `ui/`: Qt Widgets 界面层。
-- `meetingengine/`: 会议房间、参会者和 LiveKit 事件桥接。
+- `meetingengine/`: 会议会话、会议房间、参会者和 LiveKit 事件桥接。
 - `mediaengine/`: 设备采集、播放、渲染、音量分析和媒体 worker。
 
-下一阶段应在 UI 和引擎之间增加轻量控制器/服务边界，让登录、入会、聊天、录制、屏幕共享、设置等功能有明确职责，避免继续把产品逻辑堆到窗口类里。
+当前代码已经在 UI 和引擎之间补上了第一层轻量边界，即 `MeetingSession`。下一阶段应继续把入会目录服务、聊天、录制、屏幕共享、设置等功能从窗口类里抽离出来，避免重新把产品逻辑堆回 UI。
 
 ## 当前架构
 
 ```text
 Qt Widgets UI
   Login, Home, JoinMeeting, InMeeting, Settings, Profile
+        |
+        v
+MeetingSession
+  保存会话上下文，驱动入会/离会和本地媒体状态
         |
         v
 MeetingEngine
@@ -36,7 +40,18 @@ MediaMgr
   播放/渲染线程、音量分析
 ```
 
-这条主链路已经适合继续扩展。主要问题是 UI 类承担了过多流程状态，并且若干产品功能缺少模型或服务边界。
+这条主链路已经适合继续扩展。当前主要问题不再是完全缺少会话层，而是会话层只完成了最小实现，`JoinMeeting`、`Home` 和 `InMeeting` 之间仍有若干流程与状态留在 UI 里。
+
+## 当前实现状态
+
+截至当前代码基线:
+
+- `meetingengine/meeting_session.*` 已提供 `MeetingSession`、`MeetingSessionCtx` 和基础入会选项。
+- `InMeeting` 已改为持有 `MeetingSession`，不再直接持有 `MeetingEngine`。
+- `MeetingSession` 已接管房间连接、离开会议、麦克风/摄像头开关、本地/远端音量查询，以及 `MeetingRoom` 事件转发。
+- `MeetingRoom` 已支持从外部注入 LiveKit URL 和 token，日志中 token 采用脱敏输出。
+- `JoinMeeting` 和 `Home` 仍未真实构造 `MeetingSessionCtx`，当前默认仍通过开发环境固定 URL 和 token 进入会议。
+- `Participant` 状态仍主要由 `InMeeting` 直接组织，尚未抽成独立的参会者模型。
 
 ## 推荐模块边界
 
@@ -52,35 +67,47 @@ UI 层只负责展示状态、收集输入和组织控件:
 - `Participant`: 展示单个参会者视频、头像、名称和音量状态。
 - `Settings`: 编辑本地偏好。
 
-窗口类不应直接处理后端 token、会议创建或复杂 LiveKit 状态机，应调用控制器或服务并响应结果信号。
+当前实现里，`InMeeting` 已改为调用 `MeetingSession` 并响应其信号；但 `Home` 和 `JoinMeeting` 还没有把真实入会参数传进会话层，这部分仍需补齐。
 
 ### 应用服务
 
 实现功能时建议新增以下轻量服务:
 
 - `AuthService`: 登录、退出、恢复会话、获取用户资料。
-- `MeetingDirectoryService`: 快速会议、加入会议校验、预定会议、会议详情和邀请文本。
+- `MeetingService`: 快速会议、加入会议校验、预定会议、会议详情和邀请文本。
 - `SettingsStore`: 本地设备偏好和入会默认选项持久化。
 - `RecordingService`: 通过后端开始/停止录制，并观察录制状态。
 
 这些服务可以先做成普通 C++/Qt 类，不需要引入大型框架。
 
-### 会议会话控制器
+### 会议会话
 
-`MeetingSessionController` 作为单场会议的所有者。职责包括:
+`MeetingSession` 作为单场会议的所有者。职责包括:
 
-- 保存 `MeetingSessionContext` 中的房间 URL、token、会议号、显示名称和入会选项。
+- 保存 `MeetingSessionCtx` 中的房间 URL、token、会议号、显示名称和入会选项。
 - 通过引擎客户端适配器持有并驱动 `MeetingEngine`。
 - 将 UI 命令转换为会议和媒体操作。
 - 通过 Qt 信号向 `InMeeting` 暴露会议状态。
 - 在会议窗口关闭时统一清理媒体和房间资源。
 
-这样 `InMeeting` 可以专注于显示和交互，不必成为所有会议业务逻辑的容器。
+当前已落地的 `MeetingSession` 已覆盖以下职责:
+
+- 保存 `MeetingSessionCtx` 中的房间 URL、token、会议号、显示名称和入会选项。
+- 持有 `MeetingEngine` 并驱动 `start()`、`shutdown()`、`startAudio()`、`stopAudio()`、`startVideo()`、`stopVideo()`。
+- 暴露 `roomState`、`microphoneState`、`cameraState` 和会话错误信号。
+- 转发参会者加入离开、轨道订阅和退订事件给 UI。
+
+仍待补齐的职责:
+
+- 根据目录服务或后端返回结果构造 `MeetingSessionCtx`，而不是使用开发默认值。
+- 把录制、屏幕共享和聊天等会中能力继续并入会话或其子控制器。
+- 输出稳定的参会者视图模型，减少 `InMeeting` 直接维护 `Participant` 和轨道 SID 的负担。
 
 ### meetingengine
 
 `meetingengine` 保持为 LiveKit 房间层:
 
+- `MeetingSession`: 单场会议会话边界，负责会话上下文、本地媒体状态和 UI 事件入口。
 - 连接和断开房间。
 - 将 LiveKit 回调桥接为 Qt 信号。
 - 发布和取消发布本地媒体轨道。
@@ -113,7 +140,7 @@ UI 层只负责展示状态、收集输入和组织控件:
 
 ### 加入会议与快速会议
 
-加入流程生成 `MeetingJoinRequest`:
+目标加入流程生成 `MeetingJoin`:
 
 ```text
 meetingNumber
@@ -124,7 +151,7 @@ startMicrophone
 source = join | quick | scheduled | share-screen
 ```
 
-请求交给 `MeetingDirectoryService`，成功后返回:
+请求交给 `MeetingService`，成功后返回:
 
 ```text
 meetingId
@@ -136,13 +163,19 @@ displayName
 permissions
 ```
 
-只有拿到该结果后才打开会中页。会中页创建会议会话控制器，并将返回结果和入会选项传入。
+只有拿到该结果后才打开会中页。会中页创建 `MeetingSession`，并将返回结果和入会选项传入。
 
-阶段 1 的客户端实现通过 `MeetingDirectoryService` 屏蔽会议来源。开发环境使用 `DevelopmentMeetingDirectoryService`，由工厂读取 `MEETEX_LIVEKIT_URL`、`MEETEX_LIVEKIT_TOKEN` 和 `MEETEX_DEFAULT_ROOM` 生成入会结果；接入后端时使用 `HttpMeetingDirectoryService` 调用 `/api/meetings/join` 和 `/api/meetings/quick` 获取 LiveKit URL 与 token。成功后，`MeetingSessionContext` 会把目录服务返回结果和入会选项一并传入 `InMeeting` / `MeetingSessionController`，会中页面只消费会话上下文和控制器信号，不直接拼接 token 或决定会议来源。
+当前代码与目标状态之间还有一段距离:
+
+- `Home::onQuickMeeting()` 仍直接打开 `InMeeting`。
+- `JoinMeeting::onJoinMeeting()` 仍未收集真实会议号和显示名，也未请求后端。
+- `InMeeting` 默认通过 `MeetingSessionCtx::developmentDefaults()` 创建会话。
+
+因此，下一步应先把 `JoinMeeting` 和 `Home` 改为显式构造 `MeetingSessionCtx`，再引入目录服务接口。
 
 ### 会中媒体状态
 
-会议会话控制器维护本地媒体状态:
+目标状态机如下:
 
 ```text
 roomState: disconnected | connecting | connected | reconnecting | disconnecting
@@ -152,11 +185,19 @@ screenShareState: off | starting | on | stopping | failed
 recordingState: idle | starting | active | stopping | failed
 ```
 
-按钮文本和可用性应由状态驱动。点击按钮只请求状态迁移，不能直接把按钮文本当作状态源。
+当前代码已经落地的状态只有:
+
+```text
+roomState: disconnected | connecting | connected | reconnecting | disconnecting
+microphoneState: off | starting | on | stopping | failed
+cameraState: off | starting | on | stopping | failed
+```
+
+`MeetingSession` 已持有这些状态，但 `InMeeting` 的按钮文本仍在本地更新，没有完全改造成纯状态驱动。录制和屏幕共享状态尚未进入 `MeetingSession`。
 
 ### 参会者模型
 
-每个参会者维护一个模型:
+目标上，每个参会者维护一个模型:
 
 ```text
 identity
@@ -172,7 +213,7 @@ audioLevel
 connectionQuality
 ```
 
-`MeetingRoom` 已经能发出大部分原始事件。会议会话控制器负责合并这些事件，然后向 `InMeeting` 输出稳定的参会者状态。
+`MeetingRoom` 已经能发出大部分原始事件。当前代码中，`MeetingSession` 只负责转发事件，`InMeeting` 仍直接维护 `participants_`、`audioTrackOwners_` 和来宾名生成逻辑。下一步应把这些状态收敛到独立参会者模型，再由 `InMeeting` 只做渲染。
 
 ### 聊天
 
