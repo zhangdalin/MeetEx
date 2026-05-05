@@ -129,7 +129,13 @@ void InMeeting::sendMsg()
 void InMeeting::showMember()
 {
     qInfo() << __FUNCTION__;
-    auto remote_users = meetingSession_->remoteUsers();
+    if (ui->tabWidget) {
+        const bool visible = ui->tabWidget->isVisible() && ui->tabWidget->currentIndex() == 0;
+        ui->tabWidget->setVisible(!visible);
+        if (!visible) {
+            ui->tabWidget->setCurrentIndex(0);
+        }
+    }
 }
 
 void InMeeting::inviteUser()
@@ -140,6 +146,13 @@ void InMeeting::inviteUser()
 void InMeeting::openChat()
 {
     qInfo() << __FUNCTION__;
+    if (ui->tabWidget) {
+        const bool visible = ui->tabWidget->isVisible() && ui->tabWidget->currentIndex() == 1;
+        ui->tabWidget->setVisible(!visible);
+        if (!visible) {
+            ui->tabWidget->setCurrentIndex(1);
+        }
+    }
 }
 
 void InMeeting::openApps()
@@ -330,8 +343,9 @@ void InMeeting::resizeEvent(QResizeEvent *event)
     const int toolbarY = std::max(topMargin, height() - bottomMargin - toolbarHeight);
     const int gridHeight = std::max(0, toolbarY - gap - topMargin);
 
-    if (ui->gridLayoutWidget) {
-        ui->gridLayoutWidget->setGeometry(leftMargin, topMargin, contentWidth, gridHeight);
+    // 通过 tabWidget 的父 widget（无名内容容器）定位整个内容区域
+    if (ui->tabWidget && ui->tabWidget->parentWidget()) {
+        ui->tabWidget->parentWidget()->setGeometry(leftMargin, topMargin, contentWidth, gridHeight);
     }
 
     if (ui->layoutWidget) {
@@ -415,7 +429,7 @@ void InMeeting::updateVideoWidgets()
     qInfo() << __FUNCTION__;
 
     // 先从 layout 移除（不 delete 控件，控件仍由父对象管理）
-    while (QLayoutItem *item = ui->gridLayout->takeAt(0)) {
+    while (QLayoutItem *item = ui->userGridLayout->takeAt(0)) {
         delete item;
     }
 
@@ -449,22 +463,22 @@ void InMeeting::updateVideoWidgets()
     const int rows = (n + cols - 1) / cols;
 
     // 清除旧的拉伸因子，防止布局缩小时遗留残值
-    for (int c = 0; c < ui->gridLayout->columnCount(); ++c) {
-        ui->gridLayout->setColumnStretch(c, 0);
+    for (int c = 0; c < ui->userGridLayout->columnCount(); ++c) {
+        ui->userGridLayout->setColumnStretch(c, 0);
     }
-    for (int r = 0; r < ui->gridLayout->rowCount(); ++r) {
-        ui->gridLayout->setRowStretch(r, 0);
+    for (int r = 0; r < ui->userGridLayout->rowCount(); ++r) {
+        ui->userGridLayout->setRowStretch(r, 0);
     }
 
     for (int i = 0; i < n; ++i) {
-        ui->gridLayout->addWidget(orderedParticipants[i], i / cols, i % cols);
+        ui->userGridLayout->addWidget(orderedParticipants[i], i / cols, i % cols);
     }
 
     for (int c = 0; c < cols; ++c) {
-        ui->gridLayout->setColumnStretch(c, 1);
+        ui->userGridLayout->setColumnStretch(c, 1);
     }
     for (int r = 0; r < rows; ++r) {
-        ui->gridLayout->setRowStretch(r, 1);
+        ui->userGridLayout->setRowStretch(r, 1);
     }
 
     // 缓存有序 GLWidget 指针供 onTimer 使用

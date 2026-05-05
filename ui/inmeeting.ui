@@ -17,12 +17,12 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>600</y>
+     <y>610</y>
      <width>981</width>
-     <height>32</height>
+     <height>31</height>
     </rect>
    </property>
-   <layout class="QHBoxLayout" name="horizontalLayout">
+   <layout class="QHBoxLayout" name="menuLayout">
     <item>
      <widget class="QLineEdit" name="msgEdit">
       <property name="maximumSize">
@@ -209,16 +209,34 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="gridLayoutWidget">
+  <widget class="QWidget" name="">
    <property name="geometry">
     <rect>
      <x>20</x>
      <y>20</y>
      <width>981</width>
-     <height>571</height>
+     <height>581</height>
     </rect>
    </property>
-   <layout class="QGridLayout" name="gridLayout"/>
+   <layout class="QHBoxLayout" name="mainLayout" stretch="8,2">
+    <item>
+     <layout class="QGridLayout" name="userGridLayout"/>
+    </item>
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <widget class="QWidget" name="memberTab">
+       <attribute name="title">
+        <string>Tab 1</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="chartTab">
+       <attribute name="title">
+        <string>Tab 2</string>
+       </attribute>
+      </widget>
+     </widget>
+    </item>
+   </layout>
   </widget>
  </widget>
  <resources/>
