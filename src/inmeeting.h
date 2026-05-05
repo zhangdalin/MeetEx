@@ -35,9 +35,9 @@ public slots:
     void toggleRecord();
     void startShare();
     void sendMsg();
-    void showMember();
+    void toggleMember();
     void inviteUser();
-    void openChat();
+    void toggleChat();
     void openApps();
     void endMeeting();
     void onParticipantJoined(const QString &participantId, const QString &participantName);

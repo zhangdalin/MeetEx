@@ -209,7 +209,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>20</x>
@@ -224,14 +224,17 @@
     </item>
     <item>
      <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>0</number>
+      </property>
       <widget class="QWidget" name="memberTab">
        <attribute name="title">
-        <string>Tab 1</string>
+        <string>成员</string>
        </attribute>
       </widget>
       <widget class="QWidget" name="chartTab">
        <attribute name="title">
-        <string>Tab 2</string>
+        <string>聊天</string>
        </attribute>
       </widget>
      </widget>
@@ -325,7 +328,7 @@
    <sender>memberBtn</sender>
    <signal>clicked()</signal>
    <receiver>InMeeting</receiver>
-   <slot>showMember()</slot>
+   <slot>toggleMember()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>614</x>
@@ -341,7 +344,7 @@
    <sender>chatBtn</sender>
    <signal>clicked()</signal>
    <receiver>InMeeting</receiver>
-   <slot>openChat()</slot>
+   <slot>toggleChat()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>696</x>
@@ -408,8 +411,8 @@
   <slot>toggleVideo()</slot>
   <slot>startShare()</slot>
   <slot>inviteUser()</slot>
-  <slot>showMember()</slot>
-  <slot>openChat()</slot>
+  <slot>toggleMember()</slot>
+  <slot>toggleChat()</slot>
   <slot>toggleRecord()</slot>
   <slot>openApps()</slot>
   <slot>endMeeting()</slot>

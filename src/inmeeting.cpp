@@ -60,6 +60,7 @@ InMeeting::InMeeting(const MeetingSessionCtx &context, QWidget *parent)
         initializeLocalParticipant();
     }
 
+    ui->tabWidget->setVisible(false);
     ui->muteBtn->setText(meetingSession_->microphoneState() == MeetingSessionMediaState::On ? "静音" : "解除静音");
     ui->videoBtn->setText(meetingSession_->cameraState() == MeetingSessionMediaState::On ? "关闭视频" : "开启视频");
 
@@ -126,7 +127,7 @@ void InMeeting::sendMsg()
     qInfo() << __FUNCTION__;
 }
 
-void InMeeting::showMember()
+void InMeeting::toggleMember()
 {
     qInfo() << __FUNCTION__;
     if (ui->tabWidget) {
@@ -143,7 +144,7 @@ void InMeeting::inviteUser()
     qInfo() << __FUNCTION__;
 }
 
-void InMeeting::openChat()
+void InMeeting::toggleChat()
 {
     qInfo() << __FUNCTION__;
     if (ui->tabWidget) {
