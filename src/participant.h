@@ -5,10 +5,6 @@
 #include <QString>
 #include <QPointer>
 
-namespace Ui {
-class Participant;
-}
-
 class GLWidget;
 class QLabel;
 class QProgressBar;
@@ -35,6 +31,7 @@ protected:
     void resizeEvent(QResizeEvent *event) override;
 
 private:
+    void setupUi();
     void setupAudioOverlay();
     void updateSpeakingStyle(bool speaking);
 
@@ -43,7 +40,6 @@ private:
     static constexpr int kBorderWidth = 3;
 
 private:
-    Ui::Participant *ui;
     GLWidget *glWidget_ = nullptr;
     QPointer<QWidget> audioOverlay_;
     QPointer<QLabel> nameLabel_;

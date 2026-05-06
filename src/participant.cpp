@@ -1,5 +1,4 @@
 #include "participant.h"
-#include "ui_participant.h"
 #include "glwidget.h"
 
 #include <QHBoxLayout>
@@ -13,22 +12,29 @@
 
 Participant::Participant(QWidget *parent)
     : QWidget(parent)
-    , ui(new Ui::Participant)
 {
-    ui->setupUi(this);
+    setupUi();
+}
 
+Participant::~Participant()
+{
+}
+
+void Participant::setupUi()
+{
     setObjectName("ParticipantContainer");
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     setAttribute(Qt::WA_StyledBackground, true);
     setAutoFillBackground(false);
 
-    ui->verticalLayout->setContentsMargins(kBorderWidth, kBorderWidth, kBorderWidth, kBorderWidth);
-    ui->verticalLayout->setSpacing(0);
+    auto *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(kBorderWidth, kBorderWidth, kBorderWidth, kBorderWidth);
+    mainLayout->setSpacing(0);
 
     // 创建 GLWidget 并添加到布局
     glWidget_ = new GLWidget(this);
-    ui->verticalLayout->addWidget(glWidget_);
+    mainLayout->addWidget(glWidget_);
 
     speakingGlow_ = new QGraphicsDropShadowEffect(this);
     speakingGlow_->setOffset(0, 0);
@@ -39,11 +45,6 @@ Participant::Participant(QWidget *parent)
 
     setupAudioOverlay();
     updateSpeakingStyle(false);
-}
-
-Participant::~Participant()
-{
-    delete ui;
 }
 
 void Participant::setParticipantName(const QString &name)

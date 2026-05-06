@@ -2,6 +2,7 @@
 #define INMEETING_H
 
 #include "meeting_def.h"
+#include "media_mgr.h"
 
 #include <QWidget>
 #include <QString>
@@ -13,6 +14,7 @@
 struct MeetingSessionCtx;
 class MeetingSession;
 class Participant;
+class Member;
 class GLWidget;
 class QListWidget;
 
@@ -64,6 +66,9 @@ private:
     QString formatMemberDisplayName(const QString &participantId, const QString &baseName) const;
     void ensureMemberListWidget();
     void updateMemberList();
+    QHash<QString, AudioLevelInfo> buildRemoteParticipantAudioMap() const;
+    void updateMemberAudioBars(const AudioLevelInfo &localAudio, bool localSpeaking,
+        const QHash<QString, AudioLevelInfo> &remoteAudioMap);
     Participant *participantById(const QString &participantId) const;
     Participant *ensureParticipantWidget(const QString &participantId,
         const QString &participantNameHint = QString());
@@ -77,6 +82,7 @@ private:
     QHash<QString, Participant*> participants_;
     QString localParticipantId_;
     QPointer<QListWidget> memberListWidget_;
+    QHash<QString, QPointer<Member>> memberWidgets_;
 
     // 性能优化缓存
     QVector<GLWidget*> cachedOrderedWidgets_;

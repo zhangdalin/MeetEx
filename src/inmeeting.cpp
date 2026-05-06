@@ -3,12 +3,14 @@
 #include "meeting_session.h"
 #include "meeting_def.h"
 #include "participant.h"
+#include "member.h"
 #include "glwidget.h"
 
 #include <algorithm>
 #include <QtGlobal>
 #include <QtMath>
 #include <QListWidget>
+#include <QListWidgetItem>
 #include <QVBoxLayout>
 #include <QTimer>
 
@@ -149,9 +151,21 @@ void InMeeting::sendMsg()
 void InMeeting::toggleMember()
 {
     qInfo() << __FUNCTION__;
-    ensureMemberListWidget();
-    updateMemberList();
-    toggleSideTab(0);
+
+    if (!ui->tabWidget) {
+        return;
+    }
+
+    const bool shouldShowMemberTab = !ui->tabWidget->isVisible() || ui->tabWidget->currentIndex() != 0;
+    if (shouldShowMemberTab) {
+        ensureMemberListWidget();
+        updateMemberList();
+        ui->tabWidget->setCurrentIndex(0);
+        ui->tabWidget->setVisible(true);
+        return;
+    }
+
+    ui->tabWidget->setVisible(false);
 }
 
 void InMeeting::inviteUser()
@@ -320,8 +334,8 @@ void InMeeting::ensureMemberListWidget()
     auto *layout = qobject_cast<QVBoxLayout *>(ui->memberTab->layout());
     if (!layout) {
         layout = new QVBoxLayout(ui->memberTab);
-        layout->setContentsMargins(8, 8, 8, 8);
-        layout->setSpacing(6);
+        layout->setContentsMargins(1, 1, 1, 1);
+        layout->setSpacing(1);
     }
 
     auto *listWidget = new QListWidget(ui->memberTab);
@@ -337,6 +351,7 @@ void InMeeting::updateMemberList()
         return;
     }
 
+    memberWidgets_.clear();
     memberListWidget_->clear();
 
     QStringList participantIds;
@@ -365,7 +380,67 @@ void InMeeting::updateMemberList()
         if (displayName.isEmpty()) {
             displayName = meetingSession_->getParticipantDisplayName(participantId, QString());
         }
-        memberListWidget_->addItem(formatMemberDisplayName(participantId, displayName));
+
+        auto *item = new QListWidgetItem(memberListWidget_);
+        item->setFlags(item->flags() & ~Qt::ItemIsSelectable);
+
+        auto *rowWidget = new Member(memberListWidget_);
+        rowWidget->setMemberName(formatMemberDisplayName(participantId, displayName));
+
+        item->setSizeHint(rowWidget->sizeHint());
+        memberListWidget_->addItem(item);
+        memberListWidget_->setItemWidget(item, rowWidget);
+        memberWidgets_.insert(participantId, rowWidget);
+    }
+
+    const AudioLevelInfo localAudio = meetingSession_->localAudioLevel();
+    const bool localSpeaking = meetingSession_->isLocalAudioSpeaking();
+    const QHash<QString, AudioLevelInfo> remoteAudioMap = buildRemoteParticipantAudioMap();
+    updateMemberAudioBars(localAudio, localSpeaking, remoteAudioMap);
+}
+
+QHash<QString, AudioLevelInfo> InMeeting::buildRemoteParticipantAudioMap() const
+{
+    QHash<QString, AudioLevelInfo> participantAudioMap;
+    const auto remoteLevels = meetingSession_->remoteAudioLevels();
+
+    for (auto it = remoteLevels.begin(); it != remoteLevels.end(); ++it) {
+        const QString participantId = meetingSession_->getParticipantIdByTrackSid(it.key());
+        if (participantId.isEmpty()) {
+            continue;
+        }
+
+        const AudioLevelInfo &audioInfo = it.value();
+        auto &aggAudioInfo = participantAudioMap[participantId];
+        aggAudioInfo.level = qMax(aggAudioInfo.level, audioInfo.level);
+        aggAudioInfo.speaking = aggAudioInfo.speaking || audioInfo.speaking;
+    }
+
+    return participantAudioMap;
+}
+
+void InMeeting::updateMemberAudioBars(const AudioLevelInfo &localAudio, bool localSpeaking,
+    const QHash<QString, AudioLevelInfo> &remoteAudioMap)
+{
+    if (memberWidgets_.isEmpty()) {
+        return;
+    }
+
+    for (auto it = memberWidgets_.begin(); it != memberWidgets_.end(); ++it) {
+        Member *member = it.value();
+        if (!member) {
+            continue;
+        }
+
+        AudioLevelInfo info;
+        if (it.key() == localParticipantId_) {
+            info = localAudio;
+            info.speaking = localSpeaking;
+        } else {
+            info = remoteAudioMap.value(it.key());
+        }
+
+        member->setAudioStatus(info.level, info.speaking);
     }
 }
 
@@ -453,23 +528,7 @@ void InMeeting::updateAudioStatusPanel()
         localIt.value()->setAudioStatus(local_level.level, local_speaking);
     }
 
-    // Build participant ID -> audio level map from remote audio levels
-    // This is more efficient than looking up participantId for each track
-    QHash<QString, AudioLevelInfo> participantAudioMap;
-    const auto remote_levels = meetingSession_->remoteAudioLevels();
-
-    for (auto it = remote_levels.begin(); it != remote_levels.end(); ++it) {
-        const QString trackSid = it.key();
-        const AudioLevelInfo &audioInfo = it.value();
-        const QString participantId = meetingSession_->getParticipantIdByTrackSid(trackSid);
-        
-        if (!participantId.isEmpty()) {
-            auto &aggAudioInfo = participantAudioMap[participantId];
-            // Aggregate audio levels for participant (take max level, any speaking = speaking)
-            aggAudioInfo.level = qMax(aggAudioInfo.level, audioInfo.level);
-            aggAudioInfo.speaking = aggAudioInfo.speaking || audioInfo.speaking;
-        }
-    }
+    const QHash<QString, AudioLevelInfo> participantAudioMap = buildRemoteParticipantAudioMap();
 
     // Update all remote participants' audio status
     for (auto it = participants_.begin(); it != participants_.end(); ++it) {
@@ -488,6 +547,8 @@ void InMeeting::updateAudioStatusPanel()
             participant->setAudioStatus(audioIt.value().level, audioIt.value().speaking);
         }
     }
+
+    updateMemberAudioBars(local_level, local_speaking, participantAudioMap);
 }
 
 void InMeeting::closeEvent(QCloseEvent *event)
