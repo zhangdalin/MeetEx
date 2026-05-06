@@ -1,5 +1,5 @@
-#ifndef PARTICIPANT_H
-#define PARTICIPANT_H
+#ifndef PARTICIPANTWIDGET_H
+#define PARTICIPANTWIDGET_H
 
 #include <QWidget>
 #include <QString>
@@ -7,20 +7,19 @@
 
 class GLWidget;
 class QLabel;
-class QProgressBar;
 class QGraphicsDropShadowEffect;
 
-class Participant : public QWidget
+class ParticipantWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit Participant(QWidget *parent = nullptr);
-    ~Participant();
+    explicit ParticipantWidget(QWidget *parent = nullptr);
+    ~ParticipantWidget();
 
     GLWidget* getGLWidget() const { return glWidget_; }
-    QString participantName() const { return participantName_; }
-    void setParticipantName(const QString &name);
+    QString name() const { return participantName_; }
+    void setName(const QString &name);
     void setAudioTrackSid(const QString &sid);
     void setVideoTrackSid(const QString &sid);
     QString audioTrackSid() const;
@@ -43,11 +42,10 @@ private:
     GLWidget *glWidget_ = nullptr;
     QPointer<QWidget> audioOverlay_;
     QPointer<QLabel> nameLabel_;
-    QPointer<QProgressBar> levelBar_;
     QPointer<QGraphicsDropShadowEffect> speakingGlow_;
     QString participantName_;
     int lastAudioLevel_ = -1;
     bool lastSpeaking_ = false;
 };
 
-#endif // PARTICIPANT_H
+#endif // PARTICIPANTWIDGET_H

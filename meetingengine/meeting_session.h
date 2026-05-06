@@ -60,7 +60,7 @@ enum class MeetingSessionMediaState {
 
 struct MeetingSessionRemoteParticipantInfo {
     QString participantId;
-    QString participantName;
+    QString name;
     QString metadata;
 };
 
@@ -96,7 +96,7 @@ public:
     QVector<MeetingSessionRemoteParticipantInfo> remoteUsers() const;
 
     // Participant display name resolution
-    QString getParticipantDisplayName(const QString &participantId, const QString &participantName);
+    QString getParticipantDisplayName(const QString &participantId, const QString &name);
 
     // Track to participant mapping
     QString getParticipantIdByTrackSid(const QString &trackSid) const;
@@ -107,8 +107,8 @@ public:
     void clearParticipantData(const QString &participantId);
 
 signals:
-    void sigParticipantJoined(const QString &participantId, const QString &participantName);
-    void sigParticipantLeft(const QString &participantId, const QString &participantName);
+    void sigParticipantJoined(const QString &participantId, const QString &name);
+    void sigParticipantLeft(const QString &participantId, const QString &name);
     void sigTrackSubscribed(const QString &trackSid, const QString &trackName,
         const QString &participantId, int trackKind);
     void sigTrackUnsubscribed(const QString &trackSid, const QString &trackName,
@@ -122,7 +122,7 @@ private:
     // Event data helpers
     struct ParticipantEventInfo {
         QString participantId;
-        QString participantName;
+        QString name;
     };
 
     struct TrackEventInfo {

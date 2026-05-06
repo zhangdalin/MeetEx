@@ -13,8 +13,8 @@
 
 struct MeetingSessionCtx;
 class MeetingSession;
-class Participant;
-class Member;
+class ParticipantWidget;
+class MemberWidget;
 class GLWidget;
 class QListWidget;
 
@@ -45,8 +45,8 @@ public slots:
     void toggleChat();
     void openApps();
     void endMeeting();
-    void onParticipantJoined(const QString &participantId, const QString &participantName);
-    void onParticipantLeft(const QString &participantId, const QString &participantName);
+    void onParticipantJoined(const QString &participantId, const QString &name);
+    void onParticipantLeft(const QString &participantId, const QString &name);
     void onTrackSubscribed(const QString &trackSid, const QString &trackName, 
         const QString &participantId, int trackKind);
     void onTrackUnsubscribed(const QString &trackSid, const QString &trackName,
@@ -69,8 +69,8 @@ private:
     QHash<QString, AudioLevelInfo> buildRemoteParticipantAudioMap() const;
     void updateMemberAudioBars(const AudioLevelInfo &localAudio, bool localSpeaking,
         const QHash<QString, AudioLevelInfo> &remoteAudioMap);
-    Participant *participantById(const QString &participantId) const;
-    Participant *ensureParticipantWidget(const QString &participantId,
+    ParticipantWidget *participantById(const QString &participantId) const;
+    ParticipantWidget *ensureParticipantWidget(const QString &participantId,
         const QString &participantNameHint = QString());
     GLWidget *participantGlWidget(const QString &participantId) const;
     void applyTrackToWidget(GLWidget *glWidget, TrackKind trackKind, const QString &trackSid) const;
@@ -78,11 +78,11 @@ private:
 
     Ui::InMeeting *ui;
     QScopedPointer<MeetingSession> meetingSession_;
-    // UI participants list: participantId -> Participant widget
-    QHash<QString, Participant*> participants_;
+    // UI participants list: participantId -> ParticipantWidget widget
+    QHash<QString, ParticipantWidget*> participants_;
     QString localParticipantId_;
     QPointer<QListWidget> memberListWidget_;
-    QHash<QString, QPointer<Member>> memberWidgets_;
+    QHash<QString, QPointer<MemberWidget>> memberWidgets_;
 
     // 性能优化缓存
     QVector<GLWidget*> cachedOrderedWidgets_;

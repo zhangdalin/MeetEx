@@ -1,4 +1,4 @@
-#include "member.h"
+#include "memberwidget.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
@@ -12,14 +12,14 @@ constexpr const char *kMemberNameNormalStyle =
     "QLabel#memberNameLabel:hover { font-weight:700; }";
 }
 
-Member::Member(QWidget *parent)
+MemberWidget::MemberWidget(QWidget *parent)
     : QWidget(parent)
 {
     setupUi();
     updateSpeakingStyle(false);
 }
 
-void Member::setMemberName(const QString &name)
+void MemberWidget::setName(const QString &name)
 {
     const QString trimmedName = name.trimmed();
     if (trimmedName.isEmpty() && !memberName_.trimmed().isEmpty()) {
@@ -36,7 +36,7 @@ void Member::setMemberName(const QString &name)
     }
 }
 
-void Member::setAudioStatus(float level, bool speaking)
+void MemberWidget::setAudioStatus(float level, bool speaking)
 {
     const int levelInt = static_cast<int>(std::clamp(level * 100.0f, 0.0f, 100.0f));
     if (lastAudioLevel_ == levelInt && lastSpeaking_ == speaking) {
@@ -53,7 +53,7 @@ void Member::setAudioStatus(float level, bool speaking)
     updateSpeakingStyle(speaking);
 }
 
-void Member::setupUi()
+void MemberWidget::setupUi()
 {
     setAttribute(Qt::WA_StyledBackground, true);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -78,7 +78,7 @@ void Member::setupUi()
         "QProgressBar {"
         " border: 1px solid rgba(75, 87, 105, 180);"
         " border-radius: 3px;"
-        " background: rgba(8, 10, 14, 155);"
+        " background: transparent;"
         "}"
         "QProgressBar::chunk {"
         " border-radius: 2px;"
@@ -89,7 +89,7 @@ void Member::setupUi()
     rowLayout->addWidget(levelBar_, 0, Qt::AlignRight | Qt::AlignVCenter);
 }
 
-void Member::updateSpeakingStyle(bool speaking)
+void MemberWidget::updateSpeakingStyle(bool speaking)
 {
     Q_UNUSED(speaking);
 

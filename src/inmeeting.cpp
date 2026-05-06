@@ -2,8 +2,8 @@
 #include "ui_inmeeting.h"
 #include "meeting_session.h"
 #include "meeting_def.h"
-#include "participant.h"
-#include "member.h"
+#include "participantwidget.h"
+#include "memberwidget.h"
 #include "glwidget.h"
 
 #include <algorithm>
@@ -69,7 +69,7 @@ InMeeting::InMeeting(const MeetingSessionCtx &context, QWidget *parent)
 
     if (meetingSession_->start()) {
         localParticipantId_ = meetingSession_->localParticipantId();
-        auto *participant = new Participant(this);
+        auto *participant = new ParticipantWidget(this);
         QString localDisplayName = meetingSession_->localParticipantName().trimmed();
         if (localDisplayName.isEmpty()) {
             localDisplayName = context.displayName.trimmed();
@@ -77,7 +77,7 @@ InMeeting::InMeeting(const MeetingSessionCtx &context, QWidget *parent)
         if (localDisplayName.isEmpty()) {
             localDisplayName = localParticipantId_;
         }
-        participant->setParticipantName(formatMemberDisplayName(localParticipantId_, localDisplayName));
+        participant->setName(formatMemberDisplayName(localParticipantId_, localDisplayName));
         participants_[localParticipantId_] = participant;
 
         // If camera was auto-started during session start, set the video track to local participant
@@ -190,21 +190,21 @@ void InMeeting::endMeeting()
     close();
 }
 
-void InMeeting::onParticipantJoined(const QString &participantId, const QString &participantName)
+void InMeeting::onParticipantJoined(const QString &participantId, const QString &name)
 {
     qInfo() << __FUNCTION__
-            << "new participant joined, name=" << participantName
+            << "new participant joined, name=" << name
             << "id=" << participantId;
 
-    ensureParticipantWidget(participantId, participantName);
+    ensureParticipantWidget(participantId, name);
 
     updateMemberList();
     refreshParticipantViews();
 }
 
-void InMeeting::onParticipantLeft(const QString &participantId, const QString &participantName){
+void InMeeting::onParticipantLeft(const QString &participantId, const QString &name){
     qInfo() << __FUNCTION__
-            << "participant left, name=" << participantName
+            << "participant left, name=" << name
             << "id=" << participantId;
 
     // Clean up participant data in meeting session (clears name cache and track mappings)
@@ -213,7 +213,7 @@ void InMeeting::onParticipantLeft(const QString &participantId, const QString &p
     // Remove participant widget from UI
     auto it = participants_.find(participantId);
     if (it != participants_.end()) {
-        Participant *participant = it.value();
+        ParticipantWidget *participant = it.value();
         if (participant) {
             participant->deleteLater();
         }
@@ -254,9 +254,9 @@ void InMeeting::onTrackUnsubscribed(const QString &trackSid, const QString &trac
             << "participant_id=" << participantId
             << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
 
-    Participant *participant = participantById(participantId);
+    ParticipantWidget *participant = participantById(participantId);
     if (!participant) {
-        return;  // Participant already removed
+        return;  // ParticipantWidget already removed
     }
 
     GLWidget *glWidget = participant->getGLWidget();
@@ -277,7 +277,7 @@ void InMeeting::onTrackUnsubscribed(const QString &trackSid, const QString &trac
 
         auto it = participants_.find(participantId);
         if (it != participants_.end()) {
-            Participant *participantToRemove = it.value();
+            ParticipantWidget *participantToRemove = it.value();
             if (participantToRemove) {
                 participantToRemove->deleteLater();
             }
@@ -371,12 +371,12 @@ void InMeeting::updateMemberList()
     participantIds.append(remoteIds);
 
     for (const QString &participantId : participantIds) {
-        Participant *participant = participantById(participantId);
+        ParticipantWidget *participant = participantById(participantId);
         if (!participant) {
             continue;
         }
 
-        QString displayName = participant->participantName().trimmed();
+        QString displayName = participant->name().trimmed();
         if (displayName.isEmpty()) {
             displayName = meetingSession_->getParticipantDisplayName(participantId, QString());
         }
@@ -384,8 +384,8 @@ void InMeeting::updateMemberList()
         auto *item = new QListWidgetItem(memberListWidget_);
         item->setFlags(item->flags() & ~Qt::ItemIsSelectable);
 
-        auto *rowWidget = new Member(memberListWidget_);
-        rowWidget->setMemberName(formatMemberDisplayName(participantId, displayName));
+        auto *rowWidget = new MemberWidget(memberListWidget_);
+        rowWidget->setName(formatMemberDisplayName(participantId, displayName));
 
         item->setSizeHint(rowWidget->sizeHint());
         memberListWidget_->addItem(item);
@@ -427,7 +427,7 @@ void InMeeting::updateMemberAudioBars(const AudioLevelInfo &localAudio, bool loc
     }
 
     for (auto it = memberWidgets_.begin(); it != memberWidgets_.end(); ++it) {
-        Member *member = it.value();
+        MemberWidget *member = it.value();
         if (!member) {
             continue;
         }
@@ -444,33 +444,33 @@ void InMeeting::updateMemberAudioBars(const AudioLevelInfo &localAudio, bool loc
     }
 }
 
-Participant *InMeeting::participantById(const QString &participantId) const
+ParticipantWidget *InMeeting::participantById(const QString &participantId) const
 {
     const auto it = participants_.find(participantId);
     return it != participants_.end() ? it.value() : nullptr;
 }
 
-Participant *InMeeting::ensureParticipantWidget(const QString &participantId,
+ParticipantWidget *InMeeting::ensureParticipantWidget(const QString &participantId,
     const QString &participantNameHint)
 {
-    if (Participant *existing = participantById(participantId)) {
+    if (ParticipantWidget *existing = participantById(participantId)) {
         const QString displayName = meetingSession_->getParticipantDisplayName(participantId, participantNameHint);
         if (!displayName.trimmed().isEmpty()) {
-            existing->setParticipantName(formatMemberDisplayName(participantId, displayName));
+            existing->setName(formatMemberDisplayName(participantId, displayName));
         }
         return existing;
     }
 
     const QString displayName = meetingSession_->getParticipantDisplayName(participantId, participantNameHint);
-    auto *participant = new Participant(this);
-    participant->setParticipantName(formatMemberDisplayName(participantId, displayName));
+    auto *participant = new ParticipantWidget(this);
+    participant->setName(formatMemberDisplayName(participantId, displayName));
     participants_[participantId] = participant;
     return participant;
 }
 
 GLWidget *InMeeting::participantGlWidget(const QString &participantId) const
 {
-    Participant *participant = participantById(participantId);
+    ParticipantWidget *participant = participantById(participantId);
     return participant ? participant->getGLWidget() : nullptr;
 }
 
@@ -622,7 +622,7 @@ void InMeeting::updateVideoWidgets()
     }
 
     // 本地优先，远端按 id 排序——单次遍历直接收集指针，避免二次 find()
-    QVector<Participant*> orderedParticipants;
+    QVector<ParticipantWidget*> orderedParticipants;
     orderedParticipants.reserve(participants_.size());
 
     auto localIt = participants_.find(localParticipantId_);
@@ -630,7 +630,7 @@ void InMeeting::updateVideoWidgets()
         orderedParticipants.push_back(localIt.value());
     }
 
-    QVector<QPair<QString, Participant*>> remoteEntries;
+    QVector<QPair<QString, ParticipantWidget*>> remoteEntries;
     remoteEntries.reserve(participants_.size());
     for (auto widgetIt = participants_.cbegin(); widgetIt != participants_.cend(); ++widgetIt) {
         if (widgetIt.key() != localParticipantId_ && widgetIt.value()) {

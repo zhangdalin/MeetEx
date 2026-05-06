@@ -26,7 +26,7 @@ public:
     QString& videoTrackSid() { return video_track_sid_; }
     void setVideoTrackSid(const QString &video_track_sid);
 
-    void setParticipantName(const QString &name);
+    void setName(const QString &name);
 
 protected:
     void initializeGL() override;

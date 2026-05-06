@@ -1,26 +1,25 @@
-#include "participant.h"
+#include "participantwidget.h"
 #include "glwidget.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QProgressBar>
 #include <QGraphicsDropShadowEffect>
 #include <QResizeEvent>
 #include <QVBoxLayout>
 
 #include <algorithm>
 
-Participant::Participant(QWidget *parent)
+ParticipantWidget::ParticipantWidget(QWidget *parent)
     : QWidget(parent)
 {
     setupUi();
 }
 
-Participant::~Participant()
+ParticipantWidget::~ParticipantWidget()
 {
 }
 
-void Participant::setupUi()
+void ParticipantWidget::setupUi()
 {
     setObjectName("ParticipantContainer");
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -47,7 +46,7 @@ void Participant::setupUi()
     updateSpeakingStyle(false);
 }
 
-void Participant::setParticipantName(const QString &name)
+void ParticipantWidget::setName(const QString &name)
 {
     const QString trimmedName = name.trimmed();
     if (trimmedName.isEmpty() && !participantName_.trimmed().isEmpty()) {
@@ -64,35 +63,35 @@ void Participant::setParticipantName(const QString &name)
     }
     
     if (glWidget_) {
-        glWidget_->setParticipantName(name);
+        glWidget_->setName(name);
     }
 }
 
-void Participant::setAudioTrackSid(const QString &sid)
+void ParticipantWidget::setAudioTrackSid(const QString &sid)
 {
     if (glWidget_) {
         glWidget_->setAudioTrackSid(sid);
     }
 }
 
-void Participant::setVideoTrackSid(const QString &sid)
+void ParticipantWidget::setVideoTrackSid(const QString &sid)
 {
     if (glWidget_) {
         glWidget_->setVideoTrackSid(sid);
     }
 }
 
-QString Participant::audioTrackSid() const
+QString ParticipantWidget::audioTrackSid() const
 {
     return glWidget_ ? glWidget_->audioTrackSid() : QString();
 }
 
-QString Participant::videoTrackSid() const
+QString ParticipantWidget::videoTrackSid() const
 {
     return glWidget_ ? glWidget_->videoTrackSid() : QString();
 }
 
-void Participant::setAudioStatus(float level, bool speaking)
+void ParticipantWidget::setAudioStatus(float level, bool speaking)
 {
     const int levelInt = static_cast<int>(std::clamp(level * 100.0f, 0.0f, 100.0f));
     if (lastAudioLevel_ == levelInt && lastSpeaking_ == speaking) {
@@ -102,14 +101,10 @@ void Participant::setAudioStatus(float level, bool speaking)
     lastAudioLevel_ = levelInt;
     lastSpeaking_ = speaking;
 
-    if (levelBar_) {
-        levelBar_->setValue(levelInt);
-    }
-
     updateSpeakingStyle(speaking);
 }
 
-void Participant::resizeEvent(QResizeEvent *event)
+void ParticipantWidget::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
     if (audioOverlay_) {
@@ -122,9 +117,9 @@ void Participant::resizeEvent(QResizeEvent *event)
     }
 }
 
-void Participant::setupAudioOverlay()
+void ParticipantWidget::setupAudioOverlay()
 {
-    // overlay 挂到 Participant 自身，通过 resizeEvent 定位到左下角
+    // overlay 挂到 ParticipantWidget 自身，通过 resizeEvent 定位到左下角
     // 不在 QOpenGLWidget 上添加任何 layout
     audioOverlay_ = new QWidget(this);
     audioOverlay_->setAttribute(Qt::WA_TransparentForMouseEvents);
@@ -139,31 +134,12 @@ void Participant::setupAudioOverlay()
 
     nameLabel_ = new QLabel("Guest", audioOverlay_);
     nameLabel_->setStyleSheet("color:#E8EDF5; background:transparent; border:none; font-size:14px; font-weight:500;");
-
-    levelBar_ = new QProgressBar(audioOverlay_);
-    levelBar_->setRange(0, 100);
-    levelBar_->setValue(0);
-    levelBar_->setTextVisible(false);
-    levelBar_->setOrientation(Qt::Vertical);
-    levelBar_->setFixedWidth(6);
-    levelBar_->setFixedHeight(nameLabel_->sizeHint().height());
-    levelBar_->setStyleSheet(
-        "QProgressBar {"
-        " border: 1px solid rgba(75, 87, 105, 180);"
-        " border-radius: 3px;"
-        " background: rgba(8, 10, 14, 155);"
-        "}"
-        "QProgressBar::chunk {"
-        " border-radius: 2px;"
-        " background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #27C93F, stop:1 #0B8A2C);"
-        "}");
-    row->addWidget(levelBar_);
     row->addWidget(nameLabel_, 1);
 
     audioOverlay_->adjustSize();
 }
 
-void Participant::updateSpeakingStyle(bool speaking)
+void ParticipantWidget::updateSpeakingStyle(bool speaking)
 {
     if (speakingGlow_) {
         speakingGlow_->setEnabled(speaking);

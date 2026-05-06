@@ -274,9 +274,9 @@ QVector<MeetingSessionRemoteParticipantInfo> MeetingSession::remoteUsers() const
     return remoteUsers;
 }
 
-QString MeetingSession::getParticipantDisplayName(const QString &participantId, const QString &participantName)
+QString MeetingSession::getParticipantDisplayName(const QString &participantId, const QString &name)
 {
-    const QString trimmedName = participantName.trimmed();
+    const QString trimmedName = name.trimmed();
 
     // Check if we already have a cached name for this participant
     const auto it = participantDisplayNames_.find(participantId);
@@ -571,8 +571,8 @@ void MeetingSession::onParticipantConnected(livekit::Room &room, const livekit::
 
     const auto participantInfo = buildParticipantEventInfo(ev.participant);
     qDebug() << __FUNCTION__ << "participant connected: id=" << participantInfo.participantId
-        << "name=" << participantInfo.participantName;
-    emit sigParticipantJoined(participantInfo.participantId, participantInfo.participantName);
+        << "name=" << participantInfo.name;
+    emit sigParticipantJoined(participantInfo.participantId, participantInfo.name);
 }
 
 void MeetingSession::onParticipantsUpdated(livekit::Room &room, const livekit::ParticipantsUpdatedEvent &ev) {
@@ -581,13 +581,13 @@ void MeetingSession::onParticipantsUpdated(livekit::Room &room, const livekit::P
     for (const auto &participant : ev.participants) {
         if (participant) {
             const QString participantId = QString::fromStdString(participant->identity());
-            const QString participantName = QString::fromStdString(participant->name());
+            const QString name = QString::fromStdString(participant->name());
             qDebug() << __FUNCTION__ << "participant id="
                 << participantId
-                << "name=" << participantName;
+                << "name=" << name;
 
             if (!participantId.isEmpty() && participantId != localId) {
-                const QString resolvedName = getParticipantDisplayName(participantId, participantName);
+                const QString resolvedName = getParticipantDisplayName(participantId, name);
                 emit sigParticipantJoined(participantId, resolvedName);
             }
         }
@@ -599,10 +599,10 @@ void MeetingSession::onParticipantDisconnected(livekit::Room &room,
     Q_UNUSED(room);
     const auto participantInfo = buildParticipantEventInfo(ev.participant);
     qDebug() << __FUNCTION__ << "participant disconnected: id=" << participantInfo.participantId
-        << "name=" << participantInfo.participantName << "reason=" << disconnectReasonToString(ev.reason);
+        << "name=" << participantInfo.name << "reason=" << disconnectReasonToString(ev.reason);
 
     clearParticipantData(participantInfo.participantId);
-    emit sigParticipantLeft(participantInfo.participantId, participantInfo.participantName);
+    emit sigParticipantLeft(participantInfo.participantId, participantInfo.name);
 }
 
 void MeetingSession::onLocalTrackPublished(livekit::Room &room, const livekit::LocalTrackPublishedEvent &ev) {

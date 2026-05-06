@@ -1,5 +1,5 @@
-#ifndef MEMBER_H
-#define MEMBER_H
+#ifndef MEMBERWIDGET_H
+#define MEMBERWIDGET_H
 
 #include <QWidget>
 #include <QString>
@@ -8,13 +8,13 @@
 class QLabel;
 class QProgressBar;
 
-class Member : public QWidget
+class MemberWidget : public QWidget
 {
 public:
-    explicit Member(QWidget *parent = nullptr);
+    explicit MemberWidget(QWidget *parent = nullptr);
 
-    QString memberName() const { return memberName_; }
-    void setMemberName(const QString &name);
+    QString name() const { return memberName_; }
+    void setName(const QString &name);
     void setAudioStatus(float level, bool speaking);
 
 private:
@@ -29,4 +29,4 @@ private:
     bool lastSpeaking_ = false;
 };
 
-#endif // MEMBER_H
+#endif // MEMBERWIDGET_H

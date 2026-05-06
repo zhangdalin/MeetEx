@@ -49,7 +49,7 @@ void GLWidget::setVideoTrackSid(const QString &video_track_sid)
     update();
 }
 
-void GLWidget::setParticipantName(const QString &name)
+void GLWidget::setName(const QString &name)
 {
     if (participant_name_ == name) {
         return;
