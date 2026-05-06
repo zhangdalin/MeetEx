@@ -69,17 +69,16 @@ private:
     QHash<QString, AudioLevelInfo> buildRemoteParticipantAudioMap() const;
     void updateMemberAudioBars(const AudioLevelInfo &localAudio, bool localSpeaking,
         const QHash<QString, AudioLevelInfo> &remoteAudioMap);
-    ParticipantWidget *participantById(const QString &participantId) const;
+    ParticipantWidget *participantWidgetById(const QString &participantId) const;
     ParticipantWidget *ensureParticipantWidget(const QString &participantId,
         const QString &participantNameHint = QString());
-    GLWidget *participantGlWidget(const QString &participantId) const;
+    GLWidget *participantWidgetGlWidget(const QString &participantId) const;
     void applyTrackToWidget(GLWidget *glWidget, TrackKind trackKind, const QString &trackSid) const;
     void clearTrackFromWidget(GLWidget *glWidget, TrackKind trackKind, const QString &trackSid) const;
 
     Ui::InMeeting *ui;
     QScopedPointer<MeetingSession> meetingSession_;
-    // UI participants list: participantId -> ParticipantWidget widget
-    QHash<QString, ParticipantWidget*> participants_;
+    QHash<QString, ParticipantWidget*> participantWidgets_;
     QString localParticipantId_;
     QPointer<QListWidget> memberListWidget_;
     QHash<QString, QPointer<MemberWidget>> memberWidgets_;

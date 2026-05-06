@@ -78,7 +78,7 @@ InMeeting::InMeeting(const MeetingSessionCtx &context, QWidget *parent)
             localDisplayName = localParticipantId_;
         }
         participant->setName(formatMemberDisplayName(localParticipantId_, localDisplayName));
-        participants_[localParticipantId_] = participant;
+        participantWidgets_[localParticipantId_] = participant;
 
         // If camera was auto-started during session start, set the video track to local participant
         if (meetingSession_->cameraState() == MeetingSessionMediaState::On) {
@@ -114,7 +114,7 @@ void InMeeting::toggleMute()
 void InMeeting::toggleVideo()
 {
     qInfo() << __FUNCTION__;
-    GLWidget *localGLWidget = participantGlWidget(localParticipantId_);
+    GLWidget *localGLWidget = participantWidgetGlWidget(localParticipantId_);
     if (!localGLWidget) {
         return;
     }
@@ -211,13 +211,13 @@ void InMeeting::onParticipantLeft(const QString &participantId, const QString &n
     meetingSession_->clearParticipantData(participantId);
 
     // Remove participant widget from UI
-    auto it = participants_.find(participantId);
-    if (it != participants_.end()) {
+    auto it = participantWidgets_.find(participantId);
+    if (it != participantWidgets_.end()) {
         ParticipantWidget *participant = it.value();
         if (participant) {
             participant->deleteLater();
         }
-        participants_.erase(it);
+        participantWidgets_.erase(it);
     }
 
     updateMemberList();
@@ -234,7 +234,7 @@ void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackN
             << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
 
     ensureParticipantWidget(participantId);
-    GLWidget *glWidget = participantGlWidget(participantId);
+    GLWidget *glWidget = participantWidgetGlWidget(participantId);
 
     if (!glWidget) {
         return;
@@ -254,7 +254,7 @@ void InMeeting::onTrackUnsubscribed(const QString &trackSid, const QString &trac
             << "participant_id=" << participantId
             << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
 
-    ParticipantWidget *participant = participantById(participantId);
+    ParticipantWidget *participant = participantWidgetById(participantId);
     if (!participant) {
         return;  // ParticipantWidget already removed
     }
@@ -275,13 +275,13 @@ void InMeeting::onTrackUnsubscribed(const QString &trackSid, const QString &trac
     if (participantId != localParticipantId_ && !hasAudioTrack && !hasVideoTrack) {
         meetingSession_->clearParticipantData(participantId);
 
-        auto it = participants_.find(participantId);
-        if (it != participants_.end()) {
+        auto it = participantWidgets_.find(participantId);
+        if (it != participantWidgets_.end()) {
             ParticipantWidget *participantToRemove = it.value();
             if (participantToRemove) {
                 participantToRemove->deleteLater();
             }
-            participants_.erase(it);
+            participantWidgets_.erase(it);
         }
 
         updateMemberList();
@@ -355,14 +355,14 @@ void InMeeting::updateMemberList()
     memberListWidget_->clear();
 
     QStringList participantIds;
-    participantIds.reserve(participants_.size());
+    participantIds.reserve(participantWidgets_.size());
 
-    if (!localParticipantId_.isEmpty() && participants_.contains(localParticipantId_)) {
+    if (!localParticipantId_.isEmpty() && participantWidgets_.contains(localParticipantId_)) {
         participantIds << localParticipantId_;
     }
 
     QStringList remoteIds;
-    for (auto it = participants_.cbegin(); it != participants_.cend(); ++it) {
+    for (auto it = participantWidgets_.cbegin(); it != participantWidgets_.cend(); ++it) {
         if (it.key() != localParticipantId_) {
             remoteIds << it.key();
         }
@@ -371,7 +371,7 @@ void InMeeting::updateMemberList()
     participantIds.append(remoteIds);
 
     for (const QString &participantId : participantIds) {
-        ParticipantWidget *participant = participantById(participantId);
+        ParticipantWidget *participant = participantWidgetById(participantId);
         if (!participant) {
             continue;
         }
@@ -444,16 +444,16 @@ void InMeeting::updateMemberAudioBars(const AudioLevelInfo &localAudio, bool loc
     }
 }
 
-ParticipantWidget *InMeeting::participantById(const QString &participantId) const
+ParticipantWidget *InMeeting::participantWidgetById(const QString &participantId) const
 {
-    const auto it = participants_.find(participantId);
-    return it != participants_.end() ? it.value() : nullptr;
+    const auto it = participantWidgets_.find(participantId);
+    return it != participantWidgets_.end() ? it.value() : nullptr;
 }
 
 ParticipantWidget *InMeeting::ensureParticipantWidget(const QString &participantId,
     const QString &participantNameHint)
 {
-    if (ParticipantWidget *existing = participantById(participantId)) {
+    if (ParticipantWidget *existing = participantWidgetById(participantId)) {
         const QString displayName = meetingSession_->getParticipantDisplayName(participantId, participantNameHint);
         if (!displayName.trimmed().isEmpty()) {
             existing->setName(formatMemberDisplayName(participantId, displayName));
@@ -464,13 +464,13 @@ ParticipantWidget *InMeeting::ensureParticipantWidget(const QString &participant
     const QString displayName = meetingSession_->getParticipantDisplayName(participantId, participantNameHint);
     auto *participant = new ParticipantWidget(this);
     participant->setName(formatMemberDisplayName(participantId, displayName));
-    participants_[participantId] = participant;
+    participantWidgets_[participantId] = participant;
     return participant;
 }
 
-GLWidget *InMeeting::participantGlWidget(const QString &participantId) const
+GLWidget *InMeeting::participantWidgetGlWidget(const QString &participantId) const
 {
-    ParticipantWidget *participant = participantById(participantId);
+    ParticipantWidget *participant = participantWidgetById(participantId);
     return participant ? participant->getGLWidget() : nullptr;
 }
 
@@ -523,15 +523,15 @@ void InMeeting::updateAudioStatusPanel()
     // Update local participant audio status
     const AudioLevelInfo local_level = meetingSession_->localAudioLevel();
     const bool local_speaking = meetingSession_->isLocalAudioSpeaking();
-    const auto localIt = participants_.find(localParticipantId_);
-    if (localIt != participants_.end() && localIt.value()) {
+    const auto localIt = participantWidgets_.find(localParticipantId_);
+    if (localIt != participantWidgets_.end() && localIt.value()) {
         localIt.value()->setAudioStatus(local_level.level, local_speaking);
     }
 
     const QHash<QString, AudioLevelInfo> participantAudioMap = buildRemoteParticipantAudioMap();
 
     // Update all remote participants' audio status
-    for (auto it = participants_.begin(); it != participants_.end(); ++it) {
+    for (auto it = participantWidgets_.begin(); it != participantWidgets_.end(); ++it) {
         const QString &participantId = it.key();
         auto *participant = it.value();
         
@@ -623,16 +623,16 @@ void InMeeting::updateVideoWidgets()
 
     // 本地优先，远端按 id 排序——单次遍历直接收集指针，避免二次 find()
     QVector<ParticipantWidget*> orderedParticipants;
-    orderedParticipants.reserve(participants_.size());
+    orderedParticipants.reserve(participantWidgets_.size());
 
-    auto localIt = participants_.find(localParticipantId_);
-    if (localIt != participants_.end() && localIt.value()) {
+    auto localIt = participantWidgets_.find(localParticipantId_);
+    if (localIt != participantWidgets_.end() && localIt.value()) {
         orderedParticipants.push_back(localIt.value());
     }
 
     QVector<QPair<QString, ParticipantWidget*>> remoteEntries;
-    remoteEntries.reserve(participants_.size());
-    for (auto widgetIt = participants_.cbegin(); widgetIt != participants_.cend(); ++widgetIt) {
+    remoteEntries.reserve(participantWidgets_.size());
+    for (auto widgetIt = participantWidgets_.cbegin(); widgetIt != participantWidgets_.cend(); ++widgetIt) {
         if (widgetIt.key() != localParticipantId_ && widgetIt.value()) {
             remoteEntries.append(qMakePair(widgetIt.key(), widgetIt.value()));
         }
