@@ -1,4 +1,5 @@
 #include "memberwidget.h"
+#include "meeting_participant.h"
 
 #include <QHBoxLayout>
 #include <QLabel>
@@ -12,27 +13,33 @@ constexpr const char *kMemberNameNormalStyle =
     "QLabel#memberNameLabel:hover { font-weight:700; }";
 }
 
-MemberWidget::MemberWidget(QWidget *parent)
+MemberWidget::MemberWidget(const MeetingParticipant& participant, QWidget *parent)
     : QWidget(parent)
 {
     setupUi();
+    setId(participant.id());
+    setName(participant.name());
     updateSpeakingStyle(false);
+}
+
+void MemberWidget::setId(const QString &id)
+{
+    if (memberId_ == id) {
+        return;
+    }
+
+    memberId_ = id;
 }
 
 void MemberWidget::setName(const QString &name)
 {
-    const QString trimmedName = name.trimmed();
-    if (trimmedName.isEmpty() && !memberName_.trimmed().isEmpty()) {
-        return;
-    }
-
     if (memberName_ == name) {
         return;
     }
 
     memberName_ = name;
     if (nameLabel_) {
-        nameLabel_->setText(memberName_);
+        nameLabel_->setText(QStringLiteral("%1 (我)").arg(name));
     }
 }
 

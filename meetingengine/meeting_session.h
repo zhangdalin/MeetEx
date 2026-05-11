@@ -2,6 +2,7 @@
 #define MEETING_SESSION_H
 
 #include "meeting_def.h"
+#include "meeting_participant.h"
 #include "media_mgr.h"
 
 #include "livekit/room.h"
@@ -14,6 +15,7 @@
 #include <QVector>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace livekit {
 struct AttributeEntry;
@@ -26,9 +28,10 @@ class TrackPublication;
 }
 
 struct MeetingSessionJoinOptions {
-    bool autoConnectAudio = true;
     bool startCamera = true;
     bool startMicrophone = true;
+    bool startScreenShare = false;
+    bool startRecording = false;
 };
 
 struct MeetingSessionCtx {
@@ -37,9 +40,8 @@ struct MeetingSessionCtx {
     QString meetingNumber;
     QString displayName;
     MeetingSessionJoinOptions joinOptions;
-
     bool isValid() const;
-    static MeetingSessionCtx developmentDefaults();
+    static MeetingSessionCtx defaults();
 };
 
 enum class MeetingSessionRoomState {
@@ -58,103 +60,81 @@ enum class MeetingSessionMediaState {
     Failed
 };
 
-struct MeetingSessionRemoteParticipantInfo {
-    QString participantId;
-    QString name;
-    QString metadata;
-};
-
 class MeetingSession : public QObject, public livekit::RoomDelegate
 {
     Q_OBJECT
 
 public:
     explicit MeetingSession(const MeetingSessionCtx &context, QObject *parent = nullptr);
-    ~MeetingSession() override;
+    ~MeetingSession();
 
     const MeetingSessionCtx &context() const { return context_; }
 
     bool start();
     void shutdown();
 
+    const MeetingParticipant &localParticipant() const { return localParticipant_; }
+    const QHash<QString, MeetingParticipant> &remoteParticipants() const { return remoteParticipants_; }
+
     bool startAudio();
     void stopAudio();
     bool startVideo();
     void stopVideo();
-
-    QString localParticipantId() const;
-    QString localParticipantName() const;
-    QString localVideoTrackSid() const;
+    bool startShare();
+    void stopShare();
+    bool startRecording();
+    void stopRecording();
 
     MeetingSessionRoomState roomState() const { return roomState_; }
     MeetingSessionMediaState microphoneState() const { return microphoneState_; }
     MeetingSessionMediaState cameraState() const { return cameraState_; }
+    MeetingSessionMediaState screenShareState() const { return screenShareState_; }
+    MeetingSessionMediaState recordingState() const { return recordingState_; }
 
     AudioLevelInfo localAudioLevel() const;
     bool isLocalAudioSpeaking() const;
-    QHash<QString, AudioLevelInfo> remoteAudioLevels() const;
-    QVector<MeetingSessionRemoteParticipantInfo> remoteUsers() const;
-
-    // Participant display name resolution
-    QString getParticipantDisplayName(const QString &participantId, const QString &name);
-
-    // Track to participant mapping
-    QString getParticipantIdByTrackSid(const QString &trackSid) const;
-    void mapTrackToParticipant(const QString &trackSid, const QString &participantId);
-    void unmapTrack(const QString &trackSid);
-
-    // Cleanup participant data when participant leaves
-    void clearParticipantData(const QString &participantId);
+    std::unordered_map<std::string, AudioLevelInfo> remoteAudioLevels() const;
+    const MeetingParticipant* findParticipantByTrackSid(const QString &trackSid, int trackKind) const;
 
 signals:
-    void sigParticipantJoined(const QString &participantId, const QString &name);
-    void sigParticipantLeft(const QString &participantId, const QString &name);
-    void sigTrackSubscribed(const QString &trackSid, const QString &trackName,
-        const QString &participantId, int trackKind);
-    void sigTrackUnsubscribed(const QString &trackSid, const QString &trackName,
-        const QString &participantId, int trackKind);
+    void sigParticipantJoined(const QString &participantId);
+    void sigParticipantLeft(const QString &participantId);
+    void sigTrackSubscribed(const QString &participantId, int trackKind);
+    void sigTrackUnsubscribed(const QString &participantId, int trackKind);
+
     void sigRoomStateChanged(MeetingSessionRoomState state);
     void sigMicrophoneStateChanged(MeetingSessionMediaState state);
     void sigCameraStateChanged(MeetingSessionMediaState state);
+    void sigScreenShareStateChanged(MeetingSessionMediaState state);
+    void sigRecordingStateChanged(MeetingSessionMediaState state);
     void sigSessionError(const QString &message);
 
 private:
-    // Event data helpers
-    struct ParticipantEventInfo {
-        QString participantId;
-        QString name;
-    };
-
-    struct TrackEventInfo {
-        QString participantId;
-        QString trackSid;
-        QString trackName;
-    };
-
     // Session lifecycle and media helpers
     void setRoomOptions(bool autoSubscribe = true, bool dynacast = false,
         bool e2ee = false, bool singlePeerConnection = false);
+
     bool connectRoom();
-    bool disconnectRoom();
-    livekit::LocalParticipant *getLocalParticipant() const;
-    void resetSessionMediaState();
-    void stopLocalMediaCapture(bool unpublishTracks);
+    void disconnectRoom();
+    void syncLocalParticipant();
+    void syncRemoteParticipants();
+
+    // State transition helpers
+    void setRoomState(MeetingSessionRoomState state);
+    void setMicrophoneState(MeetingSessionMediaState state);
+    void setCameraState(MeetingSessionMediaState state);
+    void setScreenShareState(MeetingSessionMediaState state);
+    void setRecordingState(MeetingSessionMediaState state);
+
     bool shouldStartMicrophoneOnJoin() const;
     bool shouldStartCameraOnJoin() const;
-    void clearSessionCaches();
+    bool shouldStartScreenShareOnJoin() const;
+    bool shouldStartRecordingOnJoin() const;
 
-    // Event conversion and logging helpers
-    ParticipantEventInfo buildParticipantEventInfo(livekit::Participant *participant) const;
-    TrackEventInfo buildTrackEventInfo(livekit::Participant *participant,
-        livekit::TrackPublication *publication) const;
-    MeetingSessionRemoteParticipantInfo buildRemoteParticipantInfo(
-        const livekit::RemoteParticipant *participant) const;
     QStringList buildChangedAttributes(const QVector<livekit::AttributeEntry> &attributes) const;
     void logRoomSnapshot(const char *eventName, const livekit::RoomInfoData &info) const;
-    void startRemoteTrackMedia(const std::shared_ptr<livekit::Track> &track,
-        const QString &trackSid) const;
-    void stopRemoteTrackMedia(const std::shared_ptr<livekit::Track> &track,
-        const QString &trackSid) const;
+    void startRemoteTrackMedia(const std::shared_ptr<livekit::Track> &track) const;
+    void stopRemoteTrackMedia(const std::shared_ptr<livekit::Track> &track) const;
 
     // LiveKit room delegate callbacks
     void onParticipantConnected(livekit::Room &room, const livekit::ParticipantConnectedEvent &ev) override;
@@ -184,19 +164,11 @@ private:
     void onReconnecting(livekit::Room &room, const livekit::ReconnectingEvent &ev) override;
     void onReconnected(livekit::Room &room, const livekit::ReconnectedEvent &ev) override;
 
-    // State transition helpers
-    void setRoomState(MeetingSessionRoomState state);
-    void setMicrophoneState(MeetingSessionMediaState state);
-    void setCameraState(MeetingSessionMediaState state);
-
+private:
     // Session context and room runtime
     MeetingSessionCtx context_;
     livekit::Room room_;
 
-    // Local participant/session media cache
-    livekit::LocalParticipant *localParticipant_ = nullptr;
-    QString localAudioTrackSid_;
-    QString localVideoTrackSid_;
     QString e2eeKey_ = QStringLiteral(LIVEKIT_E2EE_KEY);
     livekit::RoomOptions roomOptions_ = {0};
 
@@ -204,11 +176,11 @@ private:
     MeetingSessionRoomState roomState_ = MeetingSessionRoomState::Disconnected;
     MeetingSessionMediaState microphoneState_ = MeetingSessionMediaState::Off;
     MeetingSessionMediaState cameraState_ = MeetingSessionMediaState::Off;
+    MeetingSessionMediaState screenShareState_ = MeetingSessionMediaState::Off;
+    MeetingSessionMediaState recordingState_ = MeetingSessionMediaState::Off;
 
-    // Participant and track caches
-    QHash<QString, QString> participantDisplayNames_;
-    int nextGuestIndex_ = 1;
-    QHash<QString, QString> trackToParticipantMap_;
+    MeetingParticipant localParticipant_;
+    QHash<QString, MeetingParticipant> remoteParticipants_;
 };
 
 #endif // MEETING_SESSION_H

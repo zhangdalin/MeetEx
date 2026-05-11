@@ -2,6 +2,7 @@
 #include "ui_inmeeting.h"
 #include "meeting_session.h"
 #include "meeting_def.h"
+#include "meeting_participant.h"
 #include "participantwidget.h"
 #include "memberwidget.h"
 #include "glwidget.h"
@@ -22,7 +23,7 @@ extern std::unique_ptr<QWidget> bookmeeting;
 extern std::unique_ptr<QWidget> sharescreen;
 extern std::unique_ptr<QWidget> settings;
 
-static const char* trackKindToMediaTypeString(TrackKind track_kind) {
+static const char* trackKindToString(TrackKind track_kind) {
     switch (track_kind) {
     case TrackKind::AUDIO:
         return "audio";
@@ -34,66 +35,45 @@ static const char* trackKindToMediaTypeString(TrackKind track_kind) {
 }
 
 InMeeting::InMeeting(QWidget *parent)
-    : InMeeting(MeetingSessionCtx::developmentDefaults(), parent)
-{
-}
-
-InMeeting::InMeeting(const MeetingSessionCtx &context, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::InMeeting)
-    , meetingSession_(new MeetingSession(context, this))
+    , localMemberWidget_(nullptr)
+    , localParticipantWidget_(nullptr)
+    , meetingSession_(new MeetingSession(MeetingSessionCtx::defaults(), this))
 {
     ui->setupUi(this);
 
     // Connect participant signals
-    connect(meetingSession_.get(), &MeetingSession::sigParticipantJoined,
+    connect(meetingSession_, &MeetingSession::sigParticipantJoined,
             this, &InMeeting::onParticipantJoined);
-    connect(meetingSession_.get(), &MeetingSession::sigParticipantLeft,
+    connect(meetingSession_, &MeetingSession::sigParticipantLeft,
             this, &InMeeting::onParticipantLeft);
-    connect(meetingSession_.get(), &MeetingSession::sigTrackSubscribed,
+    connect(meetingSession_, &MeetingSession::sigTrackSubscribed,
             this, &InMeeting::onTrackSubscribed);
-    connect(meetingSession_.get(), &MeetingSession::sigTrackUnsubscribed,
+    connect(meetingSession_, &MeetingSession::sigTrackUnsubscribed,
             this, &InMeeting::onTrackUnsubscribed);
 
     // Connect state change signals for UI updates
-    connect(meetingSession_.get(), &MeetingSession::sigMicrophoneStateChanged,
+    connect(meetingSession_, &MeetingSession::sigMicrophoneStateChanged,
             this, &InMeeting::updateButtonStates);
-    connect(meetingSession_.get(), &MeetingSession::sigCameraStateChanged,
+    connect(meetingSession_, &MeetingSession::sigCameraStateChanged,
             this, &InMeeting::updateButtonStates);
+
+    // Start the meeting session
+    if (meetingSession_->start()) {
+        auto localParticipant = meetingSession_->localParticipant();
+        localParticipantWidget_ = new ParticipantWidget(localParticipant, this);
+        localMemberWidget_ = new MemberWidget(localParticipant, ui->memberListWidget);
+    }
+
+    ui->tabWidget->setVisible(false);
+    updateButtonStates();
 
     // Timer for video rendering and periodic updates
     auto *timer = new QTimer(this);
     timer->setInterval(16);
     connect(timer, &QTimer::timeout, this, &InMeeting::onTimer);
     timer->start();
-
-    if (meetingSession_->start()) {
-        localParticipantId_ = meetingSession_->localParticipantId();
-        auto *participant = new ParticipantWidget(this);
-        QString localDisplayName = meetingSession_->localParticipantName().trimmed();
-        if (localDisplayName.isEmpty()) {
-            localDisplayName = context.displayName.trimmed();
-        }
-        if (localDisplayName.isEmpty()) {
-            localDisplayName = localParticipantId_;
-        }
-        participant->setName(formatMemberDisplayName(localParticipantId_, localDisplayName));
-        participantWidgets_[localParticipantId_] = participant;
-
-        // If camera was auto-started during session start, set the video track to local participant
-        if (meetingSession_->cameraState() == MeetingSessionMediaState::On) {
-            const QString videoTrackSid = meetingSession_->localVideoTrackSid();
-            if (!videoTrackSid.isEmpty()) {
-                participant->setVideoTrackSid(videoTrackSid);
-            }
-        }
-    }
-
-    ui->tabWidget->setVisible(false);
-    ensureMemberListWidget();
-    updateMemberList();
-    updateButtonStates();
-    updateVideoWidgets();
 }
 
 InMeeting::~InMeeting()
@@ -101,46 +81,71 @@ InMeeting::~InMeeting()
     delete ui;
 }
 
-void InMeeting::toggleMute()
+void InMeeting::updateButtonStates()
+{
+    const auto micState = meetingSession_->microphoneState();
+    const auto camState = meetingSession_->cameraState();
+    const auto screenShareState = meetingSession_->screenShareState();
+    const auto recordingState = meetingSession_->recordingState();
+
+    ui->micBtn->setText(micState == MeetingSessionMediaState::On ? "关闭麦克风" : "开启麦克风");
+    ui->camBtn->setText(camState == MeetingSessionMediaState::On ? "关闭摄像头" : "开启摄像头");
+    ui->shareBtn->setText(screenShareState == MeetingSessionMediaState::On ? "停止共享" : "开始共享");
+    ui->recordBtn->setText(recordingState == MeetingSessionMediaState::On ? "停止录制" : "开始录制");
+}
+
+void InMeeting::toggleAudio()
 {
     qInfo() << __FUNCTION__;
+    QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (meetingSession_->microphoneState() == MeetingSessionMediaState::On) {
         meetingSession_->stopAudio();
     } else {
         meetingSession_->startAudio();
     }
+
+    button->setText(meetingSession_->microphoneState() == MeetingSessionMediaState::On ? "关闭麦克风" : "开启麦克风");
+
 }
 
 void InMeeting::toggleVideo()
 {
     qInfo() << __FUNCTION__;
-    GLWidget *localGLWidget = participantWidgetGlWidget(localParticipantId_);
-    if (!localGLWidget) {
-        return;
-    }
-
+    QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (meetingSession_->cameraState() != MeetingSessionMediaState::On) {
-        if (meetingSession_->startVideo()) {
-            localGLWidget->setVideoTrackSid(meetingSession_->localVideoTrackSid());
-        }
+        meetingSession_->startVideo();
     } else {
         meetingSession_->stopVideo();
-        localGLWidget->setVideoTrackSid(QString());
     }
+
+    button->setText(meetingSession_->cameraState() == MeetingSessionMediaState::On ? "关闭摄像头" : "开启摄像头");
+
 }
 
 void InMeeting::toggleRecord()
 {
     qInfo() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
-    if (button) {
-        button->setText(button->text() == "录制" ? "停止录制" : "录制");
+    if (meetingSession_->recordingState() != MeetingSessionMediaState::On) {
+        meetingSession_->startRecording();
+    } else {
+        meetingSession_->stopRecording();
     }
+
+    button->setText(meetingSession_->recordingState() == MeetingSessionMediaState::On ? "停止录制" : "开始录制");
 }
 
-void InMeeting::startShare()
+void InMeeting::toggleShare()
 {
     qInfo() << __FUNCTION__;
+    QPushButton *button = qobject_cast<QPushButton *>(sender());
+    if (meetingSession_->screenShareState() != MeetingSessionMediaState::On) {
+        meetingSession_->startShare();
+    } else {
+        meetingSession_->stopShare();
+    }
+
+    button->setText(meetingSession_->screenShareState() == MeetingSessionMediaState::On ? "停止共享" : "开始共享");
 }
 
 void InMeeting::sendMsg()
@@ -151,15 +156,8 @@ void InMeeting::sendMsg()
 void InMeeting::toggleMember()
 {
     qInfo() << __FUNCTION__;
-
-    if (!ui->tabWidget) {
-        return;
-    }
-
-    const bool shouldShowMemberTab = !ui->tabWidget->isVisible() || ui->tabWidget->currentIndex() != 0;
-    if (shouldShowMemberTab) {
-        ensureMemberListWidget();
-        updateMemberList();
+    const bool visible = !ui->tabWidget->isVisible() || ui->tabWidget->currentIndex() != 0;
+    if (visible) {
         ui->tabWidget->setCurrentIndex(0);
         ui->tabWidget->setVisible(true);
         return;
@@ -176,7 +174,14 @@ void InMeeting::inviteUser()
 void InMeeting::toggleChat()
 {
     qInfo() << __FUNCTION__;
-    toggleSideTab(1);
+    const bool visible = ui->tabWidget->isVisible() || ui->tabWidget->currentIndex() != 1;
+     if (visible) {
+        ui->tabWidget->setCurrentIndex(1);
+        ui->tabWidget->setVisible(true);
+        return;
+    }
+
+    ui->tabWidget->setVisible(false);
 }
 
 void InMeeting::openApps()
@@ -190,365 +195,220 @@ void InMeeting::endMeeting()
     close();
 }
 
-void InMeeting::onParticipantJoined(const QString &participantId, const QString &name)
+void InMeeting::onParticipantJoined(const QString &participantId)
 {
     qInfo() << __FUNCTION__
-            << "new participant joined, name=" << name
-            << "id=" << participantId;
-
-    ensureParticipantWidget(participantId, name);
-
-    updateMemberList();
-    refreshParticipantViews();
-}
-
-void InMeeting::onParticipantLeft(const QString &participantId, const QString &name){
-    qInfo() << __FUNCTION__
-            << "participant left, name=" << name
-            << "id=" << participantId;
-
-    // Clean up participant data in meeting session (clears name cache and track mappings)
-    meetingSession_->clearParticipantData(participantId);
-
-    // Remove participant widget from UI
-    auto it = participantWidgets_.find(participantId);
-    if (it != participantWidgets_.end()) {
-        ParticipantWidget *participant = it.value();
-        if (participant) {
-            participant->deleteLater();
-        }
-        participantWidgets_.erase(it);
-    }
-
-    updateMemberList();
-    refreshParticipantViews();
-}
-
-void InMeeting::onTrackSubscribed(const QString &trackSid, const QString &trackName, 
-    const QString &participantId, int trackKind)
-{
-    qInfo() << __FUNCTION__ 
-            << "track subscribed, track_sid=" << trackSid
-            << "track_name=" << trackName
-            << "participant_id=" << participantId
-            << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
-
-    ensureParticipantWidget(participantId);
-    GLWidget *glWidget = participantWidgetGlWidget(participantId);
-
-    if (!glWidget) {
+            << "new participant joined, id=" << participantId;
+    if (participantId.isEmpty()) {
+        qWarning() << __FUNCTION__ << "participantId is empty, ignoring";
         return;
     }
 
-    applyTrackToWidget(glWidget, static_cast<TrackKind>(trackKind), trackSid);
+    const auto &remoteParticipants = meetingSession_->remoteParticipants();
+    if (!participantWidgets_.contains(participantId)) {
+        participantWidgets_.emplace(participantId, new ParticipantWidget(remoteParticipants[participantId], this));
+    }
+    else {
+        qWarning() << __FUNCTION__ << "participant widget with id" << participantId << "already exists, ignoring";
+    }
 
-    refreshParticipantViews();
+    if (!memberWidgets_.contains(participantId)) {
+        memberWidgets_.emplace(participantId, new MemberWidget(remoteParticipants[participantId], ui->memberListWidget));
+    }
+    else {
+        qWarning() << __FUNCTION__ << "member widget with id" << participantId << "already exists, ignoring";
+    }
+
+    updateMemberWidgets();
+    updateParticipantWidgets();
 }
 
-void InMeeting::onTrackUnsubscribed(const QString &trackSid, const QString &trackName,
-    const QString &participantId, int trackKind)
+void InMeeting::onParticipantLeft(const QString &participantId)
 {
     qInfo() << __FUNCTION__
-            << "track unsubscribed, track_sid=" << trackSid
-            << "track_name=" << trackName
-            << "participant_id=" << participantId
-            << "track_kind=" << trackKindToMediaTypeString(static_cast<TrackKind>(trackKind));
-
-    ParticipantWidget *participant = participantWidgetById(participantId);
-    if (!participant) {
-        return;  // ParticipantWidget already removed
-    }
-
-    GLWidget *glWidget = participant->getGLWidget();
-
-    if (!glWidget) {
+            << "participant left, id=" << participantId;
+    if (participantId.isEmpty()) {
+        qWarning() << __FUNCTION__ << "participantId is empty, ignoring";
         return;
     }
 
-    clearTrackFromWidget(glWidget, static_cast<TrackKind>(trackKind), trackSid);
-    if (static_cast<TrackKind>(trackKind) == TrackKind::AUDIO) {
-        participant->setAudioStatus(0.0f, false);
+    const auto &remoteParticipants = meetingSession_->remoteParticipants();
+    if (!participantWidgets_.contains(participantId)) {
+        qWarning() << __FUNCTION__ << "participant widget with id" << participantId << "not found, ignoring";
+    }
+    else {
+        participantWidgets_[participantId]->deleteLater();
+        participantWidgets_.remove(participantId);
     }
 
-    const bool hasAudioTrack = !participant->audioTrackSid().isEmpty();
-    const bool hasVideoTrack = !participant->videoTrackSid().isEmpty();
-    if (participantId != localParticipantId_ && !hasAudioTrack && !hasVideoTrack) {
-        meetingSession_->clearParticipantData(participantId);
-
-        auto it = participantWidgets_.find(participantId);
-        if (it != participantWidgets_.end()) {
-            ParticipantWidget *participantToRemove = it.value();
-            if (participantToRemove) {
-                participantToRemove->deleteLater();
-            }
-            participantWidgets_.erase(it);
-        }
-
-        updateMemberList();
+    if (!memberWidgets_.contains(participantId)) {
+        qWarning() << __FUNCTION__ << "member widget with id" << participantId << "not found, ignoring";
+    }
+    else {
+        memberWidgets_[participantId]->deleteLater();
+        memberWidgets_.remove(participantId);
     }
 
-    refreshParticipantViews();
+    updateMemberWidgets();
+    updateParticipantWidgets();
 }
 
-void InMeeting::refreshParticipantViews()
+void InMeeting::onTrackSubscribed(const QString &participantId, int trackKind)
 {
-    updateAudioStatusPanel();
-    updateVideoWidgets();
-}
-
-void InMeeting::toggleSideTab(int tabIndex)
-{
-    if (!ui->tabWidget) {
+    qInfo() << __FUNCTION__
+            << "track subscribed, participant_id=" << participantId
+            << "track_kind=" << trackKindToString(static_cast<TrackKind>(trackKind));
+    if (participantId.isEmpty()) {
+        qWarning() << __FUNCTION__ << "participantId is empty, ignoring";
         return;
     }
 
-    const bool visible = ui->tabWidget->isVisible() && ui->tabWidget->currentIndex() == tabIndex;
-    ui->tabWidget->setVisible(!visible);
-    if (!visible) {
-        ui->tabWidget->setCurrentIndex(tabIndex);
+    const auto &remoteParticipants = meetingSession_->remoteParticipants();
+    if (!participantWidgets_.contains(participantId)) {
+        participantWidgets_.emplace(participantId, new ParticipantWidget(remoteParticipants[participantId], this));
     }
+    if (!memberWidgets_.contains(participantId)) {
+        memberWidgets_.emplace(participantId, new MemberWidget(remoteParticipants[participantId], ui->memberListWidget));
+    }
+
+    const TrackKind kind = static_cast<TrackKind>(trackKind);
+    if (kind == TrackKind::AUDIO) {
+        participantWidgets_[participantId]->setAudioTrackSid(remoteParticipants[participantId].audioTrackSid());
+    } else if (kind == TrackKind::VIDEO) {
+        participantWidgets_[participantId]->setVideoTrackSid(remoteParticipants[participantId].videoTrackSid());
+    }
+
+    updateMemberWidgets();
+    updateParticipantWidgets();
 }
 
-QString InMeeting::formatMemberDisplayName(const QString &participantId, const QString &baseName) const
+void InMeeting::onTrackUnsubscribed(const QString &participantId, int trackKind)
 {
-    const QString trimmedName = baseName.trimmed();
-    if (participantId == localParticipantId_) {
-        if (trimmedName.endsWith(QStringLiteral("(我)"))) {
-            return trimmedName;
-        }
-        return QStringLiteral("%1 (我)").arg(trimmedName);
-    }
-    return trimmedName;
-}
-
-void InMeeting::ensureMemberListWidget()
-{
-    if (memberListWidget_) {
+    qInfo() << __FUNCTION__
+            << "track unsubscribed, participant_id=" << participantId
+            << "track_kind=" << trackKindToString(static_cast<TrackKind>(trackKind));
+    if (participantId.isEmpty()) {
+        qWarning() << __FUNCTION__ << "participantId is empty, ignoring";
         return;
     }
 
-    if (!ui->memberTab) {
-        return;
+    const auto &remoteParticipants = meetingSession_->remoteParticipants();
+    const TrackKind kind = static_cast<TrackKind>(trackKind);
+    if (kind == TrackKind::AUDIO) {
+        participantWidgets_[participantId]->setAudioTrackSid(QString());
+        participantWidgets_[participantId]->setAudioStatus(0.0f, false);
+        memberWidgets_[participantId]->setAudioStatus(0.0f, false);
+    } else if (kind == TrackKind::VIDEO) {
+        participantWidgets_[participantId]->setVideoTrackSid(QString());
     }
 
-    auto *layout = qobject_cast<QVBoxLayout *>(ui->memberTab->layout());
-    if (!layout) {
-        layout = new QVBoxLayout(ui->memberTab);
-        layout->setContentsMargins(1, 1, 1, 1);
-        layout->setSpacing(1);
-    }
-
-    auto *listWidget = new QListWidget(ui->memberTab);
-    listWidget->setObjectName(QStringLiteral("memberListWidget"));
-    layout->addWidget(listWidget);
-    memberListWidget_ = listWidget;
+    updateMemberWidgets();
+    updateParticipantWidgets();
 }
 
-void InMeeting::updateMemberList()
+void InMeeting::updateMemberWidgets()
 {
-    ensureMemberListWidget();
-    if (!memberListWidget_) {
-        return;
+    // 先从 layout 移除（不 delete 控件，控件仍由父对象管理）
+    while (QListWidgetItem *item = ui->memberListWidget->takeItem(0)) {
+        delete item;
     }
 
-    memberWidgets_.clear();
-    memberListWidget_->clear();
+    QVector<MemberWidget*> showMembers;
+    showMembers.reserve(static_cast<qsizetype>(memberWidgets_.size() + 1));
+    showMembers.append(localMemberWidget_);
+    showMembers.append(memberWidgets_.values().toVector());
 
-    QStringList participantIds;
-    participantIds.reserve(participantWidgets_.size());
-
-    if (!localParticipantId_.isEmpty() && participantWidgets_.contains(localParticipantId_)) {
-        participantIds << localParticipantId_;
-    }
-
-    QStringList remoteIds;
-    for (auto it = participantWidgets_.cbegin(); it != participantWidgets_.cend(); ++it) {
-        if (it.key() != localParticipantId_) {
-            remoteIds << it.key();
-        }
-    }
-    std::sort(remoteIds.begin(), remoteIds.end());
-    participantIds.append(remoteIds);
-
-    for (const QString &participantId : participantIds) {
-        ParticipantWidget *participant = participantWidgetById(participantId);
-        if (!participant) {
-            continue;
-        }
-
-        QString displayName = participant->name().trimmed();
-        if (displayName.isEmpty()) {
-            displayName = meetingSession_->getParticipantDisplayName(participantId, QString());
-        }
-
-        auto *item = new QListWidgetItem(memberListWidget_);
+    for (auto memberWidget : showMembers) {
+        auto *item = new QListWidgetItem(ui->memberListWidget);
         item->setFlags(item->flags() & ~Qt::ItemIsSelectable);
-
-        auto *rowWidget = new MemberWidget(memberListWidget_);
-        rowWidget->setName(formatMemberDisplayName(participantId, displayName));
-
-        item->setSizeHint(rowWidget->sizeHint());
-        memberListWidget_->addItem(item);
-        memberListWidget_->setItemWidget(item, rowWidget);
-        memberWidgets_.insert(participantId, rowWidget);
+        item->setSizeHint(memberWidget->sizeHint());
+        ui->memberListWidget->addItem(item);
+        ui->memberListWidget->setItemWidget(item, memberWidget);
     }
-
-    const AudioLevelInfo localAudio = meetingSession_->localAudioLevel();
-    const bool localSpeaking = meetingSession_->isLocalAudioSpeaking();
-    const QHash<QString, AudioLevelInfo> remoteAudioMap = buildRemoteParticipantAudioMap();
-    updateMemberAudioBars(localAudio, localSpeaking, remoteAudioMap);
 }
 
-QHash<QString, AudioLevelInfo> InMeeting::buildRemoteParticipantAudioMap() const
+void InMeeting::updateParticipantWidgets()
 {
-    QHash<QString, AudioLevelInfo> participantAudioMap;
-    const auto remoteLevels = meetingSession_->remoteAudioLevels();
+    qInfo() << __FUNCTION__;
+    // 先从 layout 移除（不 delete 控件，控件仍由父对象管理）
+    while (QLayoutItem *item = ui->userGridLayout->takeAt(0)) {
+        delete item;
+    }
 
-    for (auto it = remoteLevels.begin(); it != remoteLevels.end(); ++it) {
-        const QString participantId = meetingSession_->getParticipantIdByTrackSid(it.key());
-        if (participantId.isEmpty()) {
-            continue;
+    // 本地优先，远端按 id 排序——单次遍历直接收集指针，避免二次 find()
+    QVector<ParticipantWidget*> showParticipants;
+    showParticipants.reserve(participantWidgets_.size() + 1);
+
+    showParticipants.append(localParticipantWidget_);
+    showParticipants.append(participantWidgets_.values().toVector());
+
+    const int n = static_cast<int>(showParticipants.size());
+
+    // 列数基于实际有效 widget 数量
+    const int cols = qMax(1, qCeil(qSqrt(static_cast<double>(n))));
+    const int rows = (n + cols - 1) / cols;
+
+    // 清除旧的拉伸因子，防止布局缩小时遗留残值
+    for (int c = 0; c < ui->userGridLayout->columnCount(); ++c) {
+        ui->userGridLayout->setColumnStretch(c, 0);
+    }
+    for (int r = 0; r < ui->userGridLayout->rowCount(); ++r) {
+        ui->userGridLayout->setRowStretch(r, 0);
+    }
+
+    for (int i = 0; i < n; ++i) {
+        ui->userGridLayout->addWidget(showParticipants[i], i / cols, i % cols);
+    }
+
+    for (int c = 0; c < cols; ++c) {
+        ui->userGridLayout->setColumnStretch(c, 1);
+    }
+    for (int r = 0; r < rows; ++r) {
+        ui->userGridLayout->setRowStretch(r, 1);
+    }
+
+    // 缓存有序 GLWidget 指针供 onTimer 使用
+    QVector<GLWidget*> glWidgets;
+    glWidgets.reserve(static_cast<qsizetype>(showParticipants.size()));
+    for (auto *participant : showParticipants) {
+        if (participant) {
+            GLWidget *glWidget = participant->getGLWidget();
+            if (glWidget) {
+                glWidgets.push_back(glWidget);
+            }
         }
-
-        const AudioLevelInfo &audioInfo = it.value();
-        auto &aggAudioInfo = participantAudioMap[participantId];
-        aggAudioInfo.level = qMax(aggAudioInfo.level, audioInfo.level);
-        aggAudioInfo.speaking = aggAudioInfo.speaking || audioInfo.speaking;
     }
-
-    return participantAudioMap;
+    cachedOrderedWidgets_.swap(glWidgets);
 }
 
-void InMeeting::updateMemberAudioBars(const AudioLevelInfo &localAudio, bool localSpeaking,
-    const QHash<QString, AudioLevelInfo> &remoteAudioMap)
-{
-    if (memberWidgets_.isEmpty()) {
-        return;
-    }
-
-    for (auto it = memberWidgets_.begin(); it != memberWidgets_.end(); ++it) {
-        MemberWidget *member = it.value();
-        if (!member) {
-            continue;
-        }
-
-        AudioLevelInfo info;
-        if (it.key() == localParticipantId_) {
-            info = localAudio;
-            info.speaking = localSpeaking;
-        } else {
-            info = remoteAudioMap.value(it.key());
-        }
-
-        member->setAudioStatus(info.level, info.speaking);
-    }
-}
-
-ParticipantWidget *InMeeting::participantWidgetById(const QString &participantId) const
-{
-    const auto it = participantWidgets_.find(participantId);
-    return it != participantWidgets_.end() ? it.value() : nullptr;
-}
-
-ParticipantWidget *InMeeting::ensureParticipantWidget(const QString &participantId,
-    const QString &participantNameHint)
-{
-    if (ParticipantWidget *existing = participantWidgetById(participantId)) {
-        const QString displayName = meetingSession_->getParticipantDisplayName(participantId, participantNameHint);
-        if (!displayName.trimmed().isEmpty()) {
-            existing->setName(formatMemberDisplayName(participantId, displayName));
-        }
-        return existing;
-    }
-
-    const QString displayName = meetingSession_->getParticipantDisplayName(participantId, participantNameHint);
-    auto *participant = new ParticipantWidget(this);
-    participant->setName(formatMemberDisplayName(participantId, displayName));
-    participantWidgets_[participantId] = participant;
-    return participant;
-}
-
-GLWidget *InMeeting::participantWidgetGlWidget(const QString &participantId) const
-{
-    ParticipantWidget *participant = participantWidgetById(participantId);
-    return participant ? participant->getGLWidget() : nullptr;
-}
-
-void InMeeting::applyTrackToWidget(GLWidget *glWidget, TrackKind trackKind, const QString &trackSid) const
-{
-    if (!glWidget) {
-        return;
-    }
-
-    switch (trackKind) {
-    case TrackKind::AUDIO:
-        glWidget->setAudioTrackSid(trackSid);
-        break;
-    case TrackKind::VIDEO:
-        glWidget->setVideoTrackSid(trackSid);
-        break;
-    default:
-        break;
-    }
-}
-
-void InMeeting::clearTrackFromWidget(GLWidget *glWidget, TrackKind trackKind, const QString &trackSid) const
-{
-    if (!glWidget) {
-        return;
-    }
-
-    switch (trackKind) {
-    case TrackKind::AUDIO:
-        if (glWidget->audioTrackSid() == trackSid) {
-            glWidget->setAudioTrackSid(QString());
-        }
-        break;
-    case TrackKind::VIDEO:
-        if (glWidget->videoTrackSid() == trackSid) {
-            glWidget->setVideoTrackSid(QString());
-        }
-        break;
-    default:
-        break;
-    }
-}
 
 void InMeeting::updateAudioStatusPanel()
 {
     if (!meetingSession_) {
         return;
     }
-
-    // Update local participant audio status
-    const AudioLevelInfo local_level = meetingSession_->localAudioLevel();
-    const bool local_speaking = meetingSession_->isLocalAudioSpeaking();
-    const auto localIt = participantWidgets_.find(localParticipantId_);
-    if (localIt != participantWidgets_.end() && localIt.value()) {
-        localIt.value()->setAudioStatus(local_level.level, local_speaking);
+    
+    // update local audio status
+    if (meetingSession_->localAudioLevel().speaking) {
+        localMemberWidget_->setAudioStatus(meetingSession_->localAudioLevel().level, true);
+        localParticipantWidget_->setAudioStatus(meetingSession_->localAudioLevel().level, true);
+    } else {
+        localMemberWidget_->setAudioStatus(0.0f, false);
+        localParticipantWidget_->setAudioStatus(0.0f, false);
     }
 
-    const QHash<QString, AudioLevelInfo> participantAudioMap = buildRemoteParticipantAudioMap();
-
-    // Update all remote participants' audio status
-    for (auto it = participantWidgets_.begin(); it != participantWidgets_.end(); ++it) {
-        const QString &participantId = it.key();
-        auto *participant = it.value();
-        
-        if (!participant || participantId == localParticipantId_) {
-            continue;
+    // update remote audio status
+    auto remoteLevels = meetingSession_->remoteAudioLevels();
+    for (auto it = remoteLevels.begin(); it != remoteLevels.end(); ++it) {
+        auto participant = meetingSession_->findParticipantByTrackSid(QString::fromStdString(it->first), 
+            static_cast<int>(livekit::TrackKind::KIND_AUDIO));
+        if (memberWidgets_.contains(participant->id())) {
+            memberWidgets_[participant->id()]->setAudioStatus(it->second.level, it->second.speaking);
         }
-
-        const auto audioIt = participantAudioMap.find(participantId);
-        if (audioIt == participantAudioMap.end()) {
-            // No audio for this participant
-            participant->setAudioStatus(0.0f, false);
-        } else {
-            participant->setAudioStatus(audioIt.value().level, audioIt.value().speaking);
+        if (participantWidgets_.contains(participant->id())) {
+            participantWidgets_[participant->id()]->setAudioStatus(it->second.level, it->second.speaking);
         }
     }
-
-    updateMemberAudioBars(local_level, local_speaking, participantAudioMap);
 }
 
 void InMeeting::closeEvent(QCloseEvent *event)
@@ -596,89 +456,4 @@ void InMeeting::onTimer()
     if (++audioUpdateCounter_ % 3 == 0) {
         updateAudioStatusPanel();
     }
-}
-
-void InMeeting::updateButtonStates()
-{
-    // Update button texts based on MeetingSession state
-    if (!meetingSession_) {
-        return;
-    }
-
-    const auto micState = meetingSession_->microphoneState();
-    const auto camState = meetingSession_->cameraState();
-
-    ui->muteBtn->setText(micState == MeetingSessionMediaState::On ? "静音" : "解除静音");
-    ui->videoBtn->setText(camState == MeetingSessionMediaState::On ? "关闭视频" : "开启视频");
-}
-
-void InMeeting::updateVideoWidgets()
-{
-    qInfo() << __FUNCTION__;
-
-    // 先从 layout 移除（不 delete 控件，控件仍由父对象管理）
-    while (QLayoutItem *item = ui->userGridLayout->takeAt(0)) {
-        delete item;
-    }
-
-    // 本地优先，远端按 id 排序——单次遍历直接收集指针，避免二次 find()
-    QVector<ParticipantWidget*> orderedParticipants;
-    orderedParticipants.reserve(participantWidgets_.size());
-
-    auto localIt = participantWidgets_.find(localParticipantId_);
-    if (localIt != participantWidgets_.end() && localIt.value()) {
-        orderedParticipants.push_back(localIt.value());
-    }
-
-    QVector<QPair<QString, ParticipantWidget*>> remoteEntries;
-    remoteEntries.reserve(participantWidgets_.size());
-    for (auto widgetIt = participantWidgets_.cbegin(); widgetIt != participantWidgets_.cend(); ++widgetIt) {
-        if (widgetIt.key() != localParticipantId_ && widgetIt.value()) {
-            remoteEntries.append(qMakePair(widgetIt.key(), widgetIt.value()));
-        }
-    }
-    std::stable_sort(remoteEntries.begin(), remoteEntries.end(),
-                     [](const auto &a, const auto &b) { return a.first < b.first; });
-    for (const auto &entry : remoteEntries) {
-        orderedParticipants.push_back(entry.second);
-    }
-
-    const int n = static_cast<int>(orderedParticipants.size());
-    if (n <= 0) return;
-
-    // 列数基于实际有效 widget 数量
-    const int cols = qMax(1, qCeil(qSqrt(static_cast<double>(n))));
-    const int rows = (n + cols - 1) / cols;
-
-    // 清除旧的拉伸因子，防止布局缩小时遗留残值
-    for (int c = 0; c < ui->userGridLayout->columnCount(); ++c) {
-        ui->userGridLayout->setColumnStretch(c, 0);
-    }
-    for (int r = 0; r < ui->userGridLayout->rowCount(); ++r) {
-        ui->userGridLayout->setRowStretch(r, 0);
-    }
-
-    for (int i = 0; i < n; ++i) {
-        ui->userGridLayout->addWidget(orderedParticipants[i], i / cols, i % cols);
-    }
-
-    for (int c = 0; c < cols; ++c) {
-        ui->userGridLayout->setColumnStretch(c, 1);
-    }
-    for (int r = 0; r < rows; ++r) {
-        ui->userGridLayout->setRowStretch(r, 1);
-    }
-
-    // 缓存有序 GLWidget 指针供 onTimer 使用
-    QVector<GLWidget*> orderedWidgets;
-    orderedWidgets.reserve(static_cast<qsizetype>(orderedParticipants.size()));
-    for (auto *participant : orderedParticipants) {
-        if (participant) {
-            GLWidget *glWidget = participant->getGLWidget();
-            if (glWidget) {
-                orderedWidgets.push_back(glWidget);
-            }
-        }
-    }
-    cachedOrderedWidgets_.swap(orderedWidgets);
 }

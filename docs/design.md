@@ -145,7 +145,6 @@ UI 层只负责展示状态、收集输入和组织控件:
 ```text
 meetingNumber
 displayName
-autoConnectAudio
 startCamera
 startMicrophone
 source = join | quick | scheduled | share-screen

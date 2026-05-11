@@ -1,4 +1,5 @@
 #include "participantwidget.h"
+#include "meeting_participant.h"
 #include "glwidget.h"
 
 #include <QHBoxLayout>
@@ -9,10 +10,14 @@
 
 #include <algorithm>
 
-ParticipantWidget::ParticipantWidget(QWidget *parent)
+ParticipantWidget::ParticipantWidget(const MeetingParticipant& participant, QWidget *parent)
     : QWidget(parent)
 {
     setupUi();
+    setId(participant.id());
+    setName(participant.name());
+    setAudioTrackSid(participant.audioTrackSid());
+    setVideoTrackSid(participant.videoTrackSid());
 }
 
 ParticipantWidget::~ParticipantWidget()
@@ -46,20 +51,17 @@ void ParticipantWidget::setupUi()
     updateSpeakingStyle(false);
 }
 
+void ParticipantWidget::setId(const QString &id)
+{
+    if (glWidget_) {
+        glWidget_->setId(id);
+    }
+}
+
 void ParticipantWidget::setName(const QString &name)
 {
-    const QString trimmedName = name.trimmed();
-    if (trimmedName.isEmpty() && !participantName_.trimmed().isEmpty()) {
-        return;
-    }
-
-    if (participantName_ == name) {
-        return;
-    }
-
-    participantName_ = name;
     if (nameLabel_) {
-        nameLabel_->setText(participantName_);
+        nameLabel_->setText(QStringLiteral("%1 (我)").arg(name));
     }
     
     if (glWidget_) {
@@ -79,6 +81,11 @@ void ParticipantWidget::setVideoTrackSid(const QString &sid)
     if (glWidget_) {
         glWidget_->setVideoTrackSid(sid);
     }
+}
+
+QString ParticipantWidget::name() const
+{
+    return glWidget_ ? glWidget_->name() : QString();
 }
 
 QString ParticipantWidget::audioTrackSid() const
@@ -119,8 +126,6 @@ void ParticipantWidget::resizeEvent(QResizeEvent *event)
 
 void ParticipantWidget::setupAudioOverlay()
 {
-    // overlay 挂到 ParticipantWidget 自身，通过 resizeEvent 定位到左下角
-    // 不在 QOpenGLWidget 上添加任何 layout
     audioOverlay_ = new QWidget(this);
     audioOverlay_->setAttribute(Qt::WA_TransparentForMouseEvents);
     audioOverlay_->setStyleSheet(

@@ -8,8 +8,6 @@
 
 #include <QDebug>
 
-namespace {
-
 QString redactTokenForLog(const std::string &token) {
     if (token.empty()) {
         return QString();
@@ -66,19 +64,16 @@ const char* connectionStateToString(livekit::ConnectionState state) {
     }
 }
 
-}
-
 bool MeetingSessionCtx::isValid() const {
     return !livekitUrl.trimmed().isEmpty() && !livekitToken.trimmed().isEmpty();
 }
 
-MeetingSessionCtx MeetingSessionCtx::developmentDefaults() {
+MeetingSessionCtx MeetingSessionCtx::defaults() {
     MeetingSessionCtx context;
     context.livekitUrl = QStringLiteral(LIVEKIT_URL);
     context.livekitToken = QStringLiteral(LIVEKIT_TOKEN);
     context.meetingNumber = QStringLiteral("meetex");
-    context.displayName = QStringLiteral("Me");
-    context.joinOptions.autoConnectAudio = true;
+    context.displayName = QStringLiteral("我");
     context.joinOptions.startCamera = true;
     context.joinOptions.startMicrophone = true;
     return context;
@@ -89,11 +84,11 @@ MeetingSession::MeetingSession(const MeetingSessionCtx &context, QObject *parent
     , context_(context) {
     MediaEngine::instance().init();
     room_.setDelegate(this);
+    localParticipant_.setIsLocal(true);
 }
 
 MeetingSession::~MeetingSession() {
     shutdown();
-    room_.setDelegate(nullptr);
     MediaEngine::instance().fini();
 }
 
@@ -108,6 +103,7 @@ bool MeetingSession::start() {
     }
 
     setRoomOptions();
+
     if (!connectRoom()) {
         setRoomState(MeetingSessionRoomState::Disconnected);
         emit sigSessionError(QStringLiteral("Failed to join meeting room."));
@@ -115,6 +111,10 @@ bool MeetingSession::start() {
     }
 
     setRoomState(MeetingSessionRoomState::Connected);
+
+    // Once connected, sync meeting participants and media state
+    syncLocalParticipant();
+    syncRemoteParticipants();
 
     if (shouldStartMicrophoneOnJoin()) {
         startAudio();
@@ -131,8 +131,8 @@ void MeetingSession::shutdown() {
     const bool hasActiveRoom = roomState_ != MeetingSessionRoomState::Disconnected;
     const bool hasLocalMedia = microphoneState_ != MeetingSessionMediaState::Off
         || cameraState_ != MeetingSessionMediaState::Off
-        || !localAudioTrackSid_.isEmpty()
-        || !localVideoTrackSid_.isEmpty();
+        || !localParticipant_.audioTrackSid().isEmpty()
+        || !localParticipant_.videoTrackSid().isEmpty();
 
     if (!hasActiveRoom && !hasLocalMedia) {
         return;
@@ -142,13 +142,13 @@ void MeetingSession::shutdown() {
         setRoomState(MeetingSessionRoomState::Disconnecting);
     }
 
-    stopLocalMediaCapture(hasActiveRoom);
     disconnectRoom();
-    clearSessionCaches();
+
+    livekit::shutdown();
 }
 
 bool MeetingSession::startAudio() {
-    auto *localParticipant = getLocalParticipant();
+    auto* localParticipant = room_.localParticipant();
     if (!localParticipant) {
         setMicrophoneState(MeetingSessionMediaState::Failed);
         emit sigSessionError(QStringLiteral("No local user available to start microphone."));
@@ -160,33 +160,33 @@ bool MeetingSession::startAudio() {
     if (!MediaEngine::instance().startLocalAudio(localParticipant, localAudioSidStd)) {
         setMicrophoneState(MeetingSessionMediaState::Failed);
         emit sigSessionError(QStringLiteral("Failed to start microphone."));
-        localAudioTrackSid_.clear();
+        localParticipant_.setAudioTrackSid(QString());
         return false;
     }
-    localAudioTrackSid_ = QString::fromStdString(localAudioSidStd);
+    localParticipant_.setAudioTrackSid(QString::fromStdString(localAudioSidStd));
 
     setMicrophoneState(MeetingSessionMediaState::On);
     return true;
 }
 
 void MeetingSession::stopAudio() {
-    if (microphoneState_ == MeetingSessionMediaState::Off && localAudioTrackSid_.isEmpty()) {
+    if (microphoneState_ == MeetingSessionMediaState::Off && localParticipant_.audioTrackSid().isEmpty()) {
         return;
     }
 
     livekit::LocalParticipant *localParticipant = nullptr;
     if (roomState_ == MeetingSessionRoomState::Connected) {
-        localParticipant = getLocalParticipant();
+        localParticipant = room_.localParticipant();
     }
 
     setMicrophoneState(MeetingSessionMediaState::Stopping);
-    MediaEngine::instance().stopLocalAudio(localParticipant, localAudioTrackSid_.toStdString());
-    localAudioTrackSid_.clear();
+    MediaEngine::instance().stopLocalAudio(localParticipant, localParticipant_.audioTrackSid().toStdString());
+    localParticipant_.setAudioTrackSid(QString());
     setMicrophoneState(MeetingSessionMediaState::Off);
 }
 
 bool MeetingSession::startVideo() {
-    auto *localParticipant = getLocalParticipant();
+    auto *localParticipant = room_.localParticipant();
     if (!localParticipant) {
         setCameraState(MeetingSessionMediaState::Failed);
         emit sigSessionError(QStringLiteral("No local user available to start camera."));
@@ -198,47 +198,47 @@ bool MeetingSession::startVideo() {
     if (!MediaEngine::instance().startLocalVideo(localParticipant, localVideoSidStd)) {
         setCameraState(MeetingSessionMediaState::Failed);
         emit sigSessionError(QStringLiteral("Failed to start camera."));
-        localVideoTrackSid_.clear();
+        localParticipant_.setVideoTrackSid(QString());
         return false;
     }
-    localVideoTrackSid_ = QString::fromStdString(localVideoSidStd);
+    localParticipant_.setVideoTrackSid(QString::fromStdString(localVideoSidStd));
 
     setCameraState(MeetingSessionMediaState::On);
     return true;
 }
 
 void MeetingSession::stopVideo() {
-    if (cameraState_ == MeetingSessionMediaState::Off && localVideoTrackSid_.isEmpty()) {
+    if (cameraState_ == MeetingSessionMediaState::Off && localParticipant_.videoTrackSid().isEmpty()) {
         return;
     }
 
     livekit::LocalParticipant *localParticipant = nullptr;
     if (roomState_ == MeetingSessionRoomState::Connected) {
-        localParticipant = getLocalParticipant();
+        localParticipant = room_.localParticipant();
     }
 
     setCameraState(MeetingSessionMediaState::Stopping);
-    MediaEngine::instance().stopLocalVideo(localParticipant, localVideoTrackSid_.toStdString());
-    localVideoTrackSid_.clear();
+    MediaEngine::instance().stopLocalVideo(localParticipant, localParticipant_.videoTrackSid().toStdString());
+    localParticipant_.setVideoTrackSid(QString());
     setCameraState(MeetingSessionMediaState::Off);
 }
 
-QString MeetingSession::localParticipantId() const {
-    if (!localParticipant_) {
-        return QString();
-    }
-    return QString::fromStdString(localParticipant_->identity());
+bool MeetingSession::startShare() {
+    setScreenShareState(MeetingSessionMediaState::On);
+    return true;
 }
 
-QString MeetingSession::localParticipantName() const {
-    if (!localParticipant_) {
-        return QString();
-    }
-    return QString::fromStdString(localParticipant_->name());
+void MeetingSession::stopShare() {
+    setScreenShareState(MeetingSessionMediaState::Off);
 }
 
-QString MeetingSession::localVideoTrackSid() const {
-    return localVideoTrackSid_;
+bool MeetingSession::startRecording() {
+    setRecordingState(MeetingSessionMediaState::On);
+    return true;
+}
+
+void MeetingSession::stopRecording() {
+    setRecordingState(MeetingSessionMediaState::Off);
 }
 
 AudioLevelInfo MeetingSession::localAudioLevel() const {
@@ -249,87 +249,22 @@ bool MeetingSession::isLocalAudioSpeaking() const {
     return MediaEngine::instance().isLocalAudioSpeaking();
 }
 
-QHash<QString, AudioLevelInfo> MeetingSession::remoteAudioLevels() const {
-    const auto stdMap = MediaEngine::instance().remoteAudioLevels();
-    QHash<QString, AudioLevelInfo> qtMap;
-    for (const auto &pair : stdMap) {
-        qtMap.insert(QString::fromStdString(pair.first), pair.second);
-    }
-    return qtMap;
+std::unordered_map<std::string, AudioLevelInfo> MeetingSession::remoteAudioLevels() const {
+    return MediaEngine::instance().remoteAudioLevels();
 }
 
-QVector<MeetingSessionRemoteParticipantInfo> MeetingSession::remoteUsers() const {
-    QVector<MeetingSessionRemoteParticipantInfo> remoteUsers;
-    if (roomState_ != MeetingSessionRoomState::Connected) {
-        return remoteUsers;
-    }
-
-    const auto remoteParticipants = room_.remoteParticipants();
-    remoteUsers.reserve(static_cast<qsizetype>(remoteParticipants.size()));
-    for (const auto &participant : remoteParticipants) {
-        if (participant) {
-            remoteUsers.append(buildRemoteParticipantInfo(participant.get()));
+const MeetingParticipant* MeetingSession::findParticipantByTrackSid(const QString &trackSid, int trackKind) const {
+    for (const auto &participant : remoteParticipants_) {
+        if (static_cast<int>(livekit::TrackKind::KIND_AUDIO) == trackKind &&
+            participant.audioTrackSid() == trackSid) {
+            return &participant;
+        }
+        if (static_cast<int>(livekit::TrackKind::KIND_VIDEO) == trackKind &&
+            participant.videoTrackSid() == trackSid) {
+            return &participant;
         }
     }
-    return remoteUsers;
-}
-
-QString MeetingSession::getParticipantDisplayName(const QString &participantId, const QString &name)
-{
-    const QString trimmedName = name.trimmed();
-
-    // Check if we already have a cached name for this participant
-    const auto it = participantDisplayNames_.find(participantId);
-    if (it != participantDisplayNames_.end()) {
-        // Prefer the latest non-empty participant name over generated Guest names.
-        if (!trimmedName.isEmpty() && it.value() != trimmedName) {
-            participantDisplayNames_[participantId] = trimmedName;
-            return trimmedName;
-        }
-        return it.value();
-    }
-
-    // No cache yet - use provided name if available, otherwise generate Guest name
-    if (!trimmedName.isEmpty()) {
-        participantDisplayNames_[participantId] = trimmedName;
-        return trimmedName;
-    }
-
-    // Generate a Guest name for this participant
-    const QString guestName = QStringLiteral("Guest%1").arg(nextGuestIndex_++);
-    participantDisplayNames_[participantId] = guestName;
-    return guestName;
-}
-
-QString MeetingSession::getParticipantIdByTrackSid(const QString &trackSid) const
-{
-    const auto it = trackToParticipantMap_.find(trackSid);
-    return it != trackToParticipantMap_.end() ? it.value() : QString();
-}
-
-void MeetingSession::mapTrackToParticipant(const QString &trackSid, const QString &participantId)
-{
-    trackToParticipantMap_[trackSid] = participantId;
-}
-
-void MeetingSession::unmapTrack(const QString &trackSid)
-{
-    trackToParticipantMap_.remove(trackSid);
-}
-
-void MeetingSession::clearParticipantData(const QString &participantId)
-{
-    // Remove participant display name from cache
-    participantDisplayNames_.remove(participantId);
-
-    // Remove all track mappings for this participant
-    for (auto it = trackToParticipantMap_.begin(); it != trackToParticipantMap_.end();) {
-        if (it.value() == participantId) {
-            it = trackToParticipantMap_.erase(it);
-        } else {
-            ++it;
-        }
-    }
+    return nullptr;
 }
 
 void MeetingSession::setRoomOptions(bool autoSubscribe, bool dynacast, bool e2ee,
@@ -386,105 +321,66 @@ bool MeetingSession::connectRoom() {
     return true;
 }
 
-bool MeetingSession::disconnectRoom() {
+void MeetingSession::disconnectRoom() {
     MediaEngine::instance().stopAllAudioPlay();
     MediaEngine::instance().stopAllVideoRender();
 
     if (roomState_ == MeetingSessionRoomState::Disconnected) {
         qWarning() << __FUNCTION__ << "called but already disconnected";
-        return true;
+        return;
     }
 
     room_.setDelegate(nullptr);
     qInfo() << __FUNCTION__ << "Disconnected from room";
-    localParticipant_ = nullptr;
-    localAudioTrackSid_.clear();
-    localVideoTrackSid_.clear();
     setRoomState(MeetingSessionRoomState::Disconnected);
-
-    return true;
 }
 
-livekit::LocalParticipant *MeetingSession::getLocalParticipant() const {
+void MeetingSession::syncLocalParticipant() {
     if (roomState_ != MeetingSessionRoomState::Connected) {
         qWarning() << __FUNCTION__ << "called but not connected to room";
-        return nullptr;
+        return;
     }
-    if (!localParticipant_) {
+    if (!localParticipant_.isValid()) {
         auto *localParticipant = room_.localParticipant();
         if (!localParticipant) {
             qWarning() << __FUNCTION__ << "room has no local participant";
-            return nullptr;
+            return;
         }
-        const_cast<MeetingSession *>(this)->localParticipant_ = localParticipant;
+        localParticipant_.syncFromLivekit(localParticipant);
     }
-    return localParticipant_;
 }
 
-void MeetingSession::resetSessionMediaState() {
-    localParticipant_ = nullptr;
-    localAudioTrackSid_.clear();
-    localVideoTrackSid_.clear();
-    setMicrophoneState(MeetingSessionMediaState::Off);
-    setCameraState(MeetingSessionMediaState::Off);
-}
-
-void MeetingSession::stopLocalMediaCapture(bool unpublishTracks) {
-    if (cameraState_ != MeetingSessionMediaState::Off || !localVideoTrackSid_.isEmpty()) {
-        setCameraState(MeetingSessionMediaState::Stopping);
-        MediaEngine::instance().stopLocalVideo(unpublishTracks ? getLocalParticipant() : nullptr,
-            localVideoTrackSid_.toStdString());
-        localVideoTrackSid_.clear();
-        setCameraState(MeetingSessionMediaState::Off);
+void MeetingSession::syncRemoteParticipants() {
+    if (roomState_ != MeetingSessionRoomState::Connected) {
+        qWarning() << __FUNCTION__ << "called but not connected to room";
+        return;
     }
 
-    if (microphoneState_ != MeetingSessionMediaState::Off || !localAudioTrackSid_.isEmpty()) {
-        setMicrophoneState(MeetingSessionMediaState::Stopping);
-        MediaEngine::instance().stopLocalAudio(unpublishTracks ? getLocalParticipant() : nullptr,
-            localAudioTrackSid_.toStdString());
-        localAudioTrackSid_.clear();
-        setMicrophoneState(MeetingSessionMediaState::Off);
+    QHash<QString, MeetingParticipant> remoteParticipants;
+    auto remoteParticipantsVec = room_.remoteParticipants();
+    for (auto &participant : remoteParticipantsVec) {
+        if (participant) {
+            remoteParticipants.insert(QString::fromStdString(participant->sid()),
+                MeetingParticipant(participant.get(), false));
+        }
     }
+    remoteParticipants_.swap(remoteParticipants);
 }
 
 bool MeetingSession::shouldStartMicrophoneOnJoin() const {
-    return context_.joinOptions.autoConnectAudio && context_.joinOptions.startMicrophone;
+    return context_.joinOptions.startMicrophone;
 }
 
 bool MeetingSession::shouldStartCameraOnJoin() const {
     return context_.joinOptions.startCamera;
 }
 
-void MeetingSession::clearSessionCaches() {
-    participantDisplayNames_.clear();
-    trackToParticipantMap_.clear();
+bool MeetingSession::shouldStartScreenShareOnJoin() const {
+    return context_.joinOptions.startScreenShare;
 }
 
-MeetingSession::ParticipantEventInfo MeetingSession::buildParticipantEventInfo(
-    livekit::Participant *participant) const {
-    return {
-        participant ? QString::fromStdString(participant->identity()) : QString(),
-        participant ? QString::fromStdString(participant->name()) : QString()
-    };
-}
-
-MeetingSession::TrackEventInfo MeetingSession::buildTrackEventInfo(
-    livekit::Participant *participant, livekit::TrackPublication *publication) const {
-    const auto participantInfo = buildParticipantEventInfo(participant);
-    return {
-        participantInfo.participantId,
-        publication ? QString::fromStdString(publication->sid()) : QString(),
-        publication ? QString::fromStdString(publication->name()) : QString()
-    };
-}
-
-MeetingSessionRemoteParticipantInfo MeetingSession::buildRemoteParticipantInfo(
-    const livekit::RemoteParticipant *participant) const {
-    return {
-        QString::fromStdString(participant->identity()),
-        QString::fromStdString(participant->name()),
-        QString::fromStdString(participant->metadata())
-    };
+bool MeetingSession::shouldStartRecordingOnJoin() const {
+    return context_.joinOptions.startRecording;
 }
 
 QStringList MeetingSession::buildChangedAttributes(
@@ -513,8 +409,7 @@ void MeetingSession::logRoomSnapshot(const char *eventName, const livekit::RoomI
         << "Creation time (ms):" << info.creation_time;
 }
 
-void MeetingSession::startRemoteTrackMedia(const std::shared_ptr<livekit::Track> &track,
-    const QString &trackSid) const {
+void MeetingSession::startRemoteTrackMedia(const std::shared_ptr<livekit::Track> &track) const {
     if (!track) {
         return;
     }
@@ -524,11 +419,11 @@ void MeetingSession::startRemoteTrackMedia(const std::shared_ptr<livekit::Track>
         opts.format = livekit::VideoBufferType::RGBA;
         auto videoStream = livekit::VideoStream::fromTrack(track, opts);
         if (!videoStream) {
-            qCritical() << __FUNCTION__ << "Failed to create VideoStream for track" << trackSid;
+            qCritical() << __FUNCTION__ << "Failed to create VideoStream for track" << QString::fromStdString(track->sid());
             return;
         }
-        if (!MediaEngine::instance().startVideoRender(videoStream, trackSid.toStdString())) {
-            qCritical() << __FUNCTION__ << "video render failed for track" << trackSid;
+        if (!MediaEngine::instance().startVideoRender(videoStream, track->sid())) {
+            qCritical() << __FUNCTION__ << "video render failed for track" << QString::fromStdString(track->sid());
         }
         return;
     }
@@ -537,28 +432,27 @@ void MeetingSession::startRemoteTrackMedia(const std::shared_ptr<livekit::Track>
         livekit::AudioStream::Options opts;
         auto audioStream = livekit::AudioStream::fromTrack(track, opts);
         if (!audioStream) {
-            qCritical() << __FUNCTION__ << "Failed to create AudioStream for track" << trackSid;
+            qCritical() << __FUNCTION__ << "Failed to create AudioStream for track" << QString::fromStdString(track->sid());
             return;
         }
-        if (!MediaEngine::instance().startAudioPlay(audioStream, trackSid.toStdString())) {
-            qCritical() << __FUNCTION__ << "audio play failed for track" << trackSid;
+        if (!MediaEngine::instance().startAudioPlay(audioStream, track->sid())) {
+            qCritical() << __FUNCTION__ << "audio play failed for track" << QString::fromStdString(track->sid());
         }
     }
 }
 
-void MeetingSession::stopRemoteTrackMedia(const std::shared_ptr<livekit::Track> &track,
-    const QString &trackSid) const {
+void MeetingSession::stopRemoteTrackMedia(const std::shared_ptr<livekit::Track> &track) const {
     if (!track) {
         return;
     }
 
     if (track->kind() == livekit::TrackKind::KIND_VIDEO) {
-        MediaEngine::instance().stopVideoRender(trackSid.toStdString());
+        MediaEngine::instance().stopVideoRender(track->sid());
         return;
     }
 
     if (track->kind() == livekit::TrackKind::KIND_AUDIO) {
-        MediaEngine::instance().stopAudioPlay(trackSid.toStdString());
+        MediaEngine::instance().stopAudioPlay(track->sid());
     }
 }
 
@@ -569,40 +463,50 @@ void MeetingSession::onParticipantConnected(livekit::Room &room, const livekit::
         return;
     }
 
-    const auto participantInfo = buildParticipantEventInfo(ev.participant);
-    qDebug() << __FUNCTION__ << "participant connected: id=" << participantInfo.participantId
-        << "name=" << participantInfo.name;
-    emit sigParticipantJoined(participantInfo.participantId, participantInfo.name);
+    const QString participantId = ev.participant ? QString::fromStdString(ev.participant->identity()) : QString();
+    const QString name = ev.participant ? QString::fromStdString(ev.participant->name()) : QString();
+    qDebug() << __FUNCTION__ << "participant connected: id=" << participantId
+        << "name=" << name;
+    
+    if (participantId.isEmpty()) {
+        qWarning() << __FUNCTION__ << "participant connected event with empty participant id";
+        return;
+    }
+    
+    if (remoteParticipants_.contains(participantId)) {
+        // need to update existing participant in case of reconnection with same identity
+        qWarning() << __FUNCTION__ << "participant with id" << participantId << "already exists, update remote participants";
+        remoteParticipants_[participantId].syncFromLivekit(ev.participant);
+    } else {
+        // new remote participant, add to remoteParticipants
+        remoteParticipants_.emplace(participantId, MeetingParticipant(ev.participant, false));
+    }
+
+    emit sigParticipantJoined(participantId);
 }
 
 void MeetingSession::onParticipantsUpdated(livekit::Room &room, const livekit::ParticipantsUpdatedEvent &ev) {
     Q_UNUSED(room);
-    const QString localId = localParticipantId();
     for (const auto &participant : ev.participants) {
         if (participant) {
             const QString participantId = QString::fromStdString(participant->identity());
             const QString name = QString::fromStdString(participant->name());
-            qDebug() << __FUNCTION__ << "participant id="
-                << participantId
-                << "name=" << name;
-
-            if (!participantId.isEmpty() && participantId != localId) {
-                const QString resolvedName = getParticipantDisplayName(participantId, name);
-                emit sigParticipantJoined(participantId, resolvedName);
-            }
+            qDebug() << __FUNCTION__ << "participant id=" << participantId << "name=" << name;
         }
     }
 }
 
-void MeetingSession::onParticipantDisconnected(livekit::Room &room,
-    const livekit::ParticipantDisconnectedEvent &ev) {
+void MeetingSession::onParticipantDisconnected(livekit::Room &room, const livekit::ParticipantDisconnectedEvent &ev) {
     Q_UNUSED(room);
-    const auto participantInfo = buildParticipantEventInfo(ev.participant);
-    qDebug() << __FUNCTION__ << "participant disconnected: id=" << participantInfo.participantId
-        << "name=" << participantInfo.name << "reason=" << disconnectReasonToString(ev.reason);
+    const QString participantId = ev.participant ? QString::fromStdString(ev.participant->identity()) : QString();
+    const QString name = ev.participant ? QString::fromStdString(ev.participant->name()) : QString();
+    qDebug() << __FUNCTION__ << "participant disconnected: id=" << participantId
+        << "name=" << name << "reason=" << disconnectReasonToString(ev.reason);
+    if (remoteParticipants_.remove(participantId)) {
+        qDebug() << __FUNCTION__ << "participant with id" << participantId << "removed from remoteParticipants";
+    }
 
-    clearParticipantData(participantInfo.participantId);
-    emit sigParticipantLeft(participantInfo.participantId, participantInfo.name);
+    emit sigParticipantLeft(participantId);
 }
 
 void MeetingSession::onLocalTrackPublished(livekit::Room &room, const livekit::LocalTrackPublishedEvent &ev) {
@@ -611,8 +515,8 @@ void MeetingSession::onLocalTrackPublished(livekit::Room &room, const livekit::L
     const QString trackName = ev.publication ? QString::fromStdString(ev.publication->name()) : QString();
     qDebug() << __FUNCTION__ << "local track published: track_sid=" << trackSid
         << "name=" << trackName
-        << "kind=" << (ev.track ? trackKindToString(ev.track->kind()) : "")
-        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : "");
+        << "kind=" << (ev.track ? trackKindToString(ev.track->kind()) : QString())
+        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : QString());
 }
 
 void MeetingSession::onLocalTrackUnpublished(livekit::Room &room,
@@ -620,7 +524,9 @@ void MeetingSession::onLocalTrackUnpublished(livekit::Room &room,
     Q_UNUSED(room);
     const QString trackSid = ev.publication ? QString::fromStdString(ev.publication->sid()) : QString();
     const QString trackName = ev.publication ? QString::fromStdString(ev.publication->name()) : QString();
-    qDebug() << __FUNCTION__ << "local track unpublished: track_sid=" << trackSid << "name=" << trackName;
+    qDebug() << __FUNCTION__ << "local track unpublished: track_sid=" << trackSid
+        << "name=" << trackName
+        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : QString());
 }
 
 void MeetingSession::onLocalTrackSubscribed(livekit::Room &room, const livekit::LocalTrackSubscribedEvent &ev) {
@@ -629,63 +535,87 @@ void MeetingSession::onLocalTrackSubscribed(livekit::Room &room, const livekit::
     const QString trackName = ev.track ? QString::fromStdString(ev.track->name()) : QString();
     qDebug() << __FUNCTION__ << "local track subscribed: track_sid=" << trackSid
         << "name=" << trackName
-        << "kind=" << (ev.track ? trackKindToString(ev.track->kind()) : "");
+        << "kind=" << (ev.track ? trackKindToString(ev.track->kind()) : QString());
 }
 
 void MeetingSession::onTrackPublished(livekit::Room &room, const livekit::TrackPublishedEvent &ev) {
     Q_UNUSED(room);
-    const auto eventInfo = buildTrackEventInfo(ev.participant, ev.publication.get());
-    qDebug() << __FUNCTION__ << "track published: participant_id=" << eventInfo.participantId
-        << "track_sid=" << eventInfo.trackSid
-        << "name=" << eventInfo.trackName
-        << "kind=" << (ev.publication ? trackKindToString(ev.publication->kind()) : "")
-        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : "");
+    const QString participantId = ev.participant ? QString::fromStdString(ev.participant->identity()) : QString();
+    const QString trackSid = ev.publication ? QString::fromStdString(ev.publication->sid()) : QString();
+    const QString trackName = ev.publication ? QString::fromStdString(ev.publication->name()) : QString();
+    qDebug() << __FUNCTION__ << "track published: participant_id=" << participantId
+        << "track_sid=" << trackSid
+        << "name=" << trackName
+        << "kind=" << (ev.publication ? trackKindToString(ev.publication->kind()) : QString())
+        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : QString());
 }
 
 void MeetingSession::onTrackUnpublished(livekit::Room &room, const livekit::TrackUnpublishedEvent &ev) {
     Q_UNUSED(room);
-    const auto eventInfo = buildTrackEventInfo(ev.participant, ev.publication.get());
-    qDebug() << __FUNCTION__ << "track unpublished: participant_id=" << eventInfo.participantId
-        << "track_sid=" << eventInfo.trackSid << "name=" << eventInfo.trackName;
+    const QString participantId = ev.participant ? QString::fromStdString(ev.participant->identity()) : QString();
+    const QString trackSid = ev.publication ? QString::fromStdString(ev.publication->sid()) : QString();
+    const QString trackName = ev.publication ? QString::fromStdString(ev.publication->name()) : QString();
+    qDebug() << __FUNCTION__ << "track unpublished: participant_id=" << participantId
+        << "track_sid=" << trackSid
+        << "name=" << trackName;
 }
 
 void MeetingSession::onTrackSubscribed(livekit::Room &room, const livekit::TrackSubscribedEvent &ev) {
     Q_UNUSED(room);
-    const auto eventInfo = buildTrackEventInfo(ev.participant, ev.publication.get());
-    qDebug() << __FUNCTION__ << "track subscribed: participant_id=" << eventInfo.participantId
-        << "track_sid=" << eventInfo.trackSid
-        << "name=" << eventInfo.trackName
-        << "kind=" << (ev.track ? trackKindToString(ev.track->kind()) : "")
-        << "source=" << (ev.publication ? trackSourceToString(ev.publication->source()) : "");
+    const QString participantId = ev.participant ? QString::fromStdString(ev.participant->identity()) : QString();
+    const QString trackSid = ev.publication ? QString::fromStdString(ev.publication->sid()) : QString();
+    const QString trackName = ev.publication ? QString::fromStdString(ev.publication->name()) : QString();
+    const QString trackKind = ev.publication ? trackKindToString(ev.publication->kind()) : QString();
+    const QString trackSource = ev.publication ? trackSourceToString(ev.publication->source()) : QString();
+    qDebug() << __FUNCTION__ << "track subscribed: participant_id=" << participantId
+        << "track_sid=" << trackSid
+        << "name=" << trackName
+        << "kind=" << trackKind
+        << "source=" << trackSource;
 
-    if (!eventInfo.trackSid.isEmpty() && !eventInfo.participantId.isEmpty()) {
-        mapTrackToParticipant(eventInfo.trackSid, eventInfo.participantId);
-    }
+    startRemoteTrackMedia(ev.track);
 
     if (ev.track) {
-        const int trackKind = static_cast<int>(ev.track->kind());
-        emit sigTrackSubscribed(eventInfo.trackSid, eventInfo.trackName, eventInfo.participantId, trackKind);
+        if (remoteParticipants_.contains(participantId)) {
+            if (ev.track->kind() == livekit::TrackKind::KIND_AUDIO) {
+                remoteParticipants_[participantId].setAudioTrackSid(trackSid);
+            } else if (ev.track->kind() == livekit::TrackKind::KIND_VIDEO) {
+                remoteParticipants_[participantId].setVideoTrackSid(trackSid);
+            }
+        } else {
+            MeetingParticipant participant(ev.participant, false);
+            if (ev.track->kind() == livekit::TrackKind::KIND_AUDIO) {
+                participant.setAudioTrackSid(trackSid);
+            } else if (ev.track->kind() == livekit::TrackKind::KIND_VIDEO) {
+                participant.setVideoTrackSid(trackSid);
+            }
+            remoteParticipants_.emplace(participantId, std::move(participant));
+        }
+        emit sigTrackSubscribed(participantId, static_cast<int>(ev.track->kind()));
     }
-
-    startRemoteTrackMedia(ev.track, eventInfo.trackSid);
 }
 
 void MeetingSession::onTrackUnsubscribed(livekit::Room &room, const livekit::TrackUnsubscribedEvent &ev) {
     Q_UNUSED(room);
-    const auto eventInfo = buildTrackEventInfo(ev.participant, ev.publication.get());
-    qDebug() << __FUNCTION__ << "track unsubscribed: participant_id=" << eventInfo.participantId
-        << "track_sid=" << eventInfo.trackSid << "name=" << eventInfo.trackName;
-
-    if (!eventInfo.trackSid.isEmpty()) {
-        unmapTrack(eventInfo.trackSid);
-    }
+    const QString participantId = ev.participant ? QString::fromStdString(ev.participant->identity()) : QString();
+    const QString trackSid = ev.publication ? QString::fromStdString(ev.publication->sid()) : QString();
+    const QString trackName = ev.publication ? QString::fromStdString(ev.publication->name()) : QString();
+    qDebug() << __FUNCTION__ << "track unsubscribed: participant_id=" << participantId
+        << "track_sid=" << trackSid
+        << "name=" << trackName;
 
     if (ev.track) {
-        const int trackKind = static_cast<int>(ev.track->kind());
-        emit sigTrackUnsubscribed(eventInfo.trackSid, eventInfo.trackName, eventInfo.participantId, trackKind);
+        if (remoteParticipants_.contains(participantId)) {
+            if (ev.track->kind() == livekit::TrackKind::KIND_AUDIO) {
+                remoteParticipants_[participantId].setAudioTrackSid(QString());
+            } else if (ev.track->kind() == livekit::TrackKind::KIND_VIDEO) {
+                remoteParticipants_[participantId].setVideoTrackSid(QString());
+            }
+        }
+        emit sigTrackUnsubscribed(participantId, static_cast<int>(ev.track->kind()));
     }
 
-    stopRemoteTrackMedia(ev.track, eventInfo.trackSid);
+    stopRemoteTrackMedia(ev.track);
 }
 
 void MeetingSession::onTrackSubscriptionFailed(livekit::Room &room,
@@ -695,21 +625,28 @@ void MeetingSession::onTrackSubscriptionFailed(livekit::Room &room,
     const QString trackSid = QString::fromStdString(ev.track_sid);
     const QString errorMsg = QString::fromStdString(ev.error);
     qDebug() << __FUNCTION__ << "track subscription failed: participant_id=" << participantId
-        << "track_sid=" << trackSid << "error=" << errorMsg;
+        << "track_sid=" << trackSid
+        << "error=" << errorMsg;
 }
 
 void MeetingSession::onTrackMuted(livekit::Room &room, const livekit::TrackMutedEvent &ev) {
     Q_UNUSED(room);
-    const auto eventInfo = buildTrackEventInfo(ev.participant, ev.publication.get());
-    qDebug() << __FUNCTION__ << "track muted: participant_id=" << eventInfo.participantId
-        << "track_sid=" << eventInfo.trackSid << "name=" << eventInfo.trackName;
+    const QString participantId = ev.participant ? QString::fromStdString(ev.participant->identity()) : QString();
+    const QString trackSid = ev.publication ? QString::fromStdString(ev.publication->sid()) : QString();
+    const QString trackName = ev.publication ? QString::fromStdString(ev.publication->name()) : QString();
+    qDebug() << __FUNCTION__ << "track muted: participant_id=" << participantId
+        << "track_sid=" << trackSid
+        << "name=" << trackName;
 }
 
 void MeetingSession::onTrackUnmuted(livekit::Room &room, const livekit::TrackUnmutedEvent &ev) {
     Q_UNUSED(room);
-    const auto eventInfo = buildTrackEventInfo(ev.participant, ev.publication.get());
-    qDebug() << __FUNCTION__ << "track unmuted: participant_id=" << eventInfo.participantId
-        << "track_sid=" << eventInfo.trackSid << "name=" << eventInfo.trackName;
+    const QString participantId = ev.participant ? QString::fromStdString(ev.participant->identity()) : QString();
+    const QString trackSid = ev.publication ? QString::fromStdString(ev.publication->sid()) : QString();
+    const QString trackName = ev.publication ? QString::fromStdString(ev.publication->name()) : QString();
+    qDebug() << __FUNCTION__ << "track unmuted: participant_id=" << participantId
+        << "track_sid=" << trackSid
+        << "name=" << trackName;
 }
 
 void MeetingSession::onActiveSpeakersChanged(livekit::Room &room,
@@ -750,54 +687,50 @@ void MeetingSession::onRoomMoved(livekit::Room &room, const livekit::RoomMovedEv
 void MeetingSession::onParticipantMetadataChanged(livekit::Room &room,
     const livekit::ParticipantMetadataChangedEvent &ev) {
     Q_UNUSED(room);
-    const auto participantInfo = buildParticipantEventInfo(ev.participant);
+    const QString participantId = ev.participant ? QString::fromStdString(ev.participant->identity()) : QString();
     const QString oldMetadata = QString::fromStdString(ev.old_metadata);
     const QString newMetadata = QString::fromStdString(ev.new_metadata);
-    qDebug() << __FUNCTION__ << "participant metadata changed: participant_id=" << participantInfo.participantId
-        << "old=" << oldMetadata << "new=" << newMetadata;
+    qDebug() << __FUNCTION__ << "participant metadata changed: participant_id=" << participantId
+        << "old=" << oldMetadata
+        << "new=" << newMetadata;
 }
 
 void MeetingSession::onParticipantAttributesChanged(livekit::Room &room,
     const livekit::ParticipantAttributesChangedEvent &ev) {
     Q_UNUSED(room);
-    const auto participantInfo = buildParticipantEventInfo(ev.participant);
-    QVector<livekit::AttributeEntry> qtAttributes(
-        ev.changed_attributes.begin(), ev.changed_attributes.end());
-    const QStringList changedAttributes = buildChangedAttributes(qtAttributes);
-    qDebug() << __FUNCTION__ << "participant attributes changed: participant_id=" << participantInfo.participantId
-        << "changed attributes:" << changedAttributes.join(", ");
+    const QString participantId = ev.participant ? QString::fromStdString(ev.participant->identity()) : QString();
+    qDebug() << __FUNCTION__ << "participant attributes changed: participant_id=" << participantId
+        << "changed attributes:";
+    for (const auto &attr : ev.changed_attributes) {
+        qDebug() << "    " << QString::fromStdString(attr.key) << "=" << QString::fromStdString(attr.value);
+    }
 }
 
 void MeetingSession::onParticipantEncryptionStatusChanged(livekit::Room &room,
     const livekit::ParticipantEncryptionStatusChangedEvent &ev) {
     Q_UNUSED(room);
-    const auto participantInfo = buildParticipantEventInfo(ev.participant);
-    qDebug() << __FUNCTION__ << "participant encryption status changed: participant_id="
-        << participantInfo.participantId << "encryption enabled:" << (ev.is_encrypted ? "yes" : "no");
+    const QString participantId = ev.participant ? QString::fromStdString(ev.participant->identity()) : QString();
+    qDebug() << __FUNCTION__ << "participant encryption status changed: participant_id=" << participantId 
+        << "encryption enabled:" << (ev.is_encrypted ? "yes" : "no");
 }
 
 void MeetingSession::onConnectionQualityChanged(livekit::Room &room,
     const livekit::ConnectionQualityChangedEvent &ev) {
     Q_UNUSED(room);
-    const auto participantInfo = buildParticipantEventInfo(ev.participant);
-    qDebug() << __FUNCTION__ << "connection quality changed: participant_id="
-        << participantInfo.participantId << "quality=" << connectionQualityToString(ev.quality);
+    const QString participantId = ev.participant ? QString::fromStdString(ev.participant->identity()) : QString();
+    qDebug() << __FUNCTION__ << "connection quality changed: participant_id=" << participantId
+        << "quality=" << connectionQualityToString(ev.quality);
 }
 
 void MeetingSession::onConnectionStateChanged(livekit::Room &room,
     const livekit::ConnectionStateChangedEvent &ev) {
     Q_UNUSED(room);
-    qDebug() << __FUNCTION__ << "connection state changed: state=" << connectionStateToString(ev.state);
+    qDebug() << __FUNCTION__ << "room connection state changed: state=" << connectionStateToString(ev.state);
 }
 
 void MeetingSession::onDisconnected(livekit::Room &room, const livekit::DisconnectedEvent &ev) {
     Q_UNUSED(room);
-    qDebug() << __FUNCTION__ << "disconnected from room: reason=" << disconnectReasonToString(ev.reason);
-
-    stopLocalMediaCapture(false);
-    MediaEngine::instance().stopAllAudioPlay();
-    MediaEngine::instance().stopAllVideoRender();
-    resetSessionMediaState();
+    qDebug() << __FUNCTION__ << "room disconnected from room: reason=" << disconnectReasonToString(ev.reason);
     setRoomState(MeetingSessionRoomState::Disconnected);
 }
 
@@ -840,4 +773,22 @@ void MeetingSession::setCameraState(MeetingSessionMediaState state) {
 
     cameraState_ = state;
     emit sigCameraStateChanged(cameraState_);
+}
+
+void MeetingSession::setScreenShareState(MeetingSessionMediaState state) {
+    if (screenShareState_ == state) {
+        return;
+    }
+
+    screenShareState_ = state;
+    emit sigScreenShareStateChanged(screenShareState_);
+}
+
+void MeetingSession::setRecordingState(MeetingSessionMediaState state) {
+    if (recordingState_ == state) {
+        return;
+    }
+
+    recordingState_ = state;
+    emit sigRecordingStateChanged(recordingState_);
 }

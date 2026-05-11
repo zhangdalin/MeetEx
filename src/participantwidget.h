@@ -8,22 +8,25 @@
 class GLWidget;
 class QLabel;
 class QGraphicsDropShadowEffect;
+class MeetingParticipant;
 
 class ParticipantWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit ParticipantWidget(QWidget *parent = nullptr);
+    explicit ParticipantWidget(const MeetingParticipant& participant, QWidget *parent = nullptr);
     ~ParticipantWidget();
 
     GLWidget* getGLWidget() const { return glWidget_; }
-    QString name() const { return participantName_; }
+    QString name() const;
+    QString audioTrackSid() const;
+    QString videoTrackSid() const;
+
+    void setId(const QString &id);
     void setName(const QString &name);
     void setAudioTrackSid(const QString &sid);
     void setVideoTrackSid(const QString &sid);
-    QString audioTrackSid() const;
-    QString videoTrackSid() const;
     void setAudioStatus(float level, bool speaking);
 
 protected:
@@ -38,12 +41,10 @@ private:
     static constexpr int kCornerRadius = 6;
     static constexpr int kBorderWidth = 3;
 
-private:
     GLWidget *glWidget_ = nullptr;
     QPointer<QWidget> audioOverlay_;
     QPointer<QLabel> nameLabel_;
     QPointer<QGraphicsDropShadowEffect> speakingGlow_;
-    QString participantName_;
     int lastAudioLevel_ = -1;
     bool lastSpeaking_ = false;
 };

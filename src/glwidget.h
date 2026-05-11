@@ -20,12 +20,16 @@ public:
     explicit GLWidget(QWidget *parent = nullptr);
     ~GLWidget() override;
 
-    QString& audioTrackSid() { return audio_track_sid_; }
+    const QString& audioTrackSid() const { return audio_track_sid_; }
     void setAudioTrackSid(const QString &audio_track_sid);
 
-    QString& videoTrackSid() { return video_track_sid_; }
+    const QString& videoTrackSid() const { return video_track_sid_; }
     void setVideoTrackSid(const QString &video_track_sid);
 
+    const QString& id() const { return participant_id_; }
+    void setId(const QString &participant_id);
+
+    const QString& name() const { return participant_name_; }
     void setName(const QString &name);
 
 protected:
@@ -41,6 +45,7 @@ private:
 private:
     QString audio_track_sid_;
     QString video_track_sid_;
+    QString participant_id_;
     QString participant_name_;
     QImage avatar_image_;
     bool avatar_texture_dirty_ = false;

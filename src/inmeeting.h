@@ -16,7 +16,6 @@ class MeetingSession;
 class ParticipantWidget;
 class MemberWidget;
 class GLWidget;
-class QListWidget;
 
 namespace Ui {
 class InMeeting;
@@ -28,29 +27,27 @@ class InMeeting : public QWidget
 
 public:
     explicit InMeeting(QWidget *parent = nullptr);
-    explicit InMeeting(const MeetingSessionCtx &context, QWidget *parent = nullptr);
     ~InMeeting();
 
 signals:
     void sigClosing();
 
 public slots:
-    void toggleMute();
+    void toggleAudio();
     void toggleVideo();
     void toggleRecord();
-    void startShare();
+    void toggleShare();
     void sendMsg();
     void toggleMember();
     void inviteUser();
     void toggleChat();
     void openApps();
     void endMeeting();
-    void onParticipantJoined(const QString &participantId, const QString &name);
-    void onParticipantLeft(const QString &participantId, const QString &name);
-    void onTrackSubscribed(const QString &trackSid, const QString &trackName, 
-        const QString &participantId, int trackKind);
-    void onTrackUnsubscribed(const QString &trackSid, const QString &trackName,
-        const QString &participantId, int trackKind);
+
+    void onParticipantJoined(const QString &participantId);
+    void onParticipantLeft(const QString &participantId);
+    void onTrackSubscribed(const QString &participantId, int trackKind);
+    void onTrackUnsubscribed(const QString &participantId, int trackKind);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -58,30 +55,21 @@ protected:
 
 private:
     void onTimer();
-    void updateVideoWidgets();
+    void updateButtonStates();
+
+    void updateMemberWidgets();
+    void updateParticipantWidgets();
+
     void updateAudioStatusPanel();
-    void updateButtonStates();  // Reflect session state to UI buttons
-    void refreshParticipantViews();
-    void toggleSideTab(int tabIndex);
-    QString formatMemberDisplayName(const QString &participantId, const QString &baseName) const;
-    void ensureMemberListWidget();
-    void updateMemberList();
-    QHash<QString, AudioLevelInfo> buildRemoteParticipantAudioMap() const;
-    void updateMemberAudioBars(const AudioLevelInfo &localAudio, bool localSpeaking,
-        const QHash<QString, AudioLevelInfo> &remoteAudioMap);
-    ParticipantWidget *participantWidgetById(const QString &participantId) const;
-    ParticipantWidget *ensureParticipantWidget(const QString &participantId,
-        const QString &participantNameHint = QString());
-    GLWidget *participantWidgetGlWidget(const QString &participantId) const;
-    void applyTrackToWidget(GLWidget *glWidget, TrackKind trackKind, const QString &trackSid) const;
-    void clearTrackFromWidget(GLWidget *glWidget, TrackKind trackKind, const QString &trackSid) const;
 
     Ui::InMeeting *ui;
-    QScopedPointer<MeetingSession> meetingSession_;
+    MeetingSession* meetingSession_;
+
+    MemberWidget* localMemberWidget_;
+    ParticipantWidget* localParticipantWidget_;
+
+    QHash<QString, MemberWidget*> memberWidgets_;
     QHash<QString, ParticipantWidget*> participantWidgets_;
-    QString localParticipantId_;
-    QPointer<QListWidget> memberListWidget_;
-    QHash<QString, QPointer<MemberWidget>> memberWidgets_;
 
     // 性能优化缓存
     QVector<GLWidget*> cachedOrderedWidgets_;

@@ -37,7 +37,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="muteBtn">
+     <widget class="QPushButton" name="micBtn">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -51,12 +51,12 @@
        </size>
       </property>
       <property name="text">
-       <string>静音</string>
+       <string>麦克风</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="videoBtn">
+     <widget class="QPushButton" name="camBtn">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -70,12 +70,12 @@
        </size>
       </property>
       <property name="text">
-       <string>开启视频</string>
+       <string>摄像头</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="sharingBtn">
+     <widget class="QPushButton" name="shareBtn">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -231,11 +231,31 @@
        <attribute name="title">
         <string>成员</string>
        </attribute>
+       <widget class="QListWidget" name="memberListWidget">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>190</width>
+          <height>540</height>
+         </rect>
+        </property>
+       </widget>
       </widget>
       <widget class="QWidget" name="chartTab">
        <attribute name="title">
         <string>聊天</string>
        </attribute>
+       <widget class="QListWidget" name="chatListWidget">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>190</width>
+          <height>540</height>
+         </rect>
+        </property>
+       </widget>
       </widget>
      </widget>
     </item>
@@ -261,7 +281,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>muteBtn</sender>
+   <sender>micBtn</sender>
    <signal>clicked()</signal>
    <receiver>InMeeting</receiver>
    <slot>toggleMute()</slot>
@@ -277,7 +297,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>videoBtn</sender>
+   <sender>camBtn</sender>
    <signal>clicked()</signal>
    <receiver>InMeeting</receiver>
    <slot>toggleVideo()</slot>
@@ -293,10 +313,10 @@
    </hints>
   </connection>
   <connection>
-   <sender>sharingBtn</sender>
+   <sender>shareBtn</sender>
    <signal>clicked()</signal>
    <receiver>InMeeting</receiver>
-   <slot>startShare()</slot>
+   <slot>toggleShare()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>445</x>
@@ -409,7 +429,7 @@
   <slot>sendMsg()</slot>
   <slot>toggleMute()</slot>
   <slot>toggleVideo()</slot>
-  <slot>startShare()</slot>
+  <slot>toggleShare()</slot>
   <slot>inviteUser()</slot>
   <slot>toggleMember()</slot>
   <slot>toggleChat()</slot>
