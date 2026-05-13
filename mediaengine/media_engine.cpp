@@ -3,6 +3,7 @@
 #include "media_util.h"
 
 #include <QDebug>
+#include <QThread>
 
 void forwardLiveKitLog(livekit::LogLevel level,
                        const std::string &logger_name,
@@ -35,7 +36,7 @@ MediaEngine::MediaEngine()
 }
 
 void MediaEngine::printLiveKitVersion() {
-    qInfo() << __FUNCTION__
+    qInfo() << QThread::currentThread() << __FUNCTION__
             << "LiveKit version:" << LIVEKIT_BUILD_VERSION_FULL << "("
             << LIVEKIT_BUILD_FLAVOR << ", commit" << LIVEKIT_BUILD_COMMIT
             << ", built" << LIVEKIT_BUILD_DATE << ")";
@@ -45,20 +46,20 @@ bool MediaEngine::init() {
     printLiveKitVersion();
 
     if(!livekit::initialize(livekit::LogLevel::Trace, livekit::LogSink::kCallback)) {
-        qCritical() << __FUNCTION__ << "Failed to initialize LiveKit";
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "Failed to initialize LiveKit";
         return false;
     }
 
     livekit::setLogCallback(forwardLiveKitLog);
 
-    qInfo() << __FUNCTION__ << "Media engine initialized successfully.";
+    qInfo() << QThread::currentThread() << __FUNCTION__ << "Media engine initialized successfully.";
 
     return true;
 }
 
 bool MediaEngine::fini() {
     livekit::shutdown();
-    qInfo() << __FUNCTION__ << "Media engine finalized successfully.";
+    qInfo() << QThread::currentThread() << __FUNCTION__ << "Media engine finalized successfully.";
     return true;
 }
 
@@ -78,7 +79,7 @@ bool MediaEngine::startLocalAudio(livekit::LocalParticipant* participant, std::s
         participant->publishTrack(audioTrack, audioOpts);
         if (const auto audioPub = audioTrack->publication()) {
             sid = audioPub->sid();
-            qInfo() << __FUNCTION__ << "Published track:"
+            qInfo() << QThread::currentThread() << __FUNCTION__ << "Published track:"
                 << "SID:" << audioPub->sid()
                 << "Name:" << audioPub->name()
                 << "Kind:" << trackKindToString(audioPub->kind())
@@ -87,11 +88,11 @@ bool MediaEngine::startLocalAudio(livekit::LocalParticipant* participant, std::s
                 << "Muted:" << (audioPub->muted() ? "yes" : "no");
         } else {
             sid = audioTrack->sid();
-            qWarning() << __FUNCTION__ << "Audio track published but no publication metadata available yet.";
+            qWarning() << QThread::currentThread() << __FUNCTION__ << "Audio track published but no publication metadata available yet.";
         }
     }
     catch (const std::exception &e) {
-        qCritical() << __FUNCTION__ << "Failed to publish audio track:" << e.what();
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "Failed to publish audio track:" << e.what();
     }
 
     return media_mgr_->startMic(audioSource);
@@ -120,7 +121,7 @@ bool MediaEngine::startLocalVideo(livekit::LocalParticipant* participant, std::s
         participant->publishTrack(videoTrack, videoOpts);
         if (const auto videoPub = videoTrack->publication()) {
             sid = videoPub->sid();
-            qInfo() << __FUNCTION__ << "Published track:"
+            qInfo() << QThread::currentThread() << __FUNCTION__ << "Published track:"
                 << "SID:" << videoPub->sid()
                 << "Name:" << videoPub->name()
                 << "Kind:" << trackKindToString(videoPub->kind())
@@ -129,11 +130,11 @@ bool MediaEngine::startLocalVideo(livekit::LocalParticipant* participant, std::s
                 << "Muted:" << (videoPub->muted() ? "yes" : "no");
         } else {
             sid = videoTrack->sid();
-            qWarning() << __FUNCTION__ << "Video track published but no publication metadata available yet.";
+            qWarning() << QThread::currentThread() << __FUNCTION__ << "Video track published but no publication metadata available yet.";
         }
     }
     catch (const std::exception &e) {
-        qCritical() << __FUNCTION__ << "Failed to publish video track:" << e.what();
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "Failed to publish video track:" << e.what();
     }
 
     return media_mgr_->startCamera(videoSource, sid);

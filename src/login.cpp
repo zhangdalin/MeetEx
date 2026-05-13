@@ -1,6 +1,7 @@
 #include "login.h"
 #include "home.h"
 #include "ui_login.h"
+#include <QThread>
 
 using namespace std;
 
@@ -24,11 +25,11 @@ void Login::closeEvent(QCloseEvent *event)
     if (login_state) {
         home = make_unique<Home>();
         home->show();
-        qInfo() << __FUNCTION__ << "login logic success";
+        qInfo() << QThread::currentThread() << __FUNCTION__ << "login logic success";
         QWidget::closeEvent(event);
     }
     else {
-        qInfo() << __FUNCTION__ << "without login, exit!";
+        qInfo() << QThread::currentThread() << __FUNCTION__ << "without login, exit!";
         QCoreApplication::exit();
     }
 }

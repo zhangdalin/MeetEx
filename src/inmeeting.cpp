@@ -14,6 +14,7 @@
 #include <QListWidgetItem>
 #include <QVBoxLayout>
 #include <QTimer>
+#include <QThread>
 
 extern std::unique_ptr<QWidget> home;
 extern std::unique_ptr<QWidget> myprofile;
@@ -96,7 +97,7 @@ void InMeeting::updateButtonStates()
 
 void InMeeting::toggleAudio()
 {
-    qInfo() << __FUNCTION__;
+    qInfo() << QThread::currentThread() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (meetingSession_->microphoneState() == MeetingSessionMediaState::On) {
         meetingSession_->stopAudio();
@@ -110,7 +111,7 @@ void InMeeting::toggleAudio()
 
 void InMeeting::toggleVideo()
 {
-    qInfo() << __FUNCTION__;
+    qInfo() << QThread::currentThread() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (meetingSession_->cameraState() != MeetingSessionMediaState::On) {
         meetingSession_->startVideo();
@@ -124,7 +125,7 @@ void InMeeting::toggleVideo()
 
 void InMeeting::toggleRecord()
 {
-    qInfo() << __FUNCTION__;
+    qInfo() << QThread::currentThread() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (meetingSession_->recordingState() != MeetingSessionMediaState::On) {
         meetingSession_->startRecording();
@@ -137,7 +138,7 @@ void InMeeting::toggleRecord()
 
 void InMeeting::toggleShare()
 {
-    qInfo() << __FUNCTION__;
+    qInfo() << QThread::currentThread() << __FUNCTION__;
     QPushButton *button = qobject_cast<QPushButton *>(sender());
     if (meetingSession_->screenShareState() != MeetingSessionMediaState::On) {
         meetingSession_->startShare();
@@ -150,12 +151,12 @@ void InMeeting::toggleShare()
 
 void InMeeting::sendMsg()
 {
-    qInfo() << __FUNCTION__;
+    qInfo() << QThread::currentThread() << __FUNCTION__;
 }
 
 void InMeeting::toggleMember()
 {
-    qInfo() << __FUNCTION__;
+    qInfo() << QThread::currentThread() << __FUNCTION__;
     const bool visible = !ui->tabWidget->isVisible() || ui->tabWidget->currentIndex() != 0;
     if (visible) {
         ui->tabWidget->setCurrentIndex(0);
@@ -168,12 +169,12 @@ void InMeeting::toggleMember()
 
 void InMeeting::inviteUser()
 {
-    qInfo() << __FUNCTION__;
+    qInfo() << QThread::currentThread() << __FUNCTION__;
 }
 
 void InMeeting::toggleChat()
 {
-    qInfo() << __FUNCTION__;
+    qInfo() << QThread::currentThread() << __FUNCTION__;
     const bool visible = ui->tabWidget->isVisible() || ui->tabWidget->currentIndex() != 1;
      if (visible) {
         ui->tabWidget->setCurrentIndex(1);
@@ -186,21 +187,21 @@ void InMeeting::toggleChat()
 
 void InMeeting::openApps()
 {
-    qInfo() << __FUNCTION__;
+    qInfo() << QThread::currentThread() << __FUNCTION__;
 }
 
 void InMeeting::endMeeting()
 {
-    qInfo() << __FUNCTION__;
+    qInfo() << QThread::currentThread() << __FUNCTION__;
     close();
 }
 
 void InMeeting::onParticipantJoined(const QString &participantId)
 {
-    qInfo() << __FUNCTION__
+    qInfo() << QThread::currentThread() << __FUNCTION__
             << "new participant joined, id=" << participantId;
     if (participantId.isEmpty()) {
-        qWarning() << __FUNCTION__ << "participantId is empty, ignoring";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "participantId is empty, ignoring";
         return;
     }
 
@@ -209,14 +210,14 @@ void InMeeting::onParticipantJoined(const QString &participantId)
         participantWidgets_.emplace(participantId, new ParticipantWidget(remoteParticipants[participantId], this));
     }
     else {
-        qWarning() << __FUNCTION__ << "participant widget with id" << participantId << "already exists, ignoring";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "participant widget with id" << participantId << "already exists, ignoring";
     }
 
     if (!memberWidgets_.contains(participantId)) {
         memberWidgets_.emplace(participantId, new MemberWidget(remoteParticipants[participantId], ui->memberListWidget));
     }
     else {
-        qWarning() << __FUNCTION__ << "member widget with id" << participantId << "already exists, ignoring";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "member widget with id" << participantId << "already exists, ignoring";
     }
 
     updateMemberWidgets();
@@ -225,16 +226,16 @@ void InMeeting::onParticipantJoined(const QString &participantId)
 
 void InMeeting::onParticipantLeft(const QString &participantId)
 {
-    qInfo() << __FUNCTION__
+    qInfo() << QThread::currentThread() << __FUNCTION__
             << "participant left, id=" << participantId;
     if (participantId.isEmpty()) {
-        qWarning() << __FUNCTION__ << "participantId is empty, ignoring";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "participantId is empty, ignoring";
         return;
     }
 
     const auto &remoteParticipants = meetingSession_->remoteParticipants();
     if (!participantWidgets_.contains(participantId)) {
-        qWarning() << __FUNCTION__ << "participant widget with id" << participantId << "not found, ignoring";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "participant widget with id" << participantId << "not found, ignoring";
     }
     else {
         participantWidgets_[participantId]->deleteLater();
@@ -242,7 +243,7 @@ void InMeeting::onParticipantLeft(const QString &participantId)
     }
 
     if (!memberWidgets_.contains(participantId)) {
-        qWarning() << __FUNCTION__ << "member widget with id" << participantId << "not found, ignoring";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "member widget with id" << participantId << "not found, ignoring";
     }
     else {
         memberWidgets_[participantId]->deleteLater();
@@ -255,11 +256,11 @@ void InMeeting::onParticipantLeft(const QString &participantId)
 
 void InMeeting::onTrackSubscribed(const QString &participantId, int trackKind)
 {
-    qInfo() << __FUNCTION__
+    qInfo() << QThread::currentThread() << __FUNCTION__
             << "track subscribed, participant_id=" << participantId
             << "track_kind=" << trackKindToString(static_cast<TrackKind>(trackKind));
     if (participantId.isEmpty()) {
-        qWarning() << __FUNCTION__ << "participantId is empty, ignoring";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "participantId is empty, ignoring";
         return;
     }
 
@@ -284,11 +285,11 @@ void InMeeting::onTrackSubscribed(const QString &participantId, int trackKind)
 
 void InMeeting::onTrackUnsubscribed(const QString &participantId, int trackKind)
 {
-    qInfo() << __FUNCTION__
+    qInfo() << QThread::currentThread() << __FUNCTION__
             << "track unsubscribed, participant_id=" << participantId
             << "track_kind=" << trackKindToString(static_cast<TrackKind>(trackKind));
     if (participantId.isEmpty()) {
-        qWarning() << __FUNCTION__ << "participantId is empty, ignoring";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "participantId is empty, ignoring";
         return;
     }
 
@@ -308,10 +309,11 @@ void InMeeting::onTrackUnsubscribed(const QString &participantId, int trackKind)
 
 void InMeeting::updateMemberWidgets()
 {
+    qInfo() << QThread::currentThread() << __FUNCTION__;
     // 先从 layout 移除（不 delete 控件，控件仍由父对象管理）
-    while (QListWidgetItem *item = ui->memberListWidget->takeItem(0)) {
-        delete item;
-    }
+    // while (QListWidgetItem *item = ui->memberListWidget->takeItem(0)) {
+    //     delete item;
+    // }
 
     QVector<MemberWidget*> showMembers;
     showMembers.reserve(static_cast<qsizetype>(memberWidgets_.size() + 1));
@@ -329,7 +331,7 @@ void InMeeting::updateMemberWidgets()
 
 void InMeeting::updateParticipantWidgets()
 {
-    qInfo() << __FUNCTION__;
+    qInfo() << QThread::currentThread() << __FUNCTION__;
     // 先从 layout 移除（不 delete 控件，控件仍由父对象管理）
     while (QLayoutItem *item = ui->userGridLayout->takeAt(0)) {
         delete item;

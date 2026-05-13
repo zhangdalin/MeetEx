@@ -7,6 +7,8 @@
 #include "sharescreen.h"
 #include "settings.h"
 
+#include <QThread>
+
 using namespace std;
 
 unique_ptr<QWidget> myprofile = nullptr;
@@ -34,7 +36,7 @@ void Home::onMyProfile()
         myprofile = make_unique<MyProfile>();
         myprofile->show();
         connect(static_cast<MyProfile*>(myprofile.get()), &MyProfile::sigClosing, this, [this]{
-            qInfo() << __FUNCTION__ << "my profile windows closed";
+            qInfo() << QThread::currentThread() << __FUNCTION__ << "my profile windows closed";
             myprofile.reset();
         });
     }
@@ -49,7 +51,7 @@ void Home::onJoinMeeting()
         joinmeeting = make_unique<JoinMeeting>();
         joinmeeting->show();
         connect(static_cast<JoinMeeting*>(joinmeeting.get()), &JoinMeeting::sigClosing, this, [this]{
-            qInfo() << __FUNCTION__ << "join meeting windows closed";
+            qInfo() << QThread::currentThread() << __FUNCTION__ << "join meeting windows closed";
             joinmeeting.reset();
         });
     }
@@ -64,7 +66,7 @@ void Home::onInMeeting()
         inmeeting = make_unique<InMeeting>();
         inmeeting->show();
         connect(static_cast<InMeeting*>(inmeeting.get()), &InMeeting::sigClosing, this, [this]{
-            qInfo() << __FUNCTION__ << "in meeting windows closed";
+            qInfo() << QThread::currentThread() << __FUNCTION__ << "in meeting windows closed";
             inmeeting.reset();
         });
     }
@@ -86,7 +88,7 @@ void Home::onBookMeeting()
         bookmeeting = make_unique<BookMeeting>();
         bookmeeting->show();
         connect(static_cast<BookMeeting*>(bookmeeting.get()), &BookMeeting::sigClosing, this, [this]{
-            qInfo() << __FUNCTION__ << "book meeting windows closed";
+            qInfo() << QThread::currentThread() << __FUNCTION__ << "book meeting windows closed";
             bookmeeting.reset();
         });
     }
@@ -101,7 +103,7 @@ void Home::onShareScreen()
         sharescreen = make_unique<ShareScreen>();
         sharescreen->show();
         connect(static_cast<ShareScreen*>(sharescreen.get()), &ShareScreen::sigClosing, this, [this]{
-            qInfo() << __FUNCTION__ << "share screen windows closed";
+            qInfo() << QThread::currentThread() << __FUNCTION__ << "share screen windows closed";
             sharescreen.reset();
         });
     }
@@ -116,7 +118,7 @@ void Home::onSettings()
         settings = make_unique<Settings>();
         settings->show();
         connect(static_cast<Settings*>(settings.get()), &Settings::sigClosing, this, [this]{
-            qInfo() << __FUNCTION__ << "settings windows closed";
+            qInfo() << QThread::currentThread() << __FUNCTION__ << "settings windows closed";
             settings.reset();
         });
     }

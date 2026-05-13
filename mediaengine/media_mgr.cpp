@@ -16,6 +16,7 @@
 #include <QMediaDevices>
 
 #include <QDebug>
+#include <QThread>
 
 #include <livekit/livekit.h>
 
@@ -86,7 +87,7 @@ bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_sourc
     stopMic();
 
     if (!audio_source) {
-        qCritical() << __FUNCTION__ << "audioSource is null";
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "audioSource is null";
         return false;
     }
 
@@ -94,7 +95,7 @@ bool MediaMgr::startMic(const std::shared_ptr<livekit::AudioSource> &audio_sourc
     mic_running_.store(true, std::memory_order_relaxed);
 
     if (QMediaDevices::audioInputs().isEmpty()) {
-        qWarning() << __FUNCTION__ << "No microphone devices found, falling back to noise loop.";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "No microphone devices found, falling back to noise loop.";
         mic_using_ = false;
         mic_thread_ = std::thread(&MediaMgr::runNoiseCapLoop, this, mic_source_, std::ref(mic_running_));
         return true;
@@ -126,7 +127,7 @@ void MediaMgr::runNoiseCapLoop(const std::shared_ptr<livekit::AudioSource> &sour
         try {
             source->captureFrame(frame);
         } catch (const std::exception &e) {
-            qCritical() << __FUNCTION__ << "Error in captureFrame (noise):" << e.what();
+            qCritical() << QThread::currentThread() << __FUNCTION__ << "Error in captureFrame (noise):" << e.what();
             break;
         }
 
@@ -138,7 +139,7 @@ void MediaMgr::runNoiseCapLoop(const std::shared_ptr<livekit::AudioSource> &sour
     try {
         source->clearQueue();
     } catch (...) {
-        qWarning() << __FUNCTION__ << "Error in clearQueue (noise)";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "Error in clearQueue (noise)";
     }
 }
 
@@ -160,12 +161,12 @@ void MediaMgr::micLoop(const std::shared_ptr<livekit::AudioSource> &source,
                     try {
                         source->captureFrame(frame);
                     } catch (const std::exception &e) {
-                        qCritical() << __FUNCTION__ << "Error in captureFrame (Qt mic):" << e.what();
+                        qCritical() << QThread::currentThread() << __FUNCTION__ << "Error in captureFrame (Qt mic):" << e.what();
                     }
                 });
 
     if (!mic.init()) {
-        qWarning() << __FUNCTION__ << "Failed to init Qt mic, falling back to noise loop.";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "Failed to init Qt mic, falling back to noise loop.";
         mic_thread_ = std::thread(&MediaMgr::runNoiseCapLoop, this, mic_source_, std::ref(mic_running_));
         return;
     }
@@ -190,12 +191,12 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
     stopCamera();
 
     if (!video_source) {
-        qCritical() << __FUNCTION__ << "videoSource is null";
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "videoSource is null";
         return false;
     }
 
     if (track_sid.empty()) {
-        qCritical() << __FUNCTION__ << "track_sid is empty";
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "track_sid is empty";
         return false;
     }
 
@@ -223,7 +224,7 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
     // Check for available cameras via Qt
     const QList<QCameraDevice> cameras = QMediaDevices::videoInputs();
     if (cameras.isEmpty()) {
-        qWarning() << __FUNCTION__ << "No camera devices found, using fake video loop.";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "No camera devices found, using fake video loop.";
         cam_using_ = false;
         cam_thread_ = std::thread(&MediaMgr::runFakeVideoCapLoop, this, cam_source_, 
             std::ref(worker->frameBuff), std::ref(cam_running_));
@@ -257,14 +258,14 @@ bool MediaMgr::startCamera(const std::shared_ptr<livekit::VideoSource> &video_so
             try {
                 source->captureFrame(frame, timestampNs / 1000, livekit::VideoRotation::VIDEO_ROTATION_0);
             } catch (const std::exception &e) {
-                qCritical() << __FUNCTION__ << "Error in captureFrame (Qt cam):" << e.what();
+                qCritical() << QThread::currentThread() << __FUNCTION__ << "Error in captureFrame (Qt cam):" << e.what();
             }
         });
 
     cam_using_ = true;
 
     if (!cam_->init()) {
-        qWarning() << __FUNCTION__ << "Failed to init Qt camera, using fake video loop.";
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "Failed to init Qt camera, using fake video loop.";
         cam_using_ = false;
         cam_.reset();
         cam_thread_ = std::thread(&MediaMgr::runFakeVideoCapLoop, this, cam_source_, 
@@ -339,7 +340,7 @@ void MediaMgr::runFakeVideoCapLoop(const std::shared_ptr<livekit::VideoSource> &
             // If it expects I420, pass i420 instead.
             source->captureFrame(frame, 0, livekit::VideoRotation::VIDEO_ROTATION_0);
         } catch (const std::exception &e) {
-            qCritical() << __FUNCTION__ << "Error in captureFrame (fake video):" << e.what();
+            qCritical() << QThread::currentThread() << __FUNCTION__ << "Error in captureFrame (fake video):" << e.what();
             break;
         }
 
@@ -363,12 +364,12 @@ void MediaMgr::stopCamera() {
 
 bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid) {
     if (!audio_stream) {
-        qCritical() << __FUNCTION__ << "audioStream is null";
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "audioStream is null";
         return false;
     }
 
     if (track_sid.empty()) {
-        qCritical() << __FUNCTION__ << "track_sid is empty";
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "track_sid is empty";
         return false;
     }
 
@@ -406,7 +407,7 @@ bool MediaMgr::startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_
     try {
         worker->thread = std::thread(&MediaMgr::playbackLoop, this, track_sid, worker);
     } catch (const std::exception &e) {
-        qCritical() << __FUNCTION__
+        qCritical() << QThread::currentThread() << __FUNCTION__
                     << "failed to start playback thread for track_sid:" << QString::fromStdString(track_sid)
                     << "error:" << e.what();
         worker->running.store(false, std::memory_order_relaxed);
@@ -593,7 +594,7 @@ void MediaMgr::resetAllRemoteAudioLevels() {
 bool MediaMgr::startRender(const std::shared_ptr<livekit::VideoStream> &video_stream,
                              const std::string &track_sid) {
     if (!video_stream) {
-        qCritical() << __FUNCTION__ << "videoStream is null";
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "videoStream is null";
         return false;
     }
 
@@ -621,7 +622,7 @@ bool MediaMgr::startRender(const std::shared_ptr<livekit::VideoStream> &video_st
     try {
         worker->thread = std::thread(&MediaMgr::renderLoop, this, track_sid, worker);
     } catch (const std::exception &e) {
-        qCritical() << __FUNCTION__ 
+        qCritical() << QThread::currentThread() << __FUNCTION__ 
                 << "failed to start track_sid:" << QString::fromStdString(track_sid) 
                 << "thread:" << e.what();
 
@@ -699,7 +700,7 @@ void MediaMgr::renderLoop(const std::string &track_sid,
             try {
                 frame = frame.convert(livekit::VideoBufferType::RGBA, false);
             } catch (const std::exception &ex) {
-                qCritical() << __FUNCTION__ << "convert to RGBA failed:" << ex.what();
+                qCritical() << QThread::currentThread() << __FUNCTION__ << "convert to RGBA failed:" << ex.what();
                 continue;
             }
         }
@@ -761,7 +762,7 @@ void MediaMgr::mixLoop() {
 
     QSpkSink sink(kSampleRate, kChannels);
     if (!sink.init()) {
-        qCritical() << __FUNCTION__ << "Failed to init mix sink";
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "Failed to init mix sink";
         mix_running_.store(false, std::memory_order_relaxed);
         return;
     }

@@ -284,7 +284,7 @@
    <sender>micBtn</sender>
    <signal>clicked()</signal>
    <receiver>InMeeting</receiver>
-   <slot>toggleMute()</slot>
+   <slot>toggleAudio()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>268</x>
@@ -427,7 +427,7 @@
  </connections>
  <slots>
   <slot>sendMsg()</slot>
-  <slot>toggleMute()</slot>
+  <slot>toggleAudio()</slot>
   <slot>toggleVideo()</slot>
   <slot>toggleShare()</slot>
   <slot>inviteUser()</slot>

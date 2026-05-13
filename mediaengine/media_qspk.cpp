@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <thread>
+#include <QThread>
 
 QSpkSink::QSpkSink(int sample_rate, int channels)
     : sample_rate_(sample_rate), channels_(channels) {}
@@ -19,7 +20,7 @@ QSpkSink::~QSpkSink() {
 bool QSpkSink::init() {
     const QAudioDevice output_device = QMediaDevices::defaultAudioOutput();
     if (output_device.isNull()) {
-        qCritical() << __FUNCTION__ << "No default audio output device";
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "No default audio output device";
         return false;
     }
 
@@ -29,7 +30,7 @@ bool QSpkSink::init() {
     format.setSampleFormat(QAudioFormat::Int16);
 
     if (!output_device.isFormatSupported(format)) {
-        qCritical() << __FUNCTION__ 
+        qCritical() << QThread::currentThread() << __FUNCTION__ 
                     << "Requested output format is not supported"
                     << format.sampleRate() << format.channelCount() << format.sampleFormat();
         return false;
@@ -38,7 +39,7 @@ bool QSpkSink::init() {
     audio_sink_ = std::make_unique<QAudioSink>(output_device, format);
     device_ = audio_sink_->start();
     if (!device_) {
-        qCritical() << __FUNCTION__ << "Failed to start audio output" << audio_sink_->error();
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "Failed to start audio output" << audio_sink_->error();
         audio_sink_.reset();
         return false;
     }
@@ -61,7 +62,7 @@ void QSpkSink::enqueue(const int16_t *samples,
         const qint64 written = device_->write(data, remaining);
         if (written <= 0) {
             if (++retries > kMaxRetries) {
-                qWarning() << __FUNCTION__ << "Audio sink write stalled, dropping" << remaining << "bytes";
+                qWarning() << QThread::currentThread() << __FUNCTION__ << "Audio sink write stalled, dropping" << remaining << "bytes";
                 break;
             }
             // Sink buffer full; wait 1ms for hardware to drain then retry

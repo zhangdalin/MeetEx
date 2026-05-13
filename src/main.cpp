@@ -7,7 +7,7 @@
 #include <QTextStream>
 #include <QDateTime>
 #include <QMutex>
-
+#include <QThread>
 #include <iostream>
 
 QFile logFile;
@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
     }
 
     QObject::connect(&a, &QCoreApplication::aboutToQuit, []() {
-        // qInfo() << __FUNCTION__ << "If you have something to do before application quit, please add here.";
+        // qInfo() << QThread::currentThread() << __FUNCTION__ << "If you have something to do before application quit, please add here.";
     });
 
     auto login = std::make_unique<Login>();

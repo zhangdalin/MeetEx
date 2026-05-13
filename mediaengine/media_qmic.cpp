@@ -8,6 +8,7 @@
 #include <QIODevice>
 #include <QMediaDevices>
 #include <QDebug>
+#include <QThread>
 
 // ---------------------- QMicSource -----------------------------
 
@@ -24,7 +25,7 @@ QMicSource::~QMicSource() {
 bool QMicSource::init() {
     const QAudioDevice input_device = QMediaDevices::defaultAudioInput();
     if (input_device.isNull()) {
-        qCritical() << __FUNCTION__ << "No default audio input device";
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "No default audio input device";
         return false;
     }
 
@@ -34,7 +35,7 @@ bool QMicSource::init() {
     format.setSampleFormat(QAudioFormat::Int16);
 
     if (!input_device.isFormatSupported(format)) {
-        qCritical() << __FUNCTION__ << "Requested input format is not supported"
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "Requested input format is not supported"
                     << format.sampleRate() << format.channelCount() << format.sampleFormat();
         return false;
     }
@@ -42,7 +43,7 @@ bool QMicSource::init() {
     audio_source_ = std::make_unique<QAudioSource>(input_device, format);
     device_ = audio_source_->start();
     if (!device_) {
-        qCritical() << __FUNCTION__ << "Failed to start audio input" << audio_source_->error();
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "Failed to start audio input" << audio_source_->error();
         audio_source_.reset();
         return false;
     }
