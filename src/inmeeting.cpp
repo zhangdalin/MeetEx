@@ -68,6 +68,11 @@ InMeeting::InMeeting(QWidget *parent)
     ui->tabWidget->setVisible(false);
     updateButtonStates();
 
+    // UI 首帧后同步侧栏内容尺寸，避免首次展开 memberlist 时几何仍是 .ui 初始值
+    QTimer::singleShot(0, this, [this]() {
+        updateSidePanelGeometry();
+    });
+
     // Timer for video rendering and periodic updates
     auto *timer = new QTimer(this);
     timer->setInterval(16);
@@ -159,6 +164,7 @@ void InMeeting::toggleMember()
     if (visible) {
         ui->tabWidget->setCurrentIndex(0);
         ui->tabWidget->setVisible(true);
+        updateSidePanelGeometry();
         return;
     }
 
@@ -177,6 +183,7 @@ void InMeeting::toggleChat()
      if (visible) {
         ui->tabWidget->setCurrentIndex(1);
         ui->tabWidget->setVisible(true);
+        updateSidePanelGeometry();
         return;
     }
 
@@ -419,6 +426,16 @@ void InMeeting::closeEvent(QCloseEvent *event)
     QWidget::closeEvent(event);
 }
 
+void InMeeting::updateSidePanelGeometry()
+{
+    if (ui->memberTab && ui->memberListWidget) {
+        ui->memberListWidget->setGeometry(ui->memberTab->rect());
+    }
+    if (ui->chartTab && ui->chatListWidget) {
+        ui->chatListWidget->setGeometry(ui->chartTab->rect());
+    }
+}
+
 void InMeeting::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
@@ -443,10 +460,7 @@ void InMeeting::resizeEvent(QResizeEvent *event)
         ui->layoutWidget->setGeometry(leftMargin, toolbarY, contentWidth, toolbarHeight);
     }
 
-    // 同步成员列表尺寸，确保随窗口大小变化自动填充成员页
-    if (ui->memberTab && ui->memberListWidget) {
-        ui->memberListWidget->setGeometry(ui->memberTab->contentsRect());
-    }
+    updateSidePanelGeometry();
 }
 
 void InMeeting::onTimer()
