@@ -323,6 +323,11 @@ bool MeetingSession::connectRoom() {
 }
 
 void MeetingSession::disconnectRoom() {
+
+    // close local media
+    stopAudio();
+    stopVideo();
+
     MediaEngine::instance().stopAllAudioPlay();
     MediaEngine::instance().stopAllVideoRender();
 
