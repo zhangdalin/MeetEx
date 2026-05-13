@@ -299,6 +299,10 @@ void InMeeting::updateParticipantWidgets()
     showParticipants.append(localParticipantWidget_);
     showParticipants.append(participantWidgets_.values().toVector());
 
+    // 缓存成员小组件列表，供 updateAudioStatusPanel 高效查询
+    QVector<MemberWidget*> memberWidgets;
+    memberWidgets.reserve(showParticipants.size());
+
     for (auto *participant : showParticipants) {
         if (participant) {
             MemberWidget* memberWidget = new MemberWidget(participant->id(), participant->name(), ui->memberListWidget);
@@ -307,8 +311,10 @@ void InMeeting::updateParticipantWidgets()
             item->setSizeHint(memberWidget->sizeHint());
             ui->memberListWidget->addItem(item);
             ui->memberListWidget->setItemWidget(item, memberWidget);
+            memberWidgets.push_back(memberWidget);
         }
     }
+    cachedMemberWidgets_.swap(memberWidgets);
     
     const int n = static_cast<int>(showParticipants.size());
 
@@ -358,16 +364,20 @@ void InMeeting::updateAudioStatusPanel()
         return;
     }
 
-    QHash<QString, float> audioLevels;
-    QHash<QString, bool> speakingStates;
+    // 用单个哈希表合并音频状态，减少查询
+    struct AudioStatus {
+        float level = 0.0f;
+        bool speaking = false;
+    };
+    QHash<QString, AudioStatus> audioStatusByParticipant;
 
     // update local audio status
     const auto localAudio = meetingSession_->localAudioLevel();
     if (localParticipantWidget_) {
-        localParticipantWidget_->setAudioStatus(localAudio.speaking ? localAudio.level : 0.0f,
-                                               localAudio.speaking);
-        audioLevels.insert(localParticipantWidget_->id(), localAudio.speaking ? localAudio.level : 0.0f);
-        speakingStates.insert(localParticipantWidget_->id(), localAudio.speaking);
+        const float level = localAudio.speaking ? localAudio.level : 0.0f;
+        localParticipantWidget_->setAudioStatus(level, localAudio.speaking);
+        audioStatusByParticipant.insert(localParticipantWidget_->id(), 
+                                        {level, localAudio.speaking});
     }
 
     // update remote audio status
@@ -380,28 +390,22 @@ void InMeeting::updateAudioStatusPanel()
         }
 
         const QString participantId = participant->id();
-        audioLevels.insert(participantId, it->second.speaking ? it->second.level : 0.0f);
-        speakingStates.insert(participantId, it->second.speaking);
+        const float level = it->second.speaking ? it->second.level : 0.0f;
+        audioStatusByParticipant.insert(participantId, {level, it->second.speaking});
 
-        if (participantWidgets_.contains(participant->id())) {
-            participantWidgets_[participant->id()]->setAudioStatus(it->second.level, it->second.speaking);
+        if (participantWidgets_.contains(participantId)) {
+            participantWidgets_[participantId]->setAudioStatus(level, it->second.speaking);
         }
     }
 
-    // update member list audio status
-    for (int row = 0; row < ui->memberListWidget->count(); ++row) {
-        QListWidgetItem *item = ui->memberListWidget->item(row);
-        auto *memberWidget = dynamic_cast<MemberWidget*>(ui->memberListWidget->itemWidget(item));
+    // update member list audio status using cached widget pointers (O(n) instead of O(n²))
+    for (auto *memberWidget : cachedMemberWidgets_) {
         if (!memberWidget) {
             continue;
         }
-
         const QString memberId = memberWidget->memberId();
-        if (audioLevels.contains(memberId)) {
-            memberWidget->setAudioStatus(audioLevels.value(memberId), speakingStates.value(memberId, false));
-        } else {
-            memberWidget->setAudioStatus(0.0f, false);
-        }
+        const auto status = audioStatusByParticipant.value(memberId, {0.0f, false});
+        memberWidget->setAudioStatus(status.level, status.speaking);
     }
 }
 

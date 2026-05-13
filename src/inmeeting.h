@@ -69,6 +69,7 @@ private:
 
     // 性能优化缓存
     QVector<GLWidget*> cachedOrderedWidgets_;
+    QVector<MemberWidget*> cachedMemberWidgets_;
     int audioUpdateCounter_ = 0;
 };
 
