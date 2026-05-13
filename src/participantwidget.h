@@ -43,6 +43,7 @@ private:
     static constexpr int kBorderWidth = 3;
 
     GLWidget *glWidget_ = nullptr;
+    bool isLocalUser_ = false;
     QPointer<QWidget> audioOverlay_;
     QPointer<QLabel> nameLabel_;
     QPointer<QGraphicsDropShadowEffect> speakingGlow_;

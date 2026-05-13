@@ -12,7 +12,7 @@ class MemberWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit MemberWidget(const QString &memberId, const QString &memberName, QWidget *parent = nullptr);
+    explicit MemberWidget(const QString &memberId, const QString &memberName, bool isLocalUser = false, QWidget *parent = nullptr);
 
     QString memberId() const { return memberId_; }
     QString memberName() const { return memberName_; }
@@ -28,6 +28,7 @@ private:
     QPointer<QProgressBar> levelBar_ = nullptr;
     QString memberId_ = QString();
     QString memberName_ = QString();
+    bool isLocalUser_ = false;
     int lastAudioLevel_ = -1;
     bool lastSpeaking_ = false;
 };

@@ -12,6 +12,7 @@
 
 ParticipantWidget::ParticipantWidget(const MeetingParticipant& participant, QWidget *parent)
     : QWidget(parent)
+    , isLocalUser_(participant.isLocal())
 {
     setupUi();
     setId(participant.id());
@@ -60,12 +61,13 @@ void ParticipantWidget::setId(const QString &id)
 
 void ParticipantWidget::setName(const QString &name)
 {
+    const QString displayName = name.trimmed().isEmpty() ? QStringLiteral("Guest") : name;
     if (nameLabel_) {
-        nameLabel_->setText(QStringLiteral("%1 (我)").arg(name));
+        nameLabel_->setText(isLocalUser_ ? QStringLiteral("%1 (我)").arg(displayName) : displayName);
     }
     
     if (glWidget_) {
-        glWidget_->setName(name);
+        glWidget_->setName(displayName);
     }
 }
 

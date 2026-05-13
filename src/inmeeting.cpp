@@ -305,7 +305,8 @@ void InMeeting::updateParticipantWidgets()
 
     for (auto *participant : showParticipants) {
         if (participant) {
-            MemberWidget* memberWidget = new MemberWidget(participant->id(), participant->name(), ui->memberListWidget);
+            const bool isLocalUser = (participant == localParticipantWidget_);
+            MemberWidget* memberWidget = new MemberWidget(participant->id(), participant->name(), isLocalUser, ui->memberListWidget);
             auto *item = new QListWidgetItem(ui->memberListWidget);
             item->setFlags(item->flags() & ~Qt::ItemIsSelectable);
             item->setSizeHint(memberWidget->sizeHint());

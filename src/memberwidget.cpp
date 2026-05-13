@@ -13,12 +13,14 @@ constexpr const char *kMemberNameNormalStyle =
     "QLabel#memberNameLabel:hover { font-weight:700; }";
 }
 
-MemberWidget::MemberWidget(const QString &memberId, const QString &memberName, QWidget *parent)
+MemberWidget::MemberWidget(const QString &memberId, const QString &memberName, bool isLocalUser, QWidget *parent)
     : QWidget(parent)
     , memberId_(memberId)
     , memberName_(memberName)
+    , isLocalUser_(isLocalUser)
 {
     setupUi();
+    setMemberName(memberName_);
 }
 
 void MemberWidget::setMemberId(const QString &memberId)
@@ -32,13 +34,10 @@ void MemberWidget::setMemberId(const QString &memberId)
 
 void MemberWidget::setMemberName(const QString &memberName)
 {
-    if (memberName_ == memberName) {
-        return;
-    }
-
     memberName_ = memberName;
     if (nameLabel_) {
-        nameLabel_->setText(QStringLiteral("%1 (我)").arg(memberName_));
+        const QString displayName = memberName_.trimmed().isEmpty() ? QStringLiteral("Guest") : memberName_;
+        nameLabel_->setText(isLocalUser_ ? QStringLiteral("%1 (我)").arg(displayName) : displayName);
     }
 }
 
