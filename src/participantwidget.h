@@ -19,6 +19,7 @@ public:
     ~ParticipantWidget();
 
     GLWidget* getGLWidget() const { return glWidget_; }
+    QString id() const;
     QString name() const;
     QString audioTrackSid() const;
     QString videoTrackSid() const;

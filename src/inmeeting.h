@@ -57,7 +57,6 @@ private:
     void onTimer();
     void updateButtonStates();
 
-    void updateMemberWidgets();
     void updateParticipantWidgets();
 
     void updateAudioStatusPanel();
@@ -65,10 +64,7 @@ private:
     Ui::InMeeting *ui;
     MeetingSession* meetingSession_;
 
-    MemberWidget* localMemberWidget_;
     ParticipantWidget* localParticipantWidget_;
-
-    QHash<QString, MemberWidget*> memberWidgets_;
     QHash<QString, ParticipantWidget*> participantWidgets_;
 
     // 性能优化缓存

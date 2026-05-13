@@ -13,33 +13,32 @@ constexpr const char *kMemberNameNormalStyle =
     "QLabel#memberNameLabel:hover { font-weight:700; }";
 }
 
-MemberWidget::MemberWidget(const MeetingParticipant& participant, QWidget *parent)
+MemberWidget::MemberWidget(const QString &memberId, const QString &memberName, QWidget *parent)
     : QWidget(parent)
+    , memberId_(memberId)
+    , memberName_(memberName)
 {
     setupUi();
-    setId(participant.id());
-    setName(participant.name());
-    updateSpeakingStyle(false);
 }
 
-void MemberWidget::setId(const QString &id)
+void MemberWidget::setMemberId(const QString &memberId)
 {
-    if (memberId_ == id) {
+    if (memberId_ == memberId) {
         return;
     }
 
-    memberId_ = id;
+    memberId_ = memberId;
 }
 
-void MemberWidget::setName(const QString &name)
+void MemberWidget::setMemberName(const QString &memberName)
 {
-    if (memberName_ == name) {
+    if (memberName_ == memberName) {
         return;
     }
 
-    memberName_ = name;
+    memberName_ = memberName;
     if (nameLabel_) {
-        nameLabel_->setText(QStringLiteral("%1 (我)").arg(name));
+        nameLabel_->setText(QStringLiteral("%1 (我)").arg(memberName_));
     }
 }
 
@@ -56,8 +55,6 @@ void MemberWidget::setAudioStatus(float level, bool speaking)
     if (levelBar_) {
         levelBar_->setValue(levelInt);
     }
-
-    updateSpeakingStyle(speaking);
 }
 
 void MemberWidget::setupUi()
@@ -94,15 +91,4 @@ void MemberWidget::setupUi()
 
     rowLayout->addWidget(nameLabel_, 1);
     rowLayout->addWidget(levelBar_, 0, Qt::AlignRight | Qt::AlignVCenter);
-}
-
-void MemberWidget::updateSpeakingStyle(bool speaking)
-{
-    Q_UNUSED(speaking);
-
-    if (!nameLabel_) {
-        return;
-    }
-
-    nameLabel_->setStyleSheet(kMemberNameNormalStyle);
 }

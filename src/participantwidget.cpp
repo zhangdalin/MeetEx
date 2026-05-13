@@ -83,6 +83,11 @@ void ParticipantWidget::setVideoTrackSid(const QString &sid)
     }
 }
 
+QString ParticipantWidget::id() const
+{
+    return glWidget_ ? glWidget_->id() : QString();
+}
+
 QString ParticipantWidget::name() const
 {
     return glWidget_ ? glWidget_->name() : QString();

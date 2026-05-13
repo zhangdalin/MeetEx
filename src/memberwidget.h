@@ -7,28 +7,26 @@
 
 class QLabel;
 class QProgressBar;
-class MeetingParticipant;
 
 class MemberWidget : public QWidget
 {
 public:
-    explicit MemberWidget(const MeetingParticipant& participant, QWidget *parent = nullptr);
+    explicit MemberWidget(const QString &memberId, const QString &memberName, QWidget *parent = nullptr);
 
-    QString id() const { return memberId_; }
-    QString name() const { return memberName_; }
+    QString memberId() const { return memberId_; }
+    QString memberName() const { return memberName_; }
     void setAudioStatus(float level, bool speaking);
 
 private:
-    void setId(const QString &id);
-    void setName(const QString &name);
+    void setMemberId(const QString &memberId);
+    void setMemberName(const QString &memberName);
     void setupUi();
-    void updateSpeakingStyle(bool speaking);
 
 private:
-    QPointer<QLabel> nameLabel_;
-    QPointer<QProgressBar> levelBar_;
-    QString memberId_;
-    QString memberName_;
+    QPointer<QLabel> nameLabel_ = nullptr;
+    QPointer<QProgressBar> levelBar_ = nullptr;
+    QString memberId_ = QString();
+    QString memberName_ = QString();
     int lastAudioLevel_ = -1;
     bool lastSpeaking_ = false;
 };
