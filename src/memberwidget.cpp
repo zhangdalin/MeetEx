@@ -68,6 +68,9 @@ void MemberWidget::setupUi()
     nameLabel_ = new QLabel("Guest", this);
     nameLabel_->setObjectName(QStringLiteral("memberNameLabel"));
     nameLabel_->setAttribute(Qt::WA_Hover, true);
+    // 允许名称在窄宽度下收缩，避免把右侧音量条挤出可视区域
+    nameLabel_->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
+    nameLabel_->setMinimumWidth(0);
     nameLabel_->setStyleSheet(kMemberNameNormalStyle);
 
     levelBar_ = new QProgressBar(this);
@@ -90,4 +93,6 @@ void MemberWidget::setupUi()
 
     rowLayout->addWidget(nameLabel_, 1);
     rowLayout->addWidget(levelBar_, 0, Qt::AlignRight | Qt::AlignVCenter);
+    rowLayout->setStretch(0, 1);
+    rowLayout->setStretch(1, 0);
 }

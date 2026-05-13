@@ -442,6 +442,11 @@ void InMeeting::resizeEvent(QResizeEvent *event)
     if (ui->layoutWidget) {
         ui->layoutWidget->setGeometry(leftMargin, toolbarY, contentWidth, toolbarHeight);
     }
+
+    // 同步成员列表尺寸，确保随窗口大小变化自动填充成员页
+    if (ui->memberTab && ui->memberListWidget) {
+        ui->memberListWidget->setGeometry(ui->memberTab->contentsRect());
+    }
 }
 
 void InMeeting::onTimer()
