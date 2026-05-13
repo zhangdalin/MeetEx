@@ -10,6 +10,7 @@ class QProgressBar;
 
 class MemberWidget : public QWidget
 {
+    Q_OBJECT
 public:
     explicit MemberWidget(const QString &memberId, const QString &memberName, QWidget *parent = nullptr);
 

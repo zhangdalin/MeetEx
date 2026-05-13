@@ -357,12 +357,17 @@ void InMeeting::updateAudioStatusPanel()
     if (!meetingSession_) {
         return;
     }
-    
+
+    QHash<QString, float> audioLevels;
+    QHash<QString, bool> speakingStates;
+
     // update local audio status
-    if (meetingSession_->localAudioLevel().speaking) {
-        localParticipantWidget_->setAudioStatus(meetingSession_->localAudioLevel().level, true);
-    } else {
-        localParticipantWidget_->setAudioStatus(0.0f, false);
+    const auto localAudio = meetingSession_->localAudioLevel();
+    if (localParticipantWidget_) {
+        localParticipantWidget_->setAudioStatus(localAudio.speaking ? localAudio.level : 0.0f,
+                                               localAudio.speaking);
+        audioLevels.insert(localParticipantWidget_->id(), localAudio.speaking ? localAudio.level : 0.0f);
+        speakingStates.insert(localParticipantWidget_->id(), localAudio.speaking);
     }
 
     // update remote audio status
@@ -370,15 +375,41 @@ void InMeeting::updateAudioStatusPanel()
     for (auto it = remoteLevels.begin(); it != remoteLevels.end(); ++it) {
         auto participant = meetingSession_->findParticipantByTrackSid(QString::fromStdString(it->first), 
             static_cast<int>(livekit::TrackKind::KIND_AUDIO));
+        if (!participant) {
+            continue;
+        }
+
+        const QString participantId = participant->id();
+        audioLevels.insert(participantId, it->second.speaking ? it->second.level : 0.0f);
+        speakingStates.insert(participantId, it->second.speaking);
+
         if (participantWidgets_.contains(participant->id())) {
             participantWidgets_[participant->id()]->setAudioStatus(it->second.level, it->second.speaking);
+        }
+    }
+
+    // update member list audio status
+    for (int row = 0; row < ui->memberListWidget->count(); ++row) {
+        QListWidgetItem *item = ui->memberListWidget->item(row);
+        auto *memberWidget = dynamic_cast<MemberWidget*>(ui->memberListWidget->itemWidget(item));
+        if (!memberWidget) {
+            continue;
+        }
+
+        const QString memberId = memberWidget->memberId();
+        if (audioLevels.contains(memberId)) {
+            memberWidget->setAudioStatus(audioLevels.value(memberId), speakingStates.value(memberId, false));
+        } else {
+            memberWidget->setAudioStatus(0.0f, false);
         }
     }
 }
 
 void InMeeting::closeEvent(QCloseEvent *event)
 {
-    meetingSession_->shutdown();
+    if (meetingSession_) {
+        meetingSession_->shutdown();
+    }
     emit sigClosing();
     QWidget::closeEvent(event);
 }
