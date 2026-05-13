@@ -56,7 +56,6 @@ protected:
 private:
     void onTimer();
     void updateButtonStates();
-    void updateSidePanelGeometry();
 
     void updateParticipantWidgets();
 

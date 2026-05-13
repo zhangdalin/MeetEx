@@ -12,7 +12,8 @@
 #include <QtMath>
 #include <QListWidget>
 #include <QListWidgetItem>
-#include <QVBoxLayout>
+#include <QSignalBlocker>
+#include <QSplitter>
 #include <QTimer>
 #include <QThread>
 
@@ -66,12 +67,45 @@ InMeeting::InMeeting(QWidget *parent)
     }
 
     ui->tabWidget->setVisible(false);
-    updateButtonStates();
 
-    // UI 首帧后同步侧栏内容尺寸，避免首次展开 memberlist 时几何仍是 .ui 初始值
-    QTimer::singleShot(0, this, [this]() {
-        updateSidePanelGeometry();
-    });
+    if (ui->mainContentSplitter) {
+        auto enforceSplitterMinLeftHalf = [this]() {
+            if (!ui->mainContentSplitter) {
+                return;
+            }
+            const QList<int> sizes = ui->mainContentSplitter->sizes();
+            if (sizes.size() < 2) {
+                return;
+            }
+
+            const int total = sizes[0] + sizes[1];
+            if (total <= 0) {
+                return;
+            }
+
+            const int minLeft = total / 2;
+            if (sizes[0] < minLeft) {
+                QSignalBlocker blocker(ui->mainContentSplitter);
+                ui->mainContentSplitter->setSizes({minLeft, total - minLeft});
+            }
+        };
+
+        const int totalWidth = qMax(1, ui->mainContentSplitter->width());
+        ui->mainContentSplitter->setSizes({totalWidth * 8 / 10, totalWidth * 2 / 10});
+        connect(ui->mainContentSplitter, &QSplitter::splitterMoved, this,
+                [enforceSplitterMinLeftHalf](int, int) { enforceSplitterMinLeftHalf(); });
+
+        QTimer::singleShot(0, this, [this, enforceSplitterMinLeftHalf]() {
+            if (!ui->mainContentSplitter) {
+                return;
+            }
+            const int width = qMax(1, ui->mainContentSplitter->width());
+            ui->mainContentSplitter->setSizes({width * 8 / 10, width * 2 / 10});
+            enforceSplitterMinLeftHalf();
+        });
+    }
+
+    updateButtonStates();
 
     // Timer for video rendering and periodic updates
     auto *timer = new QTimer(this);
@@ -164,7 +198,6 @@ void InMeeting::toggleMember()
     if (visible) {
         ui->tabWidget->setCurrentIndex(0);
         ui->tabWidget->setVisible(true);
-        updateSidePanelGeometry();
         return;
     }
 
@@ -183,7 +216,6 @@ void InMeeting::toggleChat()
      if (visible) {
         ui->tabWidget->setCurrentIndex(1);
         ui->tabWidget->setVisible(true);
-        updateSidePanelGeometry();
         return;
     }
 
@@ -426,16 +458,6 @@ void InMeeting::closeEvent(QCloseEvent *event)
     QWidget::closeEvent(event);
 }
 
-void InMeeting::updateSidePanelGeometry()
-{
-    if (ui->memberTab && ui->memberListWidget) {
-        ui->memberListWidget->setGeometry(ui->memberTab->rect());
-    }
-    if (ui->chartTab && ui->chatListWidget) {
-        ui->chatListWidget->setGeometry(ui->chartTab->rect());
-    }
-}
-
 void InMeeting::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
@@ -451,16 +473,26 @@ void InMeeting::resizeEvent(QResizeEvent *event)
     const int toolbarY = qMax(topMargin, height() - bottomMargin - toolbarHeight);
     const int gridHeight = qMax(0, toolbarY - gap - topMargin);
 
-    // 通过 tabWidget 的父 widget（无名内容容器）定位整个内容区域
-    if (ui->tabWidget && ui->tabWidget->parentWidget()) {
-        ui->tabWidget->parentWidget()->setGeometry(leftMargin, topMargin, contentWidth, gridHeight);
+    // 使用主内容容器承载 splitter，保证左右区域随窗口同步缩放
+    if (ui->layoutWidget1) {
+        ui->layoutWidget1->setGeometry(leftMargin, topMargin, contentWidth, gridHeight);
     }
 
     if (ui->layoutWidget) {
         ui->layoutWidget->setGeometry(leftMargin, toolbarY, contentWidth, toolbarHeight);
     }
 
-    updateSidePanelGeometry();
+    if (ui->mainContentSplitter) {
+        const QList<int> sizes = ui->mainContentSplitter->sizes();
+        if (sizes.size() >= 2) {
+            const int total = sizes[0] + sizes[1];
+            const int minLeft = total / 2;
+            if (total > 0 && sizes[0] < minLeft) {
+                QSignalBlocker blocker(ui->mainContentSplitter);
+                ui->mainContentSplitter->setSizes({minLeft, total - minLeft});
+            }
+        }
+    }
 }
 
 void InMeeting::onTimer()

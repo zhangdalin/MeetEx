@@ -209,7 +209,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="layoutWidget">
+    <widget class="QWidget" name="layoutWidget1">
    <property name="geometry">
     <rect>
      <x>20</x>
@@ -218,43 +218,105 @@
      <height>581</height>
     </rect>
    </property>
-   <layout class="QHBoxLayout" name="mainLayout" stretch="8,2">
+     <layout class="QHBoxLayout" name="mainLayout">
     <item>
-     <layout class="QGridLayout" name="userGridLayout"/>
-    </item>
-    <item>
-     <widget class="QTabWidget" name="tabWidget">
-      <property name="currentIndex">
-       <number>0</number>
+         <widget class="QSplitter" name="mainContentSplitter">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
       </property>
-      <widget class="QWidget" name="memberTab">
-       <attribute name="title">
-        <string>成员</string>
-       </attribute>
-       <widget class="QListWidget" name="memberListWidget">
-        <property name="geometry">
-         <rect>
-          <x>0</x>
-          <y>0</y>
-          <width>190</width>
-          <height>540</height>
-         </rect>
-        </property>
-       </widget>
+            <property name="handleWidth">
+             <number>6</number>
+            </property>
+            <property name="childrenCollapsible">
+             <bool>false</bool>
+            </property>
+            <widget class="QWidget" name="gridContainer">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>8</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <layout class="QVBoxLayout" name="gridContainerLayout">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <layout class="QGridLayout" name="userGridLayout"/>
+                </item>
+             </layout>
       </widget>
-      <widget class="QWidget" name="chartTab">
-       <attribute name="title">
-        <string>聊天</string>
-       </attribute>
-       <widget class="QListWidget" name="chatListWidget">
-        <property name="geometry">
-         <rect>
-          <x>0</x>
-          <y>0</y>
-          <width>190</width>
-          <height>540</height>
-         </rect>
-        </property>
+            <widget class="QTabWidget" name="tabWidget">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>2</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="currentIndex">
+                <number>0</number>
+             </property>
+             <widget class="QWidget" name="memberTab">
+                <attribute name="title">
+                 <string>成员</string>
+                </attribute>
+                <layout class="QVBoxLayout" name="memberTabLayout">
+                 <property name="spacing">
+                    <number>0</number>
+                 </property>
+                 <property name="leftMargin">
+                    <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                    <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                    <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                    <number>0</number>
+                 </property>
+                 <item>
+                    <widget class="QListWidget" name="memberListWidget"/>
+                 </item>
+                </layout>
+             </widget>
+             <widget class="QWidget" name="chartTab">
+                <attribute name="title">
+                 <string>聊天</string>
+                </attribute>
+                <layout class="QVBoxLayout" name="chatTabLayout">
+                 <property name="spacing">
+                    <number>0</number>
+                 </property>
+                 <property name="leftMargin">
+                    <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                    <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                    <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                    <number>0</number>
+                 </property>
+                 <item>
+                    <widget class="QListWidget" name="chatListWidget"/>
+                 </item>
+                </layout>
        </widget>
       </widget>
      </widget>
