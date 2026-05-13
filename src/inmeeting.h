@@ -55,6 +55,12 @@ protected:
 
 private:
     void onTimer();
+    void setupConnections();
+    void setupSession();
+    void setupUiState();
+    void setupRuntimeConstraints();
+    void setupTimers();
+    void enforceSplitter(int pos, int index);
     void updateButtonStates();
 
     void updateParticipantWidgets();

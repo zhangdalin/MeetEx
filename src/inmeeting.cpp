@@ -44,6 +44,21 @@ InMeeting::InMeeting(QWidget *parent)
 {
     ui->setupUi(this);
 
+    setupConnections();
+    setupSession();
+    setupUiState();
+    setupRuntimeConstraints();
+    setupTimers();
+}
+
+InMeeting::~InMeeting()
+{
+    delete ui;
+}
+
+void InMeeting::setupConnections()
+{
+
     // Connect participant signals
     connect(meetingSession_, &MeetingSession::sigParticipantJoined,
             this, &InMeeting::onParticipantJoined);
@@ -53,70 +68,70 @@ InMeeting::InMeeting(QWidget *parent)
             this, &InMeeting::onTrackSubscribed);
     connect(meetingSession_, &MeetingSession::sigTrackUnsubscribed,
             this, &InMeeting::onTrackUnsubscribed);
-
     // Connect state change signals for UI updates
     connect(meetingSession_, &MeetingSession::sigMicrophoneStateChanged,
             this, &InMeeting::updateButtonStates);
     connect(meetingSession_, &MeetingSession::sigCameraStateChanged,
             this, &InMeeting::updateButtonStates);
+}
 
+void InMeeting::setupSession()
+{
     // Start the meeting session
     if (meetingSession_->start()) {
-        auto localParticipant = meetingSession_->localParticipant();
+        const auto localParticipant = meetingSession_->localParticipant();
         localParticipantWidget_ = new ParticipantWidget(localParticipant, this);
     }
+}
 
-    ui->tabWidget->setVisible(false);
+void InMeeting::setupUiState()
+{
+    updateButtonStates();
+}
 
-    if (ui->mainContentSplitter) {
-        auto enforceSplitterMinLeftHalf = [this]() {
-            if (!ui->mainContentSplitter) {
-                return;
-            }
-            const QList<int> sizes = ui->mainContentSplitter->sizes();
-            if (sizes.size() < 2) {
-                return;
-            }
+void InMeeting::setupRuntimeConstraints()
+{
+    const int totalWidth = qMax(1, ui->contentSplitter->width());
+    ui->contentSplitter->setSizes({totalWidth * 8 / 10, totalWidth * 2 / 10});
+    connect(ui->contentSplitter, &QSplitter::splitterMoved, this, &InMeeting::enforceSplitter);
 
-            const int total = sizes[0] + sizes[1];
-            if (total <= 0) {
-                return;
-            }
+    QTimer::singleShot(0, this, [this]() {
+        const int width = qMax(1, ui->contentSplitter->width());
+        const int left = width * 8 / 10;
+        ui->contentSplitter->setSizes({left, width - left});
+        enforceSplitter(left, 1);
+    });
+}
 
-            const int minLeft = total / 2;
-            if (sizes[0] < minLeft) {
-                QSignalBlocker blocker(ui->mainContentSplitter);
-                ui->mainContentSplitter->setSizes({minLeft, total - minLeft});
-            }
-        };
-
-        const int totalWidth = qMax(1, ui->mainContentSplitter->width());
-        ui->mainContentSplitter->setSizes({totalWidth * 8 / 10, totalWidth * 2 / 10});
-        connect(ui->mainContentSplitter, &QSplitter::splitterMoved, this,
-                [enforceSplitterMinLeftHalf](int, int) { enforceSplitterMinLeftHalf(); });
-
-        QTimer::singleShot(0, this, [this, enforceSplitterMinLeftHalf]() {
-            if (!ui->mainContentSplitter) {
-                return;
-            }
-            const int width = qMax(1, ui->mainContentSplitter->width());
-            ui->mainContentSplitter->setSizes({width * 8 / 10, width * 2 / 10});
-            enforceSplitterMinLeftHalf();
-        });
+void InMeeting::enforceSplitter(int pos, int index)
+{
+    const QList<int> sizes = ui->contentSplitter->sizes();
+    if (sizes.size() < 2) {
+        return;
     }
 
-    updateButtonStates();
+    const int total = sizes[0] + sizes[1];
+    if (total <= 0) {
+        return;
+    }
 
+    // splitterMoved 会提供 handle 的 index（水平双栏通常为 1）。
+    // 非 splitterMoved 场景（例如 resize 手动调用）则回退到当前左侧宽度。
+    const int leftByPos = (index == 1) ? pos : sizes[0];
+    const int minLeft = total / 2;
+    if (leftByPos < minLeft) {
+        QSignalBlocker blocker(ui->contentSplitter);
+        ui->contentSplitter->setSizes({minLeft, total - minLeft});
+    }
+}
+
+void InMeeting::setupTimers()
+{
     // Timer for video rendering and periodic updates
     auto *timer = new QTimer(this);
     timer->setInterval(16);
     connect(timer, &QTimer::timeout, this, &InMeeting::onTimer);
     timer->start();
-}
-
-InMeeting::~InMeeting()
-{
-    delete ui;
 }
 
 void InMeeting::updateButtonStates()
@@ -482,17 +497,8 @@ void InMeeting::resizeEvent(QResizeEvent *event)
         ui->layoutWidget->setGeometry(leftMargin, toolbarY, contentWidth, toolbarHeight);
     }
 
-    if (ui->mainContentSplitter) {
-        const QList<int> sizes = ui->mainContentSplitter->sizes();
-        if (sizes.size() >= 2) {
-            const int total = sizes[0] + sizes[1];
-            const int minLeft = total / 2;
-            if (total > 0 && sizes[0] < minLeft) {
-                QSignalBlocker blocker(ui->mainContentSplitter);
-                ui->mainContentSplitter->setSizes({minLeft, total - minLeft});
-            }
-        }
-    }
+    const int left = ui->contentSplitter->sizes().value(0, 0);
+    enforceSplitter(left, 1);
 }
 
 void InMeeting::onTimer()
