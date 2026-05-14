@@ -21,6 +21,8 @@ class VideoStream;
 
 class QMicSource;
 class QCamSource;
+class QTimer;
+class QObject;
 
 struct VideoFrameBuff {
     std::mutex mutex;
@@ -57,6 +59,9 @@ public:
     // Camera (local capture -> VideoSource)
     bool startCamera(const std::shared_ptr<livekit::VideoSource> &video_source, const std::string &track_sid);
     void stopCamera();
+
+    bool startScreenShare(const std::shared_ptr<livekit::VideoSource> &video_source, const std::string &track_sid);
+    void stopScreenShare();
 
     // Playback (remote audio playback)
     bool startPlayback(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid);
@@ -103,6 +108,7 @@ private:
     void runFakeVideoCapLoop(const std::shared_ptr<livekit::VideoSource> &source,
                         VideoFrameBuff& frameBuff,
                         std::atomic<bool> &running_flag);
+    void captureScreenFrame();
 
     // ---- Playback helpers ----
     void playbackLoop(const std::string &track_sid, const std::shared_ptr<PlaybackWorker> &worker);
@@ -137,6 +143,12 @@ private:
     std::thread cam_thread_;
     std::atomic<bool> cam_running_{false};
     bool cam_using_ = false;
+
+    std::shared_ptr<livekit::VideoSource> screen_source_;
+    std::unique_ptr<QTimer> screen_timer_;
+    std::unique_ptr<QObject> screen_worker_;
+    std::string screen_track_sid_;
+    bool screen_using_ = false;
 
     // Playback (remote audio)
     std::mutex playback_mutex_;

@@ -14,6 +14,12 @@
 #include <QCameraDevice>
 #include <QAudioDevice>
 #include <QMediaDevices>
+#include <QGuiApplication>
+#include <QScreen>
+#include <QImage>
+#include <QTimer>
+#include <QPixmap>
+#include <QDateTime>
 
 #include <QDebug>
 #include <QThread>
@@ -77,6 +83,7 @@ MediaMgr::MediaMgr() = default;
 MediaMgr::~MediaMgr() {
     stopMic();
     stopCamera();
+    stopScreenShare();
     stopAllPlayback();
     stopAllRenders();
 }
@@ -358,6 +365,83 @@ void MediaMgr::stopCamera() {
     }
     cam_.reset();
     cam_source_.reset();
+}
+
+bool MediaMgr::startScreenShare(const std::shared_ptr<livekit::VideoSource> &video_source, const std::string &track_sid) {
+    stopScreenShare();
+
+    if (!video_source) {
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "videoSource is null";
+        return false;
+    }
+
+    if (track_sid.empty()) {
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "track_sid is empty";
+        return false;
+    }
+
+    if (!QGuiApplication::primaryScreen()) {
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "No available screen for capture";
+        return false;
+    }
+
+    screen_source_ = video_source;
+    screen_track_sid_ = track_sid;
+    screen_using_ = true;
+
+    screen_worker_.reset(new QObject(qApp));
+    screen_timer_.reset(new QTimer(screen_worker_.get()));
+    screen_timer_->setTimerType(Qt::CoarseTimer);
+    QObject::connect(screen_timer_.get(), &QTimer::timeout, screen_worker_.get(), [this]() {
+        captureScreenFrame();
+    });
+
+    const int intervalMs = 1000 / 10;
+    screen_timer_->start(intervalMs);
+    qInfo() << QThread::currentThread() << __FUNCTION__ << "screen share started, interval=" << intervalMs;
+    return true;
+}
+
+void MediaMgr::stopScreenShare() {
+    if (screen_timer_) {
+        screen_timer_->stop();
+    }
+    screen_timer_.reset();
+    screen_worker_.reset();
+    screen_source_.reset();
+    screen_track_sid_.clear();
+    screen_using_ = false;
+}
+
+void MediaMgr::captureScreenFrame() {
+    if (!screen_source_) {
+        return;
+    }
+
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (!screen) {
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "primary screen is unavailable";
+        return;
+    }
+
+    QPixmap pixmap = screen->grabWindow(0);
+    const QImage image = pixmap.toImage().convertToFormat(QImage::Format_RGBA8888);
+    const int width = image.width();
+    const int height = image.height();
+    if (width <= 0 || height <= 0) {
+        qWarning() << QThread::currentThread() << __FUNCTION__ << "captured invalid screen image";
+        return;
+    }
+
+    auto frame = livekit::VideoFrame::create(width, height, livekit::VideoBufferType::RGBA);
+    std::memcpy(frame.data(), image.constBits(), static_cast<size_t>(width) * static_cast<size_t>(height) * 4);
+
+    const qint64 timestampNs = QDateTime::currentMSecsSinceEpoch() * 1000000LL;
+    try {
+        screen_source_->captureFrame(frame, timestampNs / 1000, livekit::VideoRotation::VIDEO_ROTATION_0);
+    } catch (const std::exception &e) {
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "Error in captureFrame (screen share):" << e.what();
+    }
 }
 
 // ---------- Speaker control ----------

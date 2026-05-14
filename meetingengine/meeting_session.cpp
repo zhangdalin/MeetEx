@@ -132,8 +132,10 @@ void MeetingSession::shutdown() {
     const bool hasActiveRoom = roomState_ != MeetingSessionRoomState::Disconnected;
     const bool hasLocalMedia = microphoneState_ != MeetingSessionMediaState::Off
         || cameraState_ != MeetingSessionMediaState::Off
+        || screenShareState_ != MeetingSessionMediaState::Off
         || !localParticipant_.audioTrackSid().isEmpty()
-        || !localParticipant_.videoTrackSid().isEmpty();
+        || !localParticipant_.videoTrackSid().isEmpty()
+        || !screenShareTrackSid_.empty();
 
     if (!hasActiveRoom && !hasLocalMedia) {
         return;
@@ -144,6 +146,7 @@ void MeetingSession::shutdown() {
     }
 
     disconnectRoom();
+    stopShare();
 
     livekit::shutdown();
 }
@@ -225,11 +228,40 @@ void MeetingSession::stopVideo() {
 }
 
 bool MeetingSession::startShare() {
+    if (roomState_ != MeetingSessionRoomState::Connected) {
+        emit sigSessionError(QStringLiteral("Cannot start screen share before room is connected."));
+        return false;
+    }
+
+    auto *localParticipant = room_.localParticipant();
+    if (!localParticipant) {
+        setScreenShareState(MeetingSessionMediaState::Failed);
+        emit sigSessionError(QStringLiteral("No local user available to start screen share."));
+        return false;
+    }
+
+    setScreenShareState(MeetingSessionMediaState::Starting);
+    std::string localShareSid;
+    if (!MediaEngine::instance().startShareLocalScreen(localParticipant, localShareSid)) {
+        setScreenShareState(MeetingSessionMediaState::Failed);
+        emit sigSessionError(QStringLiteral("Failed to start screen share."));
+        screenShareTrackSid_.clear();
+        return false;
+    }
+
+    screenShareTrackSid_ = localShareSid;
     setScreenShareState(MeetingSessionMediaState::On);
     return true;
 }
 
 void MeetingSession::stopShare() {
+    if (screenShareState_ == MeetingSessionMediaState::Off && screenShareTrackSid_.empty()) {
+        return;
+    }
+
+    auto *localParticipant = roomState_ == MeetingSessionRoomState::Connected ? room_.localParticipant() : nullptr;
+    MediaEngine::instance().stopShareLocalScreen(localParticipant, screenShareTrackSid_);
+    screenShareTrackSid_.clear();
     setScreenShareState(MeetingSessionMediaState::Off);
 }
 
@@ -327,6 +359,7 @@ void MeetingSession::disconnectRoom() {
     // close local media
     stopAudio();
     stopVideo();
+    stopShare();
 
     MediaEngine::instance().stopAllAudioPlay();
     MediaEngine::instance().stopAllVideoRender();

@@ -148,10 +148,61 @@ void MediaEngine::stopLocalVideo(livekit::LocalParticipant* participant, const s
 }
 
 bool MediaEngine::startShareLocalScreen(livekit::LocalParticipant* participant, std::string& sid) {
-    return false;
+    if (!participant) {
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "local participant is null";
+        return false;
+    }
+
+    auto screenSource = std::make_shared<livekit::VideoSource>(VIDEO_WIDTH, VIDEO_HEIGHT);
+    auto screenTrack = livekit::LocalVideoTrack::createLocalVideoTrack(SCREEN_SHARE_TRACK_NAME, screenSource);
+
+    livekit::TrackPublishOptions shareOpts;
+    shareOpts.source = livekit::TrackSource::SOURCE_SCREENSHARE;
+    shareOpts.dtx = false;
+    shareOpts.simulcast = false;
+
+    try {
+        participant->publishTrack(screenTrack, shareOpts);
+        if (const auto screenPub = screenTrack->publication()) {
+            sid = screenPub->sid();
+            qInfo() << QThread::currentThread() << __FUNCTION__ << "Published screen share track:" 
+                << "SID:" << screenPub->sid()
+                << "Name:" << screenPub->name()
+                << "Kind:" << trackKindToString(screenPub->kind())
+                << "Source:" << trackSourceToString(screenPub->source());
+        } else {
+            sid = screenTrack->sid();
+            qWarning() << QThread::currentThread() << __FUNCTION__ << "Screen share track published but no publication metadata available yet.";
+        }
+    } catch (const std::exception &e) {
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "Failed to publish screen share track:" << e.what();
+        return false;
+    }
+
+    if (!media_mgr_->startScreenShare(screenSource, sid)) {
+        qCritical() << QThread::currentThread() << __FUNCTION__ << "Failed to start screen capture for share";
+        if (participant && !sid.empty()) {
+            try {
+                participant->unpublishTrack(sid);
+            } catch (...) {
+                qWarning() << QThread::currentThread() << __FUNCTION__ << "Failed to unpublish screen share track after capture failure";
+            }
+        }
+        return false;
+    }
+
+    return true;
 }
 
 void MediaEngine::stopShareLocalScreen(livekit::LocalParticipant* participant, const std::string& sid) {
+    media_mgr_->stopScreenShare();
+    if (participant && !sid.empty()) {
+        try {
+            participant->unpublishTrack(sid);
+        } catch (const std::exception &e) {
+            qWarning() << QThread::currentThread() << __FUNCTION__ << "Failed to unpublish screen share track:" << e.what();
+        }
+    }
 }
 
 bool MediaEngine::startAudioPlay(const std::shared_ptr<livekit::AudioStream> &audio_stream, const std::string& track_sid) {

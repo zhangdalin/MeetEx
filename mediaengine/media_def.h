@@ -9,6 +9,7 @@
 #define VIDEO_HEIGHT (720)
 #define VIDEO_FPS (30)
 #define VIDEO_TRACK_NAME "camTrack"
+#define SCREEN_SHARE_TRACK_NAME "screenShareTrack"
 
 
 #endif // MEDIA_DEF_H

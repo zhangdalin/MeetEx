@@ -181,6 +181,7 @@ private:
 
     MeetingParticipant localParticipant_;
     QHash<QString, MeetingParticipant> remoteParticipants_;
+    std::string screenShareTrackSid_;
 };
 
 #endif // MEETING_SESSION_H
