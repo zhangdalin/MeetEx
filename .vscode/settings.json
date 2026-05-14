@@ -1,5 +1,6 @@
 {
-    "cmake.buildDirectory": "${workspaceFolder}/build/Desktop_Qt_6_10_2_MSVC2022_64bit-Debug",
+    "cmake.buildDirectory": "${workspaceFolder}/build/Desktop_Qt_6_10_2_MSVC2022_64bit-${buildType}",
+    "cmake.defaultBuildType": "Debug",
     "cmake.generator": "Visual Studio 17 2022",
     "cmake.generatorPlatform": "x64",
     "cmake.cmakePath": "D:/Qt/Tools/CMake_64/bin/cmake.exe",
