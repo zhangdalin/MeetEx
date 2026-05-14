@@ -209,7 +209,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="layoutWidget">
+  <widget class="QWidget" name="mainWidget">
    <property name="geometry">
     <rect>
      <x>20</x>
