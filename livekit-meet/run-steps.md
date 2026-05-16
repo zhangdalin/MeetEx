@@ -2,39 +2,103 @@
 
 ## Prerequisites
 
-1. Install pnpm globally
+1. Install `pnpm` globally:
 
-	npm install -g pnpm
+```bash
+npm install -g pnpm
+```
 
-2. Install pm2 globally
+2. Install `pm2` globally:
 
-	npm install -g pm2
+```bash
+npm install -g pm2
+```
 
-## Setup And Build
+## Setup and Build
 
-1. Install project dependencies
+1. Install project dependencies:
 
-	pnpm install
+```bash
+pnpm install
+```
 
-2. Create environment file
+2. Create the environment file:
 
-	Copy .env.example to .env.local and update values as needed.
+```bash
+cp .env.example .env.local
+```
 
-3. Build project
+Update `.env.local` with the required values.
 
-	pnpm build
+3. Build the project:
 
-4. If want to deploy standalone mode, need to change the next.config.js
+```bash
+pnpm build
+```
 
-		/** @type {import('next').NextConfig} */
-		const nextConfig = {
-			output: 'standalone',
-		};
+4. Enable standalone output in `next.config.js` if you want a standalone deployment package:
 
-		module.exports = nextConfig;
+```js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
+};
 
-## Start Service
+module.exports = nextConfig;
+```
 
-1. Start with pm2
+## Start the service from the build
 
-	pm2 start "pnpm start" --name livekit-meet
+1. Start the app with `pm2`:
+
+```bash
+pm2 start "pnpm start" --name livekit-meet
+```
+
+## Deploy release build from standalone
+
+1. Build the deployment package:
+
+- Copy the `public` folder into `.next/standalone/`:
+
+```bash
+cp -rf public/ .next/standalone/
+```
+
+- Copy the environment config file into `.next/standalone/`:
+
+```bash
+cp -rf .env.local .next/standalone/.env.production
+```
+
+- Compress the standalone package and rename the extracted folder to `meetex`:
+
+```bash
+tar -C .next --transform='s,^standalone,meetex,' -zcvf ../meetex.tar.gz standalone
+```
+
+2. Deploy the package:
+
+- Copy `meetex.tar.gz` to the target VM.
+
+- Extract the package:
+
+```bash
+tar -xzf meetex.tar.gz
+```
+
+- Quick start the deployed service:
+
+```bash
+cd meetex/
+pm2 start server.js --name meetex
+```
+
+- Fully start the service with ecosystem
+
+```bash
+cp <path>/ecosystem.config.js meetex/
+cd meetex/
+pm2 start ecosystem.config.js
+```
+

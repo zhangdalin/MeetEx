@@ -1,0 +1,19 @@
+# this file deployed at /etc/systemd/system/meetex.service
+[Unit]
+Description=MeetEx WebPage
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/code/meetex
+ExecStart=/usr/local/bin/pm2 start ecosystem.config.js --no-daemon
+StandardOutput=append:/var/log/meetex/meetex.log
+StandardError=append:/var/log/meetex/error.log
+Restart=always
+RestartSec=5
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
