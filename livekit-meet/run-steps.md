@@ -59,10 +59,11 @@ pm2 start "pnpm start" --name livekit-meet
 
 1. Build the deployment package:
 
-- Copy the `public` folder into `.next/standalone/`:
+- Copy the `public` and `static` folder into `.next/standalone/`:
 
 ```bash
 cp -rf public/ .next/standalone/
+cp -rf .next/static/ .next/standalone/.next/
 ```
 
 - Copy the environment config file into `.next/standalone/`:
