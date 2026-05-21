@@ -566,15 +566,17 @@ class MediaEngine {
 ### 添加新 UI 窗口
 
 1. **创建 `.ui` 文件** 到 `ui/` 目录
-2. **创建 `.h` 和 `.cpp`** 到 `src/` 目录
-3. **在 `CMakeLists.txt` 中添加:**
+2. **根据需求设计布局** 和控件, 并设置属性 (如无边框、固定大小等)
+3. **为控件添加背景图和样式** (可选), 使用 `res/assets/` 中的图标
+4. **创建 `.h` 和 `.cpp`** 到 `src/` 目录
+5. **在 `CMakeLists.txt` 中添加:**
    ```cmake
    set(PROJECT_HEADERS src/newwindow.h ...)
    set(PROJECT_SOURCES src/newwindow.cpp ...)
    set(PROJECT_FORMS ui/newwindow.ui ...)
    ```
-4. **重新运行 CMake 配置**
-5. **在父窗口中添加打开逻辑**
+6. **重新运行 CMake 配置**
+7. **在父窗口中添加打开逻辑**
 
 ### 实现新功能 (以屏幕共享为例)
 
