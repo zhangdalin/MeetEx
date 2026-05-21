@@ -4,7 +4,14 @@
       "Skill(ecc:skill-create)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(rm *)",
+      "Bash(mkdir -p \"D:\\\\Code\\\\MeetApps\\\\MeetEx\\\\.claude\\\\plans\")",
+      "Bash(mv \"C:\\\\Users\\\\51277\\\\.claude\\\\plans\\\\auth-001-login.md\" \"D:\\\\Code\\\\MeetApps\\\\MeetEx\\\\.claude\\\\plans\\\\\")",
+      "Bash(mkdir -p \"D:/Code/MeetApps/MeetEx/.claude/plans\")",
+      "Bash(mv \"C:/Users/51277/.claude/plans/auth-001-login.md\" \"D:/Code/MeetApps/MeetEx/.claude/plans/\")",
+      "Bash(rm \"C:/Users/51277/.claude/plans/requirements-draft.md\")",
+      "Bash(rmdir \"C:/Users/51277/.claude/plans/\")"
     ]
   }
 }
