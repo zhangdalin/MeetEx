@@ -74,6 +74,17 @@ set(PROJECT_SOURCES
 
 set(PROJECT_RESOURCES
     res/home.qrc
+    res/inmeeting.qrc
+    res/bookmeeting.qrc
+    res/joinmeeting.qrc
+    res/login.qrc
+    res/myprofile.qrc
+    res/settingaudio.qrc
+    res/settingcommon.qrc
+    res/settingrecording.qrc
+    res/settings.qrc
+    res/settingvideo.qrc
+    res/sharescreen.qrc
 )
 
 add_subdirectory(mediaengine)
