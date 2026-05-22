@@ -13,8 +13,8 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS
     ${CMAKE_CURRENT_SOURCE_DIR}/ui
 )
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Gui Widgets OpenGLWidgets Multimedia LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Widgets OpenGLWidgets Multimedia LinguistTools)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Gui Widgets OpenGLWidgets Multimedia Network LinguistTools)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Gui Widgets OpenGLWidgets Multimedia Network LinguistTools)
 
 set(TS_FILES
     i18n/MeetEx_zh_CN.ts)
@@ -69,6 +69,8 @@ set(PROJECT_SOURCES
     src/participantwidget.cpp
     src/memberwidget.cpp
     src/glwidget.cpp
+    src/services/http_client.cpp
+    src/services/auth_service.cpp
     ${TS_FILES}
 )
 
@@ -123,12 +125,15 @@ endif()
 
 target_include_directories(MeetEx PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/services
     ${CMAKE_CURRENT_SOURCE_DIR}/meetingengine
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/livekit/include
 )
 
-target_link_libraries(MeetEx PRIVATE Qt${QT_VERSION_MAJOR}::Widgets
+target_link_libraries(MeetEx PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::OpenGLWidgets
+    Qt${QT_VERSION_MAJOR}::Network
     avatar_tool
     mediaengine
     meetingengine

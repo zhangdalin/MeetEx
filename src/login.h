@@ -2,6 +2,7 @@
 #define LOGIN_H
 
 #include <QWidget>
+#include "services/auth_service.h"
 
 namespace Ui {
 class Login;
@@ -20,6 +21,8 @@ protected:
 
 private slots:
     void onLogin();
+    void onLoginSuccess(const UserProfile &profile);
+    void onLoginFailed(const QString &error);
 
 private:
     Ui::Login *ui;

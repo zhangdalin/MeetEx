@@ -78,12 +78,15 @@
        </widget>
       </item>
       <item>
-       <widget class="QTextEdit" name="passwordEextEdit">
+       <widget class="QLineEdit" name="passwordTextEdit">
         <property name="maximumSize">
          <size>
           <width>16777215</width>
           <height>30</height>
          </size>
+        </property>
+        <property name="echoMode">
+         <enum>QLineEdit::Password</enum>
         </property>
        </widget>
       </item>

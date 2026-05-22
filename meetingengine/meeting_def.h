@@ -26,6 +26,11 @@ Access token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4Mzk0MTE3MzYsImlkZ
 #define LIVEKIT_TOKEN "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4Mzk0MTE3MzYsImlkZW50aXR5IjoiZGFyaW4iLCJpc3MiOiJBUEliWjNoWlRpSGRQWE4iLCJuYW1lIjoiZGFyaW4iLCJuYmYiOjE3Nzg5MzE3MzYsInN1YiI6ImRhcmluIiwidmlkZW8iOnsicm9vbSI6Im1lZXRleCIsInJvb21Kb2luIjp0cnVlfX0.s_d-hIVwpNyq0IfPCdz2y_Wlm65-qP8DQLfaPjmmTJ0"
 #define LIVEKIT_E2EE_KEY ""
 
+// 后端 API 配置 (用于账号密码登录)
+#define API_BASE_URL "https://api.meetex.example.com"
+#define API_LOGIN_ENDPOINT "/v1/auth/login"
+#define API_REFRESH_TOKEN_ENDPOINT "/v1/auth/refresh"
+
 enum class TrackKind {
     UNKNOWN = 0,
     AUDIO = 1,
