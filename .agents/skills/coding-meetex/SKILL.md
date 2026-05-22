@@ -1,5 +1,5 @@
 ---
-name: meetex-patterns
+name: coding-meetex
 description: Coding patterns extracted from MeetEx Qt/LiveKit video conferencing project
 version: 1.1.0
 source: local-git-analysis
@@ -17,47 +17,6 @@ MeetEx 是基于 Qt 6 的 Windows 桌面视频会议应用程序，使用 LiveKi
 - **媒体 SDK:** LiveKit C++ SDK
 - **构建工具:** CMake
 - **语言标准:** C++17
-
----
-
-## 提交规范
-
-本项目使用 **中文提交信息** 配合 **Conventional Commits** 前缀：
-
-### 提交前缀
-
-| 前缀 | 用途 | 示例 |
-|------|------|------|
-| `feat:` | 新功能 | `feat(meeting): 添加屏幕共享支持` |
-| `feat(module):` | 模块新功能 | `feat(ui): 添加参会者列表面板` |
-| `fix:` | 修复问题 | `fix: 修复视频渲染闪烁问题` |
-| `fix(module):` | 模块修复 | `fix(meeting): 修复房间断开时媒体未停止` |
-| `refactor:` | 重构 | `refactor(ui): 重命名 ParticipantWidget 为 GLWidget` |
-| `refactor(module):` | 模块重构 | `refactor(meeting): 合并 session 逻辑` |
-| `chore:` | 杂项/配置 | `chore: 添加 livekit 部署配置` |
-| `docs:` | 文档更新 | `docs: 更新 README 和项目文档` |
-| `build:` | 构建相关 | `build(windows): 自动部署 Qt 运行时 DLL` |
-| `perf:` | 性能优化 | `perf: 缓存成员控件优化音频状态更新` |
-| `test:` | 测试相关 | `test: 添加会议会话单元测试` |
-
-### 提交格式
-
-```
-<type>(<scope>): <中文描述>
-
-<详细说明（可选）>
-```
-
-**示例：**
-```
-feat(meeting): 添加房间事件回调和优化视频渲染
-
-- 实现 RoomDelegate 所有回调函数
-- 添加视频帧缓存机制
-- 优化头像兜底显示逻辑
-
-Refs: AUTH-001, MEET-005
-```
 
 ---
 
@@ -246,6 +205,12 @@ void MeetingSession::setRoomState(MeetingSessionRoomState state) {
     }
 }
 ```
+
+### 编码风格和最佳实践：
+- 减少 STL 容器的资源拷贝，使用引用和智能指针，多使用 move 或者 swap 技术
+- 避免在 UI 线程执行耗时操作，使用 `QtConcurrent` 或 `QThread` 处理媒体操作
+- 使用智能指针管理资源，避免内存泄漏
+- 减少不必要的 UI 更新，使用标志位控制更新频率
 
 ---
 
@@ -440,7 +405,9 @@ void SettingAudio::saveSettings() {
 
 ## 关键设计模式
 
-### 1. LiveKit 事件桥接
+### 1. 在编码时采用设计模式, 如状态机、单例、观察者等, 以提高代码的可维护性和扩展性。
+
+### 2. LiveKit 事件桥接
 
 将 LiveKit C++ SDK 回调转换为 Qt 信号：
 
@@ -469,7 +436,7 @@ signals:
 };
 ```
 
-### 2. 媒体引擎单例
+### 3. 媒体引擎单例
 
 ```cpp
 // media_engine.h
@@ -614,27 +581,6 @@ class MediaEngine {
    }
    ```
 
-### 构建流程
-
-```bash
-# 配置（首次或 CMakeLists.txt 变更后）
-cmake -B build -S . -DCMAKE_PREFIX_PATH="C:/Qt/6.10.2/msvc2022_64"
-
-# 构建 Debug
-cmake --build build --config Debug --parallel
-
-# 构建 Release
-cmake --build build --config Release --parallel
-
-# 运行
-./build/Debug/MeetEx.exe
-
-# 清理
-cmake --build build --target clean
-```
-
----
-
 ## 性能优化指南
 
 ### UI 渲染优化
@@ -676,20 +622,7 @@ class GLWidget : public QOpenGLWidget {
 ## 测试策略
 
 ### 单元测试
-
-```cpp
-// test_meeting_session.cpp
-void TestMeetingSession::testStateTransition() {
-    MeetingSession session(ctx);
-    QCOMPARE(session.roomState(), MeetingSessionRoomState::Disconnected);
-    
-    QSignalSpy spy(&session, &MeetingSession::sigRoomStateChanged);
-    session.start();
-    
-    QVERIFY(spy.wait(5000));
-    QCOMPARE(session.roomState(), MeetingSessionRoomState::Connected);
-}
-```
+- 使用 Qt Test 框架 (暂时不涉及，后续添加)
 
 ### 集成测试
 
@@ -757,7 +690,7 @@ void onLiveKitCallback() {
 
 ### 日志规范
 
-- 使用 `qInfo()`, `qDebug()`, `qWarning()` 输出日志
+- 使用 `qInfo()`, `qDebug()`, `qWarning()` 输出日志, 并添加线程号 和 函数名 以便调试
 - 敏感信息（Token、密码）必须脱敏
 - 日志写入 `meetex.log` 文件
 - 定期清理日志文件

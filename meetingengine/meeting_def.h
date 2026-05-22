@@ -27,7 +27,7 @@ Access token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4Mzk0MTE3MzYsImlkZ
 #define LIVEKIT_E2EE_KEY ""
 
 // 后端 API 配置 (用于账号密码登录)
-#define API_BASE_URL "https://api.meetex.example.com"
+#define API_BASE_URL "https://api.meetex.exrapid.cn"
 #define API_LOGIN_ENDPOINT "/v1/auth/login"
 #define API_REFRESH_TOKEN_ENDPOINT "/v1/auth/refresh"
 
