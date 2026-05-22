@@ -11,7 +11,7 @@ Environment="DATABASE_URL=sqlite:///./meetex.db"
 Environment="JWT_SECRET_KEY=change-this-secret-key-in-production"
 Environment="JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60"
 Environment="JWT_REFRESH_TOKEN_EXPIRE_DAYS=7"
-Environment="CORS_ORIGINS=https://api.meetex.exrapid.cn"
+Environment="CORS_ORIGINS=https://api.exrapid.cn"
 
 # Use virtual environment Python
 ExecStart=/opt/code/meetex-api/venv/bin/gunicorn \

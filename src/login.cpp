@@ -3,6 +3,7 @@
 #include "ui_login.h"
 #include <QThread>
 #include <QMessageBox>
+#include <QCryptographicHash>
 
 using namespace std;
 
@@ -52,12 +53,17 @@ void Login::onLogin()
         return;
     }
 
+    // 对密码进行 SHA256 哈希处理
+    QByteArray passwordBytes = password.toUtf8();
+    QByteArray hashBytes = QCryptographicHash::hash(passwordBytes, QCryptographicHash::Sha256);
+    QString passwordHash = hashBytes.toHex();
+
     // 禁用登录按钮，显示加载状态
     ui->loginBtn->setEnabled(false);
     ui->loginBtn->setText("登录中...");
 
-    // 调用认证服务登录
-    AuthService::instance().login(account, password);
+    // 调用认证服务登录（发送哈希后的密码）
+    AuthService::instance().login(account, passwordHash);
 }
 
 void Login::onLoginSuccess(const UserProfile &profile)

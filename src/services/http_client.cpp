@@ -3,6 +3,7 @@
 #include <QNetworkRequest>
 #include <QUrl>
 #include <QVariant>
+#include <QThread>
 
 HttpClient& HttpClient::instance() {
     static HttpClient instance;
