@@ -1,0 +1,37 @@
+[Unit]
+Description=MeetEx API Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/meetex-api
+
+# Environment variables
+Environment="DATABASE_URL=sqlite:///./meetex.db"
+Environment="JWT_SECRET_KEY=change-this-secret-key-in-production"
+Environment="JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60"
+Environment="JWT_REFRESH_TOKEN_EXPIRE_DAYS=7"
+Environment="CORS_ORIGINS=https://api.meetex.exrapid.cn"
+
+# Use virtual environment Python
+ExecStart=/opt/meetex-api/venv/bin/gunicorn \
+    -w 4 \
+    -k uvicorn.workers.UvicornWorker \
+    --bind 0.0.0.0:8000 \
+    --access-logfile /var/log/meetex-api/access.log \
+    --error-logfile /var/log/meetex-api/error.log \
+    --capture-output \
+    --enable-stdio-inheritance \
+    app.main:app
+
+# Restart policy
+Restart=always
+RestartSec=5
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# Resource limits
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
