@@ -1,5 +1,6 @@
 #include "login.h"
 #include "home.h"
+#include "register.h"
 #include "ui_login.h"
 #include <QThread>
 #include <QMessageBox>
@@ -80,4 +81,22 @@ void Login::onLoginFailed(const QString &error)
     ui->loginBtn->setText("登录");
 
     QMessageBox::critical(this, "登录失败", error);
+}
+
+void Login::onRegisterLink()
+{
+    // 打开注册窗口
+    Register *registerWindow = new Register();
+    registerWindow->setAttribute(Qt::WA_DeleteOnClose);
+    registerWindow->show();
+
+    // 隐藏登录窗口
+    hide();
+
+    // 连接注册窗口关闭信号，重新显示登录窗口
+    connect(registerWindow, &Register::destroyed, this, [this]() {
+        if (!login_state) {
+            show();
+        }
+    });
 }

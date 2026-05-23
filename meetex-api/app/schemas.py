@@ -18,8 +18,14 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     """User creation schema."""
-    account: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=8)
+    account: str = Field(
+        ...,
+        min_length=3,
+        max_length=20,
+        pattern=r"^[a-zA-Z0-9_]+$",
+        description="账号只能包含字母、数字、下划线"
+    )
+    password: str = Field(..., min_length=8, description="密码最少8位")
 
 
 class UserResponse(BaseModel):

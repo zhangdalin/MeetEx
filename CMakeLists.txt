@@ -22,6 +22,7 @@ set(TS_FILES
 set(PROJECT_FORMS
     ui/home.ui
     ui/login.ui
+    ui/register.ui
     ui/bookmeeting.ui
     ui/joinmeeting.ui
     ui/inmeeting.ui
@@ -37,6 +38,7 @@ set(PROJECT_FORMS
 set(PROJECT_HEADERS
     src/home.h
     src/login.h
+    src/register.h
     src/bookmeeting.h
     src/joinmeeting.h
     src/inmeeting.h
@@ -56,6 +58,7 @@ set(PROJECT_SOURCES
     src/main.cpp
     src/home.cpp
     src/login.cpp
+    src/register.cpp
     src/bookmeeting.cpp
     src/joinmeeting.cpp
     src/inmeeting.cpp

@@ -23,6 +23,7 @@ private slots:
     void onLogin();
     void onLoginSuccess(const UserProfile &profile);
     void onLoginFailed(const QString &error);
+    void onRegisterLink();
 
 private:
     Ui::Login *ui;
