@@ -104,23 +104,46 @@ void HttpClient::handleReply(QNetworkReply *reply,
 QJsonObject HttpClient::parseJsonResponse(QNetworkReply *reply, bool &ok) {
     ok = false;
 
+    QByteArray data = reply->readAll();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+
+    // 尝试解析 JSON，即使有 HTTP 错误也要解析响应体
+    if (!doc.isNull()) {
+        QJsonObject response = doc.object();
+
+        // 检查 HTTP 状态码
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+
+        // 如果是 HTTP 错误（非 2xx），记录错误但返回解析后的 JSON
+        if (reply->error() != QNetworkReply::NoError) {
+            qWarning() << QThread::currentThread() << __FUNCTION__
+                << "HTTP error:" << httpStatus << reply->errorString();
+
+            // 如果响应中有错误信息，使用响应中的错误
+            if (response.contains("message")) {
+                ok = true;  // 成功解析了错误响应
+                return response;
+            }
+
+            emit sigNetworkError(reply->errorString());
+            return QJsonObject();
+        }
+
+        // HTTP 成功
+        ok = true;
+        return response;
+    }
+
+    // JSON 解析失败
     if (reply->error() != QNetworkReply::NoError) {
         qWarning() << QThread::currentThread() << __FUNCTION__
             << "Network error:" << reply->errorString();
         emit sigNetworkError(reply->errorString());
-        return QJsonObject();
-    }
-
-    QByteArray data = reply->readAll();
-    QJsonDocument doc = QJsonDocument::fromJson(data);
-
-    if (doc.isNull()) {
+    } else {
         qWarning() << QThread::currentThread() << __FUNCTION__
             << "Failed to parse JSON response";
         emit sigNetworkError("响应解析失败");
-        return QJsonObject();
     }
 
-    ok = true;
-    return doc.object();
+    return QJsonObject();
 }
