@@ -74,6 +74,8 @@ public:
 signals:
     void sigLoginSuccess(const UserProfile &profile);
     void sigLoginFailed(const QString &error);
+    void sigRegisterSuccess(const UserProfile &profile);
+    void sigRegisterFailed(const QString &error);
     void sigTokenRefreshed(const QString &newToken);
     void sigLoggedOut();
 

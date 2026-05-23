@@ -21,9 +21,9 @@ Register::Register(QWidget *parent)
     connect(ui->sendCodeBtn, &QPushButton::clicked, this, &Register::onSendCode);
     connect(ui->loginLinkLabel, &QLabel::linkActivated, this, &Register::onLoginLink);
 
-    connect(&AuthService::instance(), &AuthService::sigLoginSuccess,
+    connect(&AuthService::instance(), &AuthService::sigRegisterSuccess,
             this, &Register::onRegisterSuccess);
-    connect(&AuthService::instance(), &AuthService::sigLoginFailed,
+    connect(&AuthService::instance(), &AuthService::sigRegisterFailed,
             this, &Register::onRegisterFailed);
 }
 
@@ -80,7 +80,7 @@ void Register::onRegister()
     ui->registerBtn->setEnabled(false);
     ui->registerBtn->setText("注册中...");
 
-    AuthService::instance().login(account, passwordHash);
+    AuthService::instance().registerUser(account, passwordHash, displayName, phone);
 }
 
 void Register::onSendCode()

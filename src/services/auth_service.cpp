@@ -65,6 +65,57 @@ void AuthService::login(const QString &account, const QString &password) {
         });
 }
 
+void AuthService::registerUser(const QString &account, const QString &password,
+                                const QString &displayName, const QString &phone) {
+    QJsonObject body;
+    body["account"] = account;
+    body["password"] = password;
+    body["display_name"] = displayName;
+    if (!phone.isEmpty()) {
+        body["phone"] = phone;
+    }
+
+    QString url = QString("%1%2").arg(API_BASE_URL).arg(API_REGISTER_ENDPOINT);
+
+    HttpClient::instance().post(url, body,
+        [this](const QJsonObject &response, bool success) {
+            if (!success) {
+                emit sigRegisterFailed("网络请求失败");
+                return;
+            }
+
+            int code = response["code"].toInt();
+            if (code != 200) {
+                QString message = response["message"].toString("注册失败");
+                emit sigRegisterFailed(message);
+                return;
+            }
+
+            QJsonObject data = response["data"].toObject();
+
+            // 解析 Token
+            currentToken_.accessToken = data["accessToken"].toString();
+            currentToken_.refreshToken = data["refreshToken"].toString();
+            QString expiresIn = data["expiresIn"].toString();
+            currentToken_.expiresAt = QDateTime::fromString(expiresIn, Qt::ISODate);
+            if (!currentToken_.expiresAt.isValid()) {
+                currentToken_.expiresAt = QDateTime::currentDateTime().addSecs(3600);
+            }
+
+            // 解析用户资料
+            QJsonObject userObj = data["user"].toObject();
+            currentUser_.fromJson(userObj);
+
+            isLoggedIn_ = true;
+            saveAuthData();
+
+            HttpClient::instance().setHeader("Authorization",
+                QString("Bearer %1").arg(currentToken_.accessToken));
+
+            emit sigRegisterSuccess(currentUser_);
+        });
+}
+
 void AuthService::loginWithPhone(const QString &phone, const QString &code) {
     QJsonObject body;
     body["phone"] = phone;

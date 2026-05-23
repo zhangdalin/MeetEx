@@ -30,6 +30,7 @@ Access token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4Mzk0MTE3MzYsImlkZ
 #define API_BASE_URL "https://api.exrapid.cn"
 #define API_LOGIN_ENDPOINT "/v1/auth/login"
 #define API_REFRESH_TOKEN_ENDPOINT "/v1/auth/refresh"
+#define API_REGISTER_ENDPOINT "/v1/auth/register"
 
 enum class TrackKind {
     UNKNOWN = 0,
