@@ -109,18 +109,32 @@
       </widget>
      </item>
      <item row="4" column="0">
+      <widget class="QLabel" name="emailLabel">
+       <property name="text">
+        <string>邮箱:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QLineEdit" name="emailLineEdit">
+       <property name="placeholderText">
+        <string>example@email.com</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
       <widget class="QLabel" name="phoneLabel">
        <property name="text">
         <string>手机号:</string>
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
+     <item row="5" column="1">
       <layout class="QHBoxLayout" name="phoneLayout">
        <item>
         <widget class="QLineEdit" name="phoneLineEdit">
          <property name="placeholderText">
-          <string>11位手机号</string>
+          <string>11位手机号（选填）</string>
          </property>
         </widget>
        </item>
@@ -133,17 +147,31 @@
        </item>
       </layout>
      </item>
-     <item row="5" column="0">
+     <item row="6" column="0">
       <widget class="QLabel" name="codeLabel">
        <property name="text">
         <string>验证码:</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="1">
+     <item row="6" column="1">
       <widget class="QLineEdit" name="codeLineEdit">
        <property name="placeholderText">
         <string>6位验证码</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="avatarLabel">
+       <property name="text">
+        <string>头像URL:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QLineEdit" name="avatarLineEdit">
+       <property name="placeholderText">
+        <string>头像图片URL（选填）</string>
        </property>
       </widget>
      </item>

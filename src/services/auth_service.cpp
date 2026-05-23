@@ -66,13 +66,18 @@ void AuthService::login(const QString &account, const QString &password) {
 }
 
 void AuthService::registerUser(const QString &account, const QString &password,
-                                const QString &displayName, const QString &phone) {
+                                const QString &displayName, const QString &email,
+                                const QString &phone, const QString &avatarUrl) {
     QJsonObject body;
     body["account"] = account;
     body["password"] = password;
     body["display_name"] = displayName;
+    body["email"] = email;
     if (!phone.isEmpty()) {
         body["phone"] = phone;
+    }
+    if (!avatarUrl.isEmpty()) {
+        body["avatar_url"] = avatarUrl;
     }
 
     QString url = QString("%1%2").arg(API_BASE_URL).arg(API_REGISTER_ENDPOINT);

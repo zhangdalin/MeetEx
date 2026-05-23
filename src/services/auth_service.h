@@ -60,6 +60,12 @@ public:
     void login(const QString &account, const QString &password);
     void loginWithPhone(const QString &phone, const QString &code);
 
+    // 注册
+    void registerUser(const QString &account, const QString &password,
+                      const QString &displayName, const QString &email,
+                      const QString &phone = QString(),
+                      const QString &avatarUrl = QString());
+
     // 登出
     void logout();
 

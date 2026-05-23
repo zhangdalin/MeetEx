@@ -33,6 +33,7 @@ private slots:
 private:
     bool validateAccount();
     bool validatePassword();
+    bool validateEmail();
     bool validatePhone();
     bool passwordsMatch();
 
