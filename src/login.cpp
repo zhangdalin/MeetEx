@@ -45,8 +45,8 @@ void Login::closeEvent(QCloseEvent *event)
 
 void Login::onLogin()
 {
-    QString account = ui->usernameTextEdit->toPlainText().trimmed();
-    QString password = ui->passwordTextEdit->text();
+    QString account = ui->accountLineEdit->text().trimmed();
+    QString password = ui->passwordLineEdit->text();
 
     // 验证输入
     if (account.isEmpty() || password.isEmpty()) {
