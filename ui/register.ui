@@ -134,7 +134,7 @@
        <item>
         <widget class="QLineEdit" name="phoneLineEdit">
          <property name="placeholderText">
-          <string>11位手机号（选填）</string>
+          <string>11位手机号</string>
          </property>
         </widget>
        </item>
