@@ -29,7 +29,17 @@ async def register(
     """User registration endpoint.
 
     Client sends SHA256 hashed password. We bcrypt it for storage.
+    Verifies SMS code before creating account.
     """
+    # Verify SMS code first
+    # TODO: Integrate with actual SMS service
+    # For now, accept "123456" for development
+    if request.code != "123456":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid verification code"
+        )
+
     # Check if account already exists
     result = await session.execute(
         select(User).where(User.account == request.account)
@@ -40,18 +50,17 @@ async def register(
             detail="Account already exists"
         )
 
-    # Check if phone already exists (if provided)
-    if request.phone:
-        result = await session.execute(
-            select(User).where(User.phone == request.phone)
+    # Check if phone already exists
+    result = await session.execute(
+        select(User).where(User.phone == request.phone)
+    )
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Phone number already registered"
         )
-        if result.scalar_one_or_none():
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Phone number already registered"
-            )
 
-    # Create new user
+    # Create new user with all fields
     user = User(
         account=request.account,
         password_hash=hash_password(request.password),

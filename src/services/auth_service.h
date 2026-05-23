@@ -63,7 +63,7 @@ public:
     // 注册
     void registerUser(const QString &account, const QString &password,
                       const QString &displayName, const QString &email,
-                      const QString &phone = QString(),
+                      const QString &phone, const QString &code,
                       const QString &avatarUrl = QString());
 
     // 登出

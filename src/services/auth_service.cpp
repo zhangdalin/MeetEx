@@ -67,15 +67,15 @@ void AuthService::login(const QString &account, const QString &password) {
 
 void AuthService::registerUser(const QString &account, const QString &password,
                                 const QString &displayName, const QString &email,
-                                const QString &phone, const QString &avatarUrl) {
+                                const QString &phone, const QString &code,
+                                const QString &avatarUrl) {
     QJsonObject body;
     body["account"] = account;
     body["password"] = password;
     body["display_name"] = displayName;
     body["email"] = email;
-    if (!phone.isEmpty()) {
-        body["phone"] = phone;
-    }
+    body["phone"] = phone;
+    body["code"] = code;
     if (!avatarUrl.isEmpty()) {
         body["avatar_url"] = avatarUrl;
     }

@@ -26,6 +26,8 @@ class UserCreate(UserBase):
         description="账号只能包含字母、数字、下划线"
     )
     password: str = Field(..., min_length=8, description="密码最少8位")
+    phone: str = Field(..., pattern=r"^1[3-9]\d{9}$", description="手机号必填")
+    code: str = Field(..., min_length=4, max_length=6, description="短信验证码")
 
 
 class UserResponse(BaseModel):

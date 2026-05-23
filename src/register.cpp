@@ -48,15 +48,11 @@ void Register::onRegister()
     QString displayName = ui->displayNameLineEdit->text().trimmed();
     QString email = ui->emailLineEdit->text().trimmed();
     QString phone = ui->phoneLineEdit->text().trimmed();
+    QString code = ui->codeLineEdit->text().trimmed();
     QString avatarUrl = ui->avatarLineEdit->text().trimmed();
 
-    if (account.isEmpty() || password.isEmpty() || displayName.isEmpty() || email.isEmpty()) {
-        QMessageBox::warning(this, "提示", "请填写所有必填项（账号、密码、昵称、邮箱）");
-        return;
-    }
-
-    if (!validateEmail()) {
-        QMessageBox::warning(this, "提示", "请输入正确的邮箱地址");
+    if (account.isEmpty() || password.isEmpty() || displayName.isEmpty() || email.isEmpty() || phone.isEmpty() || code.isEmpty()) {
+        QMessageBox::warning(this, "提示", "请填写所有必填项（账号、密码、昵称、邮箱、手机号、验证码）");
         return;
     }
 
@@ -75,7 +71,12 @@ void Register::onRegister()
         return;
     }
 
-    if (!phone.isEmpty() && !validatePhone()) {
+    if (!validateEmail()) {
+        QMessageBox::warning(this, "提示", "请输入正确的邮箱地址");
+        return;
+    }
+
+    if (!validatePhone()) {
         QMessageBox::warning(this, "提示", "请输入正确的手机号");
         return;
     }
@@ -86,7 +87,7 @@ void Register::onRegister()
     ui->registerBtn->setEnabled(false);
     ui->registerBtn->setText("注册中...");
 
-    AuthService::instance().registerUser(account, passwordHash, displayName, email, phone, avatarUrl);
+    AuthService::instance().registerUser(account, passwordHash, displayName, email, phone, code, avatarUrl);
 }
 
 void Register::onSendCode()
