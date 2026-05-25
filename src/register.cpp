@@ -25,6 +25,10 @@ Register::Register(QWidget *parent)
             this, &Register::onRegisterSuccess);
     connect(&AuthService::instance(), &AuthService::sigRegisterFailed,
             this, &Register::onRegisterFailed);
+    connect(&AuthService::instance(), &AuthService::sigCodeSent,
+            this, &Register::onCodeSent);
+    connect(&AuthService::instance(), &AuthService::sigCodeSendFailed,
+            this, &Register::onCodeSendFailed);
 }
 
 Register::~Register()
@@ -110,6 +114,9 @@ void Register::onSendCode()
     ui->sendCodeBtn->setEnabled(false);
     updateSendCodeButton();
     countdownTimer_->start(1000);
+
+    // 调用后端 API 发送验证码
+    AuthService::instance().sendSmsCode(phone, "register");
 }
 
 void Register::updateSendCodeButton()

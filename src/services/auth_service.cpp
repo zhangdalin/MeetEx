@@ -121,6 +121,31 @@ void AuthService::registerUser(const QString &account, const QString &password,
         });
 }
 
+void AuthService::sendSmsCode(const QString &phone, const QString &purpose) {
+    QJsonObject body;
+    body["phone"] = phone;
+    body["purpose"] = purpose;
+
+    QString url = QString("%1%2").arg(API_BASE_URL).arg(API_SEND_SMS_ENDPOINT);
+
+    HttpClient::instance().post(url, body,
+        [this](const QJsonObject &response, bool success) {
+            if (!success) {
+                emit sigCodeSendFailed("网络请求失败");
+                return;
+            }
+
+            int code = response["code"].toInt();
+            if (code != 200) {
+                QString message = response["message"].toString("发送失败");
+                emit sigCodeSendFailed(message);
+                return;
+            }
+
+            emit sigCodeSent();
+        });
+}
+
 void AuthService::loginWithPhone(const QString &phone, const QString &code) {
     QJsonObject body;
     body["phone"] = phone;

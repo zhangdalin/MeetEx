@@ -25,6 +25,10 @@ Login::Login(QWidget *parent)
             this, &Login::onLoginSuccess);
     connect(&AuthService::instance(), &AuthService::sigLoginFailed,
             this, &Login::onLoginFailed);
+    connect(&AuthService::instance(), &AuthService::sigCodeSent,
+            this, &Login::onCodeSent);
+    connect(&AuthService::instance(), &AuthService::sigCodeSendFailed,
+            this, &Login::onCodeSendFailed);
 }
 
 Login::~Login()
@@ -161,9 +165,8 @@ void Login::onSendCode()
     updateSendCodeButton();
     countdownTimer_->start(1000);
 
-    // TODO: 调用后端 API 发送验证码
-    // 目前仅模拟发送成功
-    onCodeSent();
+    // 调用后端 API 发送验证码
+    AuthService::instance().sendSmsCode(phone, "login");
 }
 
 void Login::updateSendCodeButton()

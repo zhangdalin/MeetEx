@@ -66,6 +66,9 @@ public:
                       const QString &phone, const QString &code,
                       const QString &avatarUrl = QString());
 
+    // 发送短信验证码
+    void sendSmsCode(const QString &phone, const QString &purpose);
+
     // 登出
     void logout();
 
@@ -82,6 +85,8 @@ signals:
     void sigLoginFailed(const QString &error);
     void sigRegisterSuccess(const UserProfile &profile);
     void sigRegisterFailed(const QString &error);
+    void sigCodeSent();
+    void sigCodeSendFailed(const QString &error);
     void sigTokenRefreshed(const QString &newToken);
     void sigLoggedOut();
 
