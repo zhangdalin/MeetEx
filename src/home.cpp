@@ -23,6 +23,14 @@ Home::Home(QWidget *parent)
     , ui(new Ui::Home)
 {
     ui->setupUi(this);
+
+    // Connect sidebar buttons to page switching slots
+    connect(ui->accountBtn, &QPushButton::clicked, this, &Home::onAccountBtn);
+    connect(ui->meetingBtn, &QPushButton::clicked, this, &Home::onMeetingBtn);
+    connect(ui->addressBookBtn, &QPushButton::clicked, this, &Home::onAddressBookBtn);
+    connect(ui->mailBtn, &QPushButton::clicked, this, &Home::onMailBtn);
+    connect(ui->recordBtn, &QPushButton::clicked, this, &Home::onRecordBtn);
+    connect(ui->settingsBtn, &QPushButton::clicked, this, &Home::onSettingsBtn);
 }
 
 Home::~Home()
@@ -125,4 +133,65 @@ void Home::onSettings()
     else {
         settings->activateWindow();
     }
+}
+
+void Home::onAccountBtn()
+{
+    ui->stackedWidget->setCurrentWidget(ui->accountPage);
+    ui->accountBtn->setChecked(true);
+    ui->meetingBtn->setChecked(false);
+    ui->addressBookBtn->setChecked(false);
+    ui->mailBtn->setChecked(false);
+    ui->recordBtn->setChecked(false);
+    ui->settingsBtn->setChecked(false);
+}
+
+void Home::onMeetingBtn()
+{
+    ui->stackedWidget->setCurrentWidget(ui->meetingPage);
+    ui->accountBtn->setChecked(false);
+    ui->meetingBtn->setChecked(true);
+    ui->addressBookBtn->setChecked(false);
+    ui->mailBtn->setChecked(false);
+    ui->recordBtn->setChecked(false);
+    ui->settingsBtn->setChecked(false);
+}
+
+void Home::onAddressBookBtn()
+{
+    ui->stackedWidget->setCurrentWidget(ui->addressBookPage);
+    ui->accountBtn->setChecked(false);
+    ui->meetingBtn->setChecked(false);
+    ui->addressBookBtn->setChecked(true);
+    ui->mailBtn->setChecked(false);
+    ui->recordBtn->setChecked(false);
+    ui->settingsBtn->setChecked(false);
+}
+
+void Home::onMailBtn()
+{
+    ui->stackedWidget->setCurrentWidget(ui->mailPage);
+    ui->accountBtn->setChecked(false);
+    ui->meetingBtn->setChecked(false);
+    ui->addressBookBtn->setChecked(false);
+    ui->mailBtn->setChecked(true);
+    ui->recordBtn->setChecked(false);
+    ui->settingsBtn->setChecked(false);
+}
+
+void Home::onRecordBtn()
+{
+    ui->stackedWidget->setCurrentWidget(ui->recordPage);
+    ui->accountBtn->setChecked(false);
+    ui->meetingBtn->setChecked(false);
+    ui->addressBookBtn->setChecked(false);
+    ui->mailBtn->setChecked(false);
+    ui->recordBtn->setChecked(true);
+    ui->settingsBtn->setChecked(false);
+}
+
+void Home::onSettingsBtn()
+{
+    // Open settings dialog instead of switching page
+    onSettings();
 }

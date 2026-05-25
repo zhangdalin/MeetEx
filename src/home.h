@@ -27,6 +27,14 @@ private slots:
     void onShareScreen();
     void onSettings();
 
+    // Sidebar navigation slots
+    void onAccountBtn();
+    void onMeetingBtn();
+    void onAddressBookBtn();
+    void onMailBtn();
+    void onRecordBtn();
+    void onSettingsBtn();
+
 private:
     Ui::Home *ui;
 };
