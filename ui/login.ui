@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>500</height>
+    <height>550</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -45,39 +45,103 @@
     </spacer>
    </item>
    <item>
-    <layout class="QFormLayout" name="formLayout">
-     <item row="0" column="0">
-      <widget class="QLabel" name="accountLabel">
-       <property name="text">
-        <string>账号:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="accountLineEdit">
-       <property name="placeholderText">
-        <string>用户名/手机号</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="passwordLabel">
-       <property name="text">
-        <string>密码:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QLineEdit" name="passwordLineEdit">
-       <property name="echoMode">
-        <enum>QLineEdit::Password</enum>
-       </property>
-       <property name="placeholderText">
-        <string>请输入密码</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
+    <widget class="QTabWidget" name="loginTabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="accountTab">
+      <attribute name="title">
+       <string>账号登录</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="accountTabLayout">
+       <item>
+        <layout class="QFormLayout" name="accountFormLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="accountLabel">
+           <property name="text">
+            <string>账号:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="accountLineEdit">
+           <property name="placeholderText">
+            <string>请输入用户名</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="passwordLabel">
+           <property name="text">
+            <string>密码:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLineEdit" name="passwordLineEdit">
+           <property name="echoMode">
+            <enum>QLineEdit::Password</enum>
+           </property>
+           <property name="placeholderText">
+            <string>请输入密码</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="phoneTab">
+      <attribute name="title">
+       <string>手机登录</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="phoneTabLayout">
+       <item>
+        <layout class="QFormLayout" name="phoneFormLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="phoneLabel">
+           <property name="text">
+            <string>手机号:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="phoneLineEdit">
+           <property name="placeholderText">
+            <string>请输入手机号</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="codeLabel">
+           <property name="text">
+            <string>验证码:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <layout class="QHBoxLayout" name="codeLayout">
+           <item>
+            <widget class="QLineEdit" name="codeLineEdit">
+             <property name="placeholderText">
+              <string>请输入验证码</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="sendCodeBtn">
+             <property name="text">
+              <string>发送验证码</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
    </item>
    <item>
     <spacer name="verticalSpacer_form">
@@ -100,14 +164,35 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="registerLinkLabel">
-     <property name="text">
-      <string>&lt;a href=&quot;#register&quot;&gt;没有账号？去注册&lt;/a&gt;</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="linkLayout">
+     <item>
+      <widget class="QLabel" name="forgotPasswordLabel">
+       <property name="text">
+        <string>&lt;a href=&quot;#forgot&quot;&gt;忘记密码？&lt;/a&gt;</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="registerLinkLabel">
+       <property name="text">
+        <string>&lt;a href=&quot;#register&quot;&gt;没有账号？去注册&lt;/a&gt;</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <spacer name="verticalSpacer_bottom">
@@ -132,9 +217,23 @@
    <receiver>Login</receiver>
    <slot>onRegisterLink()</slot>
   </connection>
+  <connection>
+   <sender>sendCodeBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Login</receiver>
+   <slot>onSendCode()</slot>
+  </connection>
+  <connection>
+   <sender>forgotPasswordLabel</sender>
+   <signal>linkActivated(QString)</signal>
+   <receiver>Login</receiver>
+   <slot>onForgotPassword()</slot>
+  </connection>
  </connections>
  <slots>
   <slot>onLogin()</slot>
   <slot>onRegisterLink()</slot>
+  <slot>onSendCode()</slot>
+  <slot>onForgotPassword()</slot>
  </slots>
 </ui>
