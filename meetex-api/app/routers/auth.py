@@ -138,41 +138,29 @@ async def login_phone(
 ):
     """Phone/SMS code login endpoint.
 
-    For development, accepts any code "123456".
+    For development, accepts code "123456".
     In production, should verify against SMS service.
     """
-    # TODO: Integrate with SMS service
-    # For now, accept any 6-digit code for development
+    # Step 1: Verify SMS code first
+    # TODO: Integrate with actual SMS service for production
     if request.code != "123456":
-        # Check if user exists with this phone
-        result = await session.execute(
-            select(User).where(User.phone == request.phone, User.is_active == True)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid verification code"
         )
-        user = result.scalar_one_or_none()
 
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid phone or code"
-            )
-    else:
-        # Find or create user
-        result = await session.execute(
-            select(User).where(User.phone == request.phone)
+    # Step 2: Check if user exists with this phone
+    result = await session.execute(
+        select(User).where(User.phone == request.phone, User.is_active == True)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        # Login should not create user - only registration creates users
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found, please register first"
         )
-        user = result.scalar_one_or_none()
-
-        if not user:
-            # Create new user
-            user = User(
-                account=request.phone,
-                password_hash=hash_password(request.phone),  # Placeholder
-                display_name=f"User_{request.phone[-4:]}",
-                phone=request.phone
-            )
-            session.add(user)
-            await session.commit()
-            await session.refresh(user)
 
     # Create tokens
     access_token, _ = create_jwt_token(
