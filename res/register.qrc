@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/">
+        <file>assets/user.png</file>
+        <file>assets/lock.png</file>
+        <file>assets/phone.png</file>
+        <file>assets/email.png</file>
+        <file>assets/eye.png</file>
+        <file>assets/eye_off.png</file>
+    </qresource>
+</RCC>

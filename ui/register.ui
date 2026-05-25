@@ -195,6 +195,10 @@
      <property name="text">
       <string>注 册</string>
      </property>
+     <property name="icon">
+      <iconset resource="../res/register.qrc">
+       <normaloff>:/assets/user.png</normaloff>:/assets/user.png</iconset>
+     </property>
     </widget>
    </item>
    <item>

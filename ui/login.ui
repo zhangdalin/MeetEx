@@ -161,6 +161,10 @@
      <property name="text">
       <string>登 录</string>
      </property>
+     <property name="icon">
+      <iconset resource="../res/login.qrc">
+       <normaloff>:/assets/lock.png</normaloff>:/assets/lock.png</iconset>
+     </property>
     </widget>
    </item>
    <item>

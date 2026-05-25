@@ -5,6 +5,9 @@
 #include <QRegularExpression>
 #include <QCryptographicHash>
 #include <QCloseEvent>
+#include <QAction>
+#include <QToolButton>
+#include <QWidgetAction>
 
 Register::Register(QWidget *parent)
     : QWidget(parent)
@@ -14,8 +17,52 @@ Register::Register(QWidget *parent)
 {
     ui->setupUi(this);
 
+    // 设置输入框左侧图标
+    ui->accountLineEdit->addAction(QIcon(":/assets/user.png"), QLineEdit::LeadingPosition);
+    ui->passwordLineEdit->addAction(QIcon(":/assets/lock.png"), QLineEdit::LeadingPosition);
+    ui->confirmPasswordLineEdit->addAction(QIcon(":/assets/lock.png"), QLineEdit::LeadingPosition);
+    ui->displayNameLineEdit->addAction(QIcon(":/assets/user.png"), QLineEdit::LeadingPosition);
+    ui->emailLineEdit->addAction(QIcon(":/assets/email.png"), QLineEdit::LeadingPosition);
+    ui->phoneLineEdit->addAction(QIcon(":/assets/phone.png"), QLineEdit::LeadingPosition);
+    ui->codeLineEdit->addAction(QIcon(":/assets/lock.png"), QLineEdit::LeadingPosition);
+    ui->avatarLineEdit->addAction(QIcon(":/assets/user.png"), QLineEdit::LeadingPosition);
+
     ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
     ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
+
+    // 密码框右侧添加眼睛图标，按住显示明码，松开恢复隐藏
+    QToolButton *passwordEyeBtn = new QToolButton(this);
+    passwordEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
+    passwordEyeBtn->setCursor(Qt::PointingHandCursor);
+    passwordEyeBtn->setStyleSheet("QToolButton { border: none; padding: 2px; }");
+    QWidgetAction *passwordEyeAction = new QWidgetAction(this);
+    passwordEyeAction->setDefaultWidget(passwordEyeBtn);
+    ui->passwordLineEdit->addAction(passwordEyeAction, QLineEdit::TrailingPosition);
+    connect(passwordEyeBtn, &QToolButton::pressed, this, [this, passwordEyeBtn]() {
+        passwordEyeBtn->setIcon(QIcon(":/assets/eye.png"));
+        ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
+    });
+    connect(passwordEyeBtn, &QToolButton::released, this, [this, passwordEyeBtn]() {
+        passwordEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
+        ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
+    });
+
+    // 确认密码框添加眼睛图标
+    QToolButton *confirmEyeBtn = new QToolButton(this);
+    confirmEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
+    confirmEyeBtn->setCursor(Qt::PointingHandCursor);
+    confirmEyeBtn->setStyleSheet("QToolButton { border: none; padding: 2px; }");
+    QWidgetAction *confirmEyeAction = new QWidgetAction(this);
+    confirmEyeAction->setDefaultWidget(confirmEyeBtn);
+    ui->confirmPasswordLineEdit->addAction(confirmEyeAction, QLineEdit::TrailingPosition);
+    connect(confirmEyeBtn, &QToolButton::pressed, this, [this, confirmEyeBtn]() {
+        confirmEyeBtn->setIcon(QIcon(":/assets/eye.png"));
+        ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Normal);
+    });
+    connect(confirmEyeBtn, &QToolButton::released, this, [this, confirmEyeBtn]() {
+        confirmEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
+        ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
+    });
 
     connect(ui->registerBtn, &QPushButton::clicked, this, &Register::onRegister);
     connect(ui->sendCodeBtn, &QPushButton::clicked, this, &Register::onSendCode);

@@ -6,6 +6,9 @@
 #include <QMessageBox>
 #include <QCryptographicHash>
 #include <QRegularExpression>
+#include <QAction>
+#include <QToolButton>
+#include <QWidgetAction>
 
 using namespace std;
 
@@ -19,6 +22,29 @@ Login::Login(QWidget *parent)
     , countdown_(0)
 {
     ui->setupUi(this);
+
+    // 设置输入框左侧图标
+    ui->accountLineEdit->addAction(QIcon(":/assets/user.png"), QLineEdit::LeadingPosition);
+    ui->passwordLineEdit->addAction(QIcon(":/assets/lock.png"), QLineEdit::LeadingPosition);
+    ui->phoneLineEdit->addAction(QIcon(":/assets/phone.png"), QLineEdit::LeadingPosition);
+    ui->codeLineEdit->addAction(QIcon(":/assets/lock.png"), QLineEdit::LeadingPosition);
+
+    // 密码框右侧添加眼睛图标，按住显示明码，松开恢复隐藏
+    QToolButton *passwordEyeBtn = new QToolButton(this);
+    passwordEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
+    passwordEyeBtn->setCursor(Qt::PointingHandCursor);
+    passwordEyeBtn->setStyleSheet("QToolButton { border: none; padding: 2px; }");
+    QWidgetAction *passwordEyeAction = new QWidgetAction(this);
+    passwordEyeAction->setDefaultWidget(passwordEyeBtn);
+    ui->passwordLineEdit->addAction(passwordEyeAction, QLineEdit::TrailingPosition);
+    connect(passwordEyeBtn, &QToolButton::pressed, this, [this, passwordEyeBtn]() {
+        passwordEyeBtn->setIcon(QIcon(":/assets/eye.png"));
+        ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
+    });
+    connect(passwordEyeBtn, &QToolButton::released, this, [this, passwordEyeBtn]() {
+        passwordEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
+        ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
+    });
 
     // 连接认证服务信号
     connect(&AuthService::instance(), &AuthService::sigLoginSuccess,
