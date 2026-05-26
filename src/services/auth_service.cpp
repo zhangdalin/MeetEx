@@ -329,7 +329,8 @@ void AuthService::setupTokenRefreshTimer()
 
 void AuthService::onTokenRefreshTimer()
 {
-    qInfo() << QThread::currentThread() << __FUNCTION__;
+    qInfo() << QThread::currentThread() << __FUNCTION__
+        << "Checking token expiry, current token expires at" << currentToken_.expiresAt;
 
     if (!isLoggedIn_ || isRefreshing_) {
         return;
