@@ -1,13 +1,11 @@
 {
+  "disabledHooks": ["pre:edit-write:gateguard-fact-force", "pre:bash:gateguard-fact-force"],
   "permissions": {
     "allow": [
       "Skill(ecc:skill-create)",
-      "Bash(git add *)",
-      "Bash(git commit -m ' *)",
-      "Bash(git push *)",
-      "Bash(gh pr *)",
-      "Bash(git commit -m 'feat\\(auth\\): add email \\(required\\) and avatar_url \\(optional\\) to registration *)",
-      "Bash(git commit -m 'feat\\(auth\\): make phone required and add SMS code verification *)"
+      "Skill(ecc:team-builder)",
+      "Bash(*)",
+      "WebSearch"
     ]
   }
 }
