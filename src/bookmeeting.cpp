@@ -1,9 +1,10 @@
 #include "bookmeeting.h"
 #include "ui_bookmeeting.h"
+#include "home.h"
 
 using namespace std;
 
-extern unique_ptr<QWidget> home;
+extern unique_ptr<Home> home;
 extern unique_ptr<QWidget> login;
 extern unique_ptr<QWidget> myprofile;
 extern unique_ptr<QWidget> joinmeeting;

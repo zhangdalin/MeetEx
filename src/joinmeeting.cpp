@@ -4,7 +4,7 @@
 
 using namespace std;
 
-extern unique_ptr<QWidget> home;
+extern unique_ptr<Home> home;
 extern unique_ptr<QWidget> myprofile;
 extern unique_ptr<QWidget> joinmeeting;
 extern unique_ptr<QWidget> inmeeting;
@@ -35,7 +35,7 @@ void JoinMeeting::onJoinMeeting()
 void JoinMeeting::closeEvent(QCloseEvent *event)
 {
     if (!inmeeting && join_state) {
-        static_cast<Home*>(home.get())->onInMeeting();
+        home->onInMeeting();
     } else if (inmeeting && join_state){
         inmeeting->activateWindow();
     }

@@ -221,5 +221,29 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>registerBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Register</receiver>
+   <slot>onRegister()</slot>
+  </connection>
+  <connection>
+   <sender>sendCodeBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Register</receiver>
+   <slot>onSendCode()</slot>
+  </connection>
+  <connection>
+   <sender>loginLinkLabel</sender>
+   <signal>linkActivated(QString)</signal>
+   <receiver>Register</receiver>
+   <slot>onLoginLink()</slot>
+  </connection>
+ </connections>
+ <slots>
+  <slot>onRegister()</slot>
+  <slot>onSendCode()</slot>
+  <slot>onLoginLink()</slot>
+ </slots>
 </ui>

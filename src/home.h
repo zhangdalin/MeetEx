@@ -2,6 +2,7 @@
 #define HOME_H
 
 #include <QWidget>
+#include "services/auth_service.h"
 
 using namespace std;
 
@@ -18,6 +19,7 @@ public:
     ~Home();
 
     void onInMeeting();
+    void setUserProfile(const UserProfile &profile);
 
 private slots:
     void onMyProfile();
@@ -34,6 +36,7 @@ private slots:
     void onMailBtn();
     void onRecordBtn();
     void onSettingsBtn();
+    void onLogoutBtn();
 
 private:
     Ui::Home *ui;

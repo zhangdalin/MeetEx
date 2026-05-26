@@ -6,7 +6,9 @@
 #include "bookmeeting.h"
 #include "sharescreen.h"
 #include "settings.h"
+#include "login.h"
 
+#include <QMessageBox>
 #include <QThread>
 
 using namespace std;
@@ -23,14 +25,6 @@ Home::Home(QWidget *parent)
     , ui(new Ui::Home)
 {
     ui->setupUi(this);
-
-    // Connect sidebar buttons to page switching slots
-    connect(ui->accountBtn, &QPushButton::clicked, this, &Home::onAccountBtn);
-    connect(ui->meetingBtn, &QPushButton::clicked, this, &Home::onMeetingBtn);
-    connect(ui->addressBookBtn, &QPushButton::clicked, this, &Home::onAddressBookBtn);
-    connect(ui->mailBtn, &QPushButton::clicked, this, &Home::onMailBtn);
-    connect(ui->recordBtn, &QPushButton::clicked, this, &Home::onRecordBtn);
-    connect(ui->settingsBtn, &QPushButton::clicked, this, &Home::onSettingsBtn);
 }
 
 Home::~Home()
@@ -194,4 +188,35 @@ void Home::onSettingsBtn()
 {
     // Open settings dialog instead of switching page
     onSettings();
+}
+
+void Home::setUserProfile(const UserProfile &profile)
+{
+    ui->nicknameLabel->setText(profile.displayName.isEmpty() ? "欢迎回来" : profile.displayName);
+    ui->accountInfoLabel->setText("账号: " + profile.account);
+
+    if (!profile.avatarUrl.isEmpty()) {
+        // TODO: 加载网络头像
+        // 目前保持默认图标
+    }
+}
+
+void Home::onLogoutBtn()
+{
+    QMessageBox::StandardButton reply = QMessageBox::question(this, "确认登出",
+        "确定要退出登录吗？",
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        // 调用认证服务登出
+        AuthService::instance().logout();
+
+        // 创建新的登录窗口
+        Login *loginWindow = new Login();
+        loginWindow->show();
+
+        // 关闭当前 Home 窗口
+        close();
+    }
 }

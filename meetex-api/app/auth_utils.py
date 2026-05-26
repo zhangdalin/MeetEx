@@ -189,6 +189,7 @@ def user_to_response(user: User) -> dict:
     """Convert User model to response dict."""
     return {
         "userId": user.id,
+        "account": user.account,
         "displayName": user.display_name,
         "phone": user.phone,
         "email": user.email,

@@ -12,7 +12,7 @@
 
 using namespace std;
 
-unique_ptr<QWidget> home = nullptr;
+unique_ptr<Home> home = nullptr;
 
 Login::Login(QWidget *parent)
     : QWidget(parent)
@@ -31,18 +31,18 @@ Login::Login(QWidget *parent)
 
     // 密码框右侧添加眼睛图标，按住显示明码，松开恢复隐藏
     QToolButton *passwordEyeBtn = new QToolButton(this);
-    passwordEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
+    passwordEyeBtn->setIcon(QIcon(":/assets/eye.png"));
     passwordEyeBtn->setCursor(Qt::PointingHandCursor);
     passwordEyeBtn->setStyleSheet("QToolButton { border: none; padding: 2px; }");
     QWidgetAction *passwordEyeAction = new QWidgetAction(this);
     passwordEyeAction->setDefaultWidget(passwordEyeBtn);
     ui->passwordLineEdit->addAction(passwordEyeAction, QLineEdit::TrailingPosition);
     connect(passwordEyeBtn, &QToolButton::pressed, this, [this, passwordEyeBtn]() {
-        passwordEyeBtn->setIcon(QIcon(":/assets/eye.png"));
+        passwordEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
         ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
     });
     connect(passwordEyeBtn, &QToolButton::released, this, [this, passwordEyeBtn]() {
-        passwordEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
+        passwordEyeBtn->setIcon(QIcon(":/assets/eye.png"));
         ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
     });
 
@@ -66,6 +66,7 @@ void Login::closeEvent(QCloseEvent *event)
 {
     if (login_state) {
         home = make_unique<Home>();
+        home->setUserProfile(AuthService::instance().getCurrentUser());
         home->show();
         qInfo() << QThread::currentThread() << __FUNCTION__ << "login logic success";
         QWidget::closeEvent(event);

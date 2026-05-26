@@ -278,6 +278,38 @@ QPushButton:checked {
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QPushButton" name="logoutBtn">
+        <property name="minimumSize">
+         <size>
+          <width>60</width>
+          <height>60</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>60</width>
+          <height>60</height>
+         </size>
+        </property>
+        <property name="toolTip">
+         <string>登出</string>
+        </property>
+        <property name="icon">
+         <iconset resource="../res/home.qrc">
+          <normaloff>:/assets/leave_meeting.png</normaloff>:/assets/leave_meeting.png</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>32</width>
+          <height>32</height>
+         </size>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -633,11 +665,60 @@ QPushButton:pressed {
    <receiver>Home</receiver>
    <slot>onShareScreen()</slot>
   </connection>
+  <connection>
+   <sender>logoutBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Home</receiver>
+   <slot>onLogoutBtn()</slot>
+  </connection>
+  <connection>
+   <sender>accountBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Home</receiver>
+   <slot>onAccountBtn()</slot>
+  </connection>
+  <connection>
+   <sender>meetingBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Home</receiver>
+   <slot>onMeetingBtn()</slot>
+  </connection>
+  <connection>
+   <sender>addressBookBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Home</receiver>
+   <slot>onAddressBookBtn()</slot>
+  </connection>
+  <connection>
+   <sender>mailBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Home</receiver>
+   <slot>onMailBtn()</slot>
+  </connection>
+  <connection>
+   <sender>recordBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Home</receiver>
+   <slot>onRecordBtn()</slot>
+  </connection>
+  <connection>
+   <sender>settingsBtn</sender>
+   <signal>clicked()</signal>
+   <receiver>Home</receiver>
+   <slot>onSettingsBtn()</slot>
+  </connection>
  </connections>
  <slots>
   <slot>onJoinMeeting()</slot>
   <slot>onQuickMeeting()</slot>
   <slot>onBookMeeting()</slot>
   <slot>onShareScreen()</slot>
+  <slot>onLogoutBtn()</slot>
+  <slot>onAccountBtn()</slot>
+  <slot>onMeetingBtn()</slot>
+  <slot>onAddressBookBtn()</slot>
+  <slot>onMailBtn()</slot>
+  <slot>onRecordBtn()</slot>
+  <slot>onSettingsBtn()</slot>
  </slots>
 </ui>

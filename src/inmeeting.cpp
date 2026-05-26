@@ -1,5 +1,6 @@
 #include "inmeeting.h"
 #include "ui_inmeeting.h"
+#include "home.h"
 #include "meeting_session.h"
 #include "meeting_def.h"
 #include "meeting_participant.h"
@@ -16,7 +17,7 @@
 #include <QTimer>
 #include <QThread>
 
-extern std::unique_ptr<QWidget> home;
+extern std::unique_ptr<Home> home;
 extern std::unique_ptr<QWidget> myprofile;
 extern std::unique_ptr<QWidget> joinmeeting;
 extern std::unique_ptr<QWidget> inmeeting;

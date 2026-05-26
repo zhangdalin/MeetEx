@@ -32,18 +32,18 @@ Register::Register(QWidget *parent)
 
     // 密码框右侧添加眼睛图标，按住显示明码，松开恢复隐藏
     QToolButton *passwordEyeBtn = new QToolButton(this);
-    passwordEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
+    passwordEyeBtn->setIcon(QIcon(":/assets/eye.png"));
     passwordEyeBtn->setCursor(Qt::PointingHandCursor);
     passwordEyeBtn->setStyleSheet("QToolButton { border: none; padding: 2px; }");
     QWidgetAction *passwordEyeAction = new QWidgetAction(this);
     passwordEyeAction->setDefaultWidget(passwordEyeBtn);
     ui->passwordLineEdit->addAction(passwordEyeAction, QLineEdit::TrailingPosition);
     connect(passwordEyeBtn, &QToolButton::pressed, this, [this, passwordEyeBtn]() {
-        passwordEyeBtn->setIcon(QIcon(":/assets/eye.png"));
+        passwordEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
         ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
     });
     connect(passwordEyeBtn, &QToolButton::released, this, [this, passwordEyeBtn]() {
-        passwordEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
+        passwordEyeBtn->setIcon(QIcon(":/assets/eye.png"));
         ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
     });
 
@@ -64,9 +64,7 @@ Register::Register(QWidget *parent)
         ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
     });
 
-    connect(ui->registerBtn, &QPushButton::clicked, this, &Register::onRegister);
-    connect(ui->sendCodeBtn, &QPushButton::clicked, this, &Register::onSendCode);
-    connect(ui->loginLinkLabel, &QLabel::linkActivated, this, &Register::onLoginLink);
+    // 信号连接已在 ui/register.ui 中定义
 
     connect(&AuthService::instance(), &AuthService::sigRegisterSuccess,
             this, &Register::onRegisterSuccess);

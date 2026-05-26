@@ -12,6 +12,7 @@
 // 用户资料结构
 struct UserProfile {
     QString userId;
+    QString account;
     QString displayName;
     QString phone;
     QString email;
@@ -20,6 +21,7 @@ struct UserProfile {
     QJsonObject toJson() const {
         QJsonObject obj;
         obj["userId"] = userId;
+        obj["account"] = account;
         obj["displayName"] = displayName;
         obj["phone"] = phone;
         obj["email"] = email;
@@ -29,6 +31,7 @@ struct UserProfile {
 
     void fromJson(const QJsonObject &obj) {
         userId = obj["userId"].toString();
+        account = obj["account"].toString();
         displayName = obj["displayName"].toString();
         phone = obj["phone"].toString();
         email = obj["email"].toString();
