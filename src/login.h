@@ -36,6 +36,7 @@ private slots:
     void onCodeSent();
     void onCodeSendFailed(const QString &error);
     void updateSendCodeButton();
+    void checkAutoLogin();
 
 private:
     Ui::Login *ui;

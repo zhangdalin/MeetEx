@@ -1,4 +1,5 @@
 #include "http_client.h"
+#include "auth_service.h"
 #include <QDebug>
 #include <QNetworkRequest>
 #include <QUrl>
@@ -26,6 +27,11 @@ void HttpClient::clearHeaders() {
     headers_.clear();
 }
 
+void HttpClient::setAutoRefreshEnabled(bool enabled)
+{
+    autoRefreshEnabled_ = enabled;
+}
+
 QNetworkRequest HttpClient::createRequest(const QString &url) {
     QNetworkRequest request = QNetworkRequest(QUrl(url));
     request.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/json"));
@@ -46,8 +52,21 @@ void HttpClient::post(const QString &url, const QJsonObject &body,
 
     QNetworkReply *reply = manager_->post(request, data);
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply, callback]() {
-        handleReply(reply, callback);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, url, body, callback]() {
+        bool ok = false;
+        QJsonObject response = parseJsonResponse(reply, ok);
+
+        // AUTH-006: 处理 401 未授权
+        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (statusCode == 401 && autoRefreshEnabled_ && !isWaitingForRefresh_) {
+            PendingRequest pending{url, body, callback, 1};
+            handleUnauthorized(pending);
+            reply->deleteLater();
+            return;
+        }
+
+        callback(response, ok);
+        reply->deleteLater();
     });
 }
 
@@ -146,4 +165,53 @@ QJsonObject HttpClient::parseJsonResponse(QNetworkReply *reply, bool &ok) {
     }
 
     return QJsonObject();
+}
+
+// AUTH-006: 401 处理
+void HttpClient::handleUnauthorized(const PendingRequest &request)
+{
+    // 如果已经在等待刷新，只添加请求到队列
+    if (isWaitingForRefresh_) {
+        pendingRequests_.append(request);
+        return;
+    }
+
+    pendingRequests_.append(request);
+    isWaitingForRefresh_ = true;
+
+    // 连接一次性信号
+    connect(&AuthService::instance(), &AuthService::sigTokenRefreshed,
+            this, &HttpClient::onTokenRefreshed, Qt::SingleShotConnection);
+    connect(&AuthService::instance(), &AuthService::sigLoggedOut,
+            this, &HttpClient::onTokenRefreshFailed, Qt::SingleShotConnection);
+
+    // 触发刷新
+    AuthService::instance().refreshToken();
+}
+
+void HttpClient::retryPendingRequests()
+{
+    isWaitingForRefresh_ = false;
+    QList<PendingRequest> requestsToRetry = pendingRequests_;
+    pendingRequests_.clear();
+
+    for (const auto &pending : requestsToRetry) {
+        post(pending.url, pending.body, pending.callback);
+    }
+}
+
+void HttpClient::clearPendingRequests()
+{
+    isWaitingForRefresh_ = false;
+    pendingRequests_.clear();
+}
+
+void HttpClient::onTokenRefreshed()
+{
+    retryPendingRequests();
+}
+
+void HttpClient::onTokenRefreshFailed()
+{
+    clearPendingRequests();
 }

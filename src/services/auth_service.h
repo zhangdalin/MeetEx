@@ -8,6 +8,7 @@
 #include <QCryptographicHash>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QTimer>
 
 // 用户资料结构
 struct UserProfile {
@@ -113,6 +114,14 @@ private:
     UserProfile currentUser_;
     bool isLoggedIn_ = false;
     bool isRefreshing_ = false;
+
+    // AUTH-006: Token 预刷新定时器
+    QTimer *tokenRefreshTimer_ = nullptr;
+    static constexpr int TOKEN_REFRESH_CHECK_INTERVAL_MS = 60000;   // 60秒检查一次
+    static constexpr int TOKEN_REFRESH_THRESHOLD_SECS = 300;        // 过期前5分钟刷新
+
+    void setupTokenRefreshTimer();
+    void onTokenRefreshTimer();
 
     static constexpr const char* SETTINGS_GROUP = "auth";
     static constexpr const char* KEY_ACCESS_TOKEN = "accessToken";

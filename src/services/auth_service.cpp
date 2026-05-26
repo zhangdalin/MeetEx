@@ -2,6 +2,7 @@
 #include "http_client.h"
 #include "meeting_def.h"
 #include <QDebug>
+#include <QThread>
 
 AuthService& AuthService::instance() {
     static AuthService instance;
@@ -57,6 +58,7 @@ void AuthService::login(const QString &account, const QString &password) {
 
             isLoggedIn_ = true;
             saveAuthData();
+            setupTokenRefreshTimer();  // AUTH-006: 启动预刷新定时器
 
             HttpClient::instance().setHeader("Authorization",
                 QString("Bearer %1").arg(currentToken_.accessToken));
@@ -182,6 +184,7 @@ void AuthService::loginWithPhone(const QString &phone, const QString &code) {
 
             isLoggedIn_ = true;
             saveAuthData();
+            setupTokenRefreshTimer();  // AUTH-006: 启动预刷新定时器
 
             HttpClient::instance().setHeader("Authorization",
                 QString("Bearer %1").arg(currentToken_.accessToken));
@@ -191,6 +194,11 @@ void AuthService::loginWithPhone(const QString &phone, const QString &code) {
 }
 
 void AuthService::logout() {
+    // AUTH-006: 停止定时器
+    if (tokenRefreshTimer_) {
+        tokenRefreshTimer_->stop();
+    }
+
     isLoggedIn_ = false;
     clearAuthData();
     HttpClient::instance().clearHeaders();
@@ -283,6 +291,7 @@ void AuthService::loadAuthData() {
         isLoggedIn_ = true;
         HttpClient::instance().setHeader("Authorization",
             QString("Bearer %1").arg(currentToken_.accessToken));
+        setupTokenRefreshTimer();  // AUTH-006: 启动预刷新定时器
     }
 }
 
@@ -302,4 +311,37 @@ QString AuthService::encryptPassword(const QString &password) {
 
 QString AuthService::decryptPassword(const QString &encrypted) {
     return encrypted;
+}
+
+// AUTH-006: Token 预刷新定时器
+void AuthService::setupTokenRefreshTimer()
+{
+    if (tokenRefreshTimer_) return;
+
+    tokenRefreshTimer_ = new QTimer(this);
+    tokenRefreshTimer_->setInterval(TOKEN_REFRESH_CHECK_INTERVAL_MS);
+
+    connect(tokenRefreshTimer_, &QTimer::timeout,
+            this, &AuthService::onTokenRefreshTimer);
+
+    tokenRefreshTimer_->start();
+}
+
+void AuthService::onTokenRefreshTimer()
+{
+    qInfo() << QThread::currentThread() << __FUNCTION__;
+
+    if (!isLoggedIn_ || isRefreshing_) {
+        return;
+    }
+
+    // 检查 Token 是否即将过期
+    QDateTime now = QDateTime::currentDateTime();
+    int secsUntilExpiry = now.secsTo(currentToken_.expiresAt);
+
+    if (secsUntilExpiry > 0 && secsUntilExpiry < TOKEN_REFRESH_THRESHOLD_SECS) {
+        qInfo() << QThread::currentThread() << __FUNCTION__
+            << "Token expiring in" << secsUntilExpiry << "seconds, refreshing...";
+        refreshToken();
+    }
 }

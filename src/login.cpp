@@ -55,6 +55,9 @@ Login::Login(QWidget *parent)
             this, &Login::onCodeSent);
     connect(&AuthService::instance(), &AuthService::sigCodeSendFailed,
             this, &Login::onCodeSendFailed);
+
+    // AUTH-006: 自动登录检查
+    checkAutoLogin();
 }
 
 Login::~Login()
@@ -230,4 +233,16 @@ bool Login::validatePhone() const
     QString phone = ui->phoneLineEdit->text().trimmed();
     QRegularExpression regex("^1[3-9]\\d{9}$");
     return regex.match(phone).hasMatch();
+}
+
+void Login::checkAutoLogin()
+{
+    AuthService &auth = AuthService::instance();
+
+    // 如果已有有效登录，直接进入主页
+    if (auth.isLoggedIn() && !auth.getAccessToken().isEmpty()) {
+        qInfo() << "Auto-login with existing session";
+        login_state = true;
+        close();  // 触发 closeEvent 进入主页
+    }
 }
