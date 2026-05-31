@@ -52,6 +52,7 @@ set(PROJECT_HEADERS
     src/participantwidget.h
     src/memberwidget.h
     src/glwidget.h
+    src/collapsiblesection.h
 )
 
 set(PROJECT_SOURCES
@@ -72,6 +73,7 @@ set(PROJECT_SOURCES
     src/participantwidget.cpp
     src/memberwidget.cpp
     src/glwidget.cpp
+    src/collapsiblesection.cpp
     src/services/http_client.cpp
     src/services/auth_service.cpp
     ${TS_FILES}
