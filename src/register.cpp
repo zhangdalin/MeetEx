@@ -8,6 +8,12 @@
 #include <QAction>
 #include <QToolButton>
 #include <QWidgetAction>
+#include <QLabel>
+#include <QPainter>
+#include <QUrl>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
 
 Register::Register(QWidget *parent)
     : QWidget(parent)
@@ -74,6 +80,28 @@ Register::Register(QWidget *parent)
             this, &Register::onCodeSent);
     connect(&AuthService::instance(), &AuthService::sigCodeSendFailed,
             this, &Register::onCodeSendFailed);
+
+    // 查找并初始化头像预览标签
+    avatarPreviewLabel_ = findChild<QLabel*>("avatarPreviewLabel");
+    if (avatarPreviewLabel_) {
+        // 加载默认头像并裁剪为圆形
+        QPixmap defaultAvatar(":/assets/user.png");
+        if (!defaultAvatar.isNull()) {
+            QPixmap circular(64, 64);
+            circular.fill(Qt::transparent);
+            QPainter painter(&circular);
+            painter.setRenderHint(QPainter::Antialiasing);
+            painter.setBrush(QBrush(defaultAvatar.scaled(64, 64, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation)));
+            painter.setPen(Qt::NoPen);
+            painter.drawEllipse(0, 0, 64, 64);
+            painter.end();
+            avatarPreviewLabel_->setPixmap(circular);
+        }
+
+        // 连接头像URL变化信号
+        connect(ui->avatarLineEdit, &QLineEdit::textChanged,
+                this, &Register::onAvatarUrlChanged);
+    }
 }
 
 Register::~Register()
@@ -239,4 +267,51 @@ bool Register::validatePhone()
 bool Register::passwordsMatch()
 {
     return ui->passwordLineEdit->text() == ui->confirmPasswordLineEdit->text();
+}
+
+void Register::onAvatarUrlChanged(const QString &url)
+{
+    if (!avatarPreviewLabel_) return;
+
+    if (url.isEmpty()) {
+        // 恢复默认头像
+        QPixmap defaultAvatar(":/assets/user.png");
+        if (!defaultAvatar.isNull()) {
+            QPixmap circular(64, 64);
+            circular.fill(Qt::transparent);
+            QPainter painter(&circular);
+            painter.setRenderHint(QPainter::Antialiasing);
+            painter.setBrush(QBrush(defaultAvatar.scaled(64, 64, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation)));
+            painter.setPen(Qt::NoPen);
+            painter.drawEllipse(0, 0, 64, 64);
+            painter.end();
+            avatarPreviewLabel_->setPixmap(circular);
+        }
+    } else {
+        // 尝试加载网络头像
+        QUrl imageUrl(url);
+        if (imageUrl.isValid()) {
+            QNetworkAccessManager *manager = new QNetworkAccessManager(this);
+            connect(manager, &QNetworkAccessManager::finished, this, [this, manager](QNetworkReply *reply) {
+                manager->deleteLater();
+                if (reply->error() == QNetworkReply::NoError) {
+                    QByteArray data = reply->readAll();
+                    QPixmap pixmap;
+                    if (pixmap.loadFromData(data)) {
+                        QPixmap circular(64, 64);
+                        circular.fill(Qt::transparent);
+                        QPainter painter(&circular);
+                        painter.setRenderHint(QPainter::Antialiasing);
+                        painter.setBrush(QBrush(pixmap.scaled(64, 64, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation)));
+                        painter.setPen(Qt::NoPen);
+                        painter.drawEllipse(0, 0, 64, 64);
+                        painter.end();
+                        avatarPreviewLabel_->setPixmap(circular);
+                    }
+                }
+                reply->deleteLater();
+            });
+            manager->get(QNetworkRequest(imageUrl));
+        }
+    }
 }
