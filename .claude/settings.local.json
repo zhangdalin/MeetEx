@@ -1,11 +1,17 @@
 {
-  "disabledHooks": ["pre:edit-write:gateguard-fact-force", "pre:bash:gateguard-fact-force"],
   "permissions": {
     "allow": [
       "Skill(ecc:skill-create)",
       "Skill(ecc:team-builder)",
       "Bash(*)",
-      "WebSearch"
+      "WebSearch",
+      "mcp__plugin_ecc_playwright__browser_navigate",
+      "Skill(superpowers:writing-plans)",
+      "Skill(superpowers:executing-plans)"
     ]
-  }
+  },
+  "disabledHooks": [
+    "pre:edit-write:gateguard-fact-force",
+    "pre:bash:gateguard-fact-force"
+  ]
 }
