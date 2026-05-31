@@ -6,6 +6,7 @@
 #include "services/auth_service.h"
 
 QT_BEGIN_NAMESPACE
+class QLabel;
 namespace Ui { class Register; }
 QT_END_NAMESPACE
 
@@ -29,6 +30,7 @@ private slots:
     void onRegisterFailed(const QString &error);
     void onCodeSent();
     void onCodeSendFailed(const QString &error);
+    void onAvatarUrlChanged(const QString &url);
 
 private:
     bool validateAccount();
@@ -41,6 +43,7 @@ private:
     QTimer *countdownTimer_;
     int countdown_;
     bool registered_ = false;
+    QLabel *avatarPreviewLabel_ = nullptr;
 };
 
 #endif // REGISTER_H
