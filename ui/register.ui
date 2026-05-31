@@ -6,14 +6,31 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>500</height>
+    <width>420</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>注册 MeetEx</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>25</number>
+   </property>
+   <property name="topMargin">
+    <number>20</number>
+   </property>
+   <property name="rightMargin">
+    <number>25</number>
+   </property>
+   <property name="bottomMargin">
+    <number>20</number>
+   </property>
+
+   <!-- 顶部间距 -->
    <item>
     <spacer name="verticalSpacer_top">
      <property name="orientation">
@@ -21,6 +38,8 @@
      </property>
     </spacer>
    </item>
+
+   <!-- 页面标题 -->
    <item>
     <widget class="QLabel" name="titleLabel">
      <property name="font">
@@ -37,15 +56,63 @@
      </property>
     </widget>
    </item>
+
+   <!-- 标题与第一个分组间距 -->
    <item>
-    <spacer name="verticalSpacer_title">
+    <spacer name="verticalSpacer_afterTitle">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>25</height>
+      </size>
+     </property>
     </spacer>
    </item>
+
+   <!-- 账户信息分组 -->
    <item>
-    <layout class="QFormLayout" name="formLayout">
+    <widget class="QLabel" name="accountGroupLabel">
+     <property name="font">
+      <font>
+       <pointsize>10</pointsize>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QLabel#accountGroupLabel {
+    background-color: #f5f5f5;
+    color: #666666;
+    padding: 5px 15px;
+    border-radius: 3px;
+}</string>
+     </property>
+     <property name="text">
+      <string>━━━ 账户信息 ━━━</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+
+   <!-- 账户信息字段 -->
+   <item>
+    <layout class="QFormLayout" name="accountFormLayout">
+     <property name="labelAlignment">
+      <set>Qt::AlignRight|Qt::AlignVCenter</set>
+     </property>
+     <property name="formAlignment">
+      <set>Qt::AlignLeading|Qt::AlignTop</set>
+     </property>
+     <property name="horizontalSpacing">
+      <number>10</number>
+     </property>
+     <property name="verticalSpacing">
+      <number>12</number>
+     </property>
      <item row="0" column="0">
       <widget class="QLabel" name="accountLabel">
        <property name="text">
@@ -94,96 +161,283 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="displayNameLabel">
-       <property name="text">
-        <string>昵称:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QLineEdit" name="displayNameLineEdit">
-       <property name="placeholderText">
-        <string>显示名称</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="0">
+    </layout>
+   </item>
+
+   <!-- 分组间距 -->
+   <item>
+    <spacer name="verticalSpacer_afterAccount">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+
+   <!-- 联系方式分组 -->
+   <item>
+    <widget class="QLabel" name="contactGroupLabel">
+     <property name="font">
+      <font>
+       <pointsize>10</pointsize>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QLabel#contactGroupLabel {
+    background-color: #f5f5f5;
+    color: #666666;
+    padding: 5px 15px;
+    border-radius: 3px;
+}</string>
+     </property>
+     <property name="text">
+      <string>━━━ 联系方式 ━━━</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+
+   <!-- 联系方式字段 -->
+   <item>
+    <layout class="QFormLayout" name="contactFormLayout">
+     <property name="labelAlignment">
+      <set>Qt::AlignRight|Qt::AlignVCenter</set>
+     </property>
+     <property name="formAlignment">
+      <set>Qt::AlignLeading|Qt::AlignTop</set>
+     </property>
+     <property name="horizontalSpacing">
+      <number>10</number>
+     </property>
+     <property name="verticalSpacing">
+      <number>12</number>
+     </property>
+     <item row="0" column="0">
       <widget class="QLabel" name="emailLabel">
        <property name="text">
         <string>邮箱:</string>
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
+     <item row="0" column="1">
       <widget class="QLineEdit" name="emailLineEdit">
        <property name="placeholderText">
         <string>example@email.com</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
+     <item row="1" column="0">
       <widget class="QLabel" name="phoneLabel">
        <property name="text">
         <string>手机号:</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="1">
-      <layout class="QHBoxLayout" name="phoneLayout">
-       <item>
-        <widget class="QLineEdit" name="phoneLineEdit">
-         <property name="placeholderText">
-          <string>11位手机号</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="sendCodeBtn">
-         <property name="text">
-          <string>发送验证码</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="phoneLineEdit">
+       <property name="placeholderText">
+        <string>11位手机号</string>
+       </property>
+      </widget>
      </item>
-     <item row="6" column="0">
+     <item row="2" column="0">
       <widget class="QLabel" name="codeLabel">
        <property name="text">
         <string>验证码:</string>
        </property>
       </widget>
      </item>
-     <item row="6" column="1">
-      <widget class="QLineEdit" name="codeLineEdit">
-       <property name="placeholderText">
-        <string>6位验证码</string>
+     <item row="2" column="1">
+      <layout class="QHBoxLayout" name="codeLayout">
+       <property name="spacing">
+        <number>5</number>
        </property>
-      </widget>
-     </item>
-     <item row="7" column="0">
-      <widget class="QLabel" name="avatarLabel">
-       <property name="text">
-        <string>头像URL:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="7" column="1">
-      <widget class="QLineEdit" name="avatarLineEdit">
-       <property name="placeholderText">
-        <string>头像图片URL（选填）</string>
-       </property>
-      </widget>
+       <item>
+        <widget class="QLineEdit" name="codeLineEdit">
+         <property name="placeholderText">
+          <string>6位验证码</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="sendCodeBtn">
+         <property name="styleSheet">
+          <string notr="true">QPushButton {
+    border: none;
+    background: transparent;
+    color: #0078d4;
+    font-size: 9pt;
+    padding: 0 5px;
+}
+QPushButton:hover {
+    color: #005a9e;
+}
+QPushButton:disabled {
+    color: #999999;
+}</string>
+         </property>
+         <property name="text">
+          <string>获取验证码</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </item>
+
+   <!-- 分组间距 -->
    <item>
-    <spacer name="verticalSpacer_form">
+    <spacer name="verticalSpacer_afterContact">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
     </spacer>
    </item>
+
+   <!-- 个人资料分组 -->
+   <item>
+    <widget class="QLabel" name="profileGroupLabel">
+     <property name="font">
+      <font>
+       <pointsize>10</pointsize>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QLabel#profileGroupLabel {
+    background-color: #f5f5f5;
+    color: #666666;
+    padding: 5px 15px;
+    border-radius: 3px;
+}</string>
+     </property>
+     <property name="text">
+      <string>━━━ 个人资料 ━━━</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+
+   <!-- 个人资料字段 -->
+   <item>
+    <layout class="QHBoxLayout" name="profileLayout">
+     <property name="spacing">
+      <number>15</number>
+     </property>
+     <!-- 头像预览 -->
+     <item>
+      <widget class="QLabel" name="avatarPreviewLabel">
+       <property name="minimumSize">
+        <size>
+         <width>64</width>
+         <height>64</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>64</width>
+         <height>64</height>
+        </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QLabel#avatarPreviewLabel {
+    border-radius: 32px;
+    border: 2px solid #e0e0e0;
+    background-color: #f5f5f5;
+}</string>
+       </property>
+       <property name="pixmap">
+        <pixmap resource="../res/register.qrc">:/assets/user.png</pixmap>
+       </property>
+       <property name="scaledContents">
+        <bool>true</bool>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <!-- 昵称和URL -->
+     <item>
+      <layout class="QFormLayout" name="profileFormLayout">
+       <property name="labelAlignment">
+        <set>Qt::AlignRight|Qt::AlignVCenter</set>
+       </property>
+       <property name="formAlignment">
+        <set>Qt::AlignLeading|Qt::AlignTop</set>
+       </property>
+       <property name="horizontalSpacing">
+        <number>10</number>
+       </property>
+       <property name="verticalSpacing">
+        <number>12</number>
+       </property>
+       <item row="0" column="0">
+        <widget class="QLabel" name="displayNameLabel">
+         <property name="text">
+          <string>昵称:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="displayNameLineEdit">
+         <property name="placeholderText">
+          <string>显示名称</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="avatarLabel">
+         <property name="text">
+          <string>头像URL:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="avatarLineEdit">
+         <property name="placeholderText">
+          <string>头像图片URL（选填）</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+
+   <!-- 最后一个分组与注册按钮间距 -->
+   <item>
+    <spacer name="verticalSpacer_beforeButton">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>30</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+
+   <!-- 注册按钮 -->
    <item>
     <widget class="QPushButton" name="registerBtn">
      <property name="minimumSize">
@@ -192,15 +446,44 @@
        <height>40</height>
       </size>
      </property>
+     <property name="styleSheet">
+      <string notr="true">QPushButton {
+    background-color: #0078d4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 11pt;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #005a9e;
+}
+QPushButton:pressed {
+    background-color: #004578;
+}</string>
+     </property>
      <property name="text">
       <string>注 册</string>
      </property>
-     <property name="icon">
-      <iconset resource="../res/register.qrc">
-       <normaloff>:/assets/user.png</normaloff>:/assets/user.png</iconset>
-     </property>
     </widget>
    </item>
+
+   <!-- 注册按钮与登录链接间距 -->
+   <item>
+    <spacer name="verticalSpacer_afterButton">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>15</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+
+   <!-- 登录链接 -->
    <item>
     <widget class="QLabel" name="loginLinkLabel">
      <property name="text">
@@ -211,6 +494,8 @@
      </property>
     </widget>
    </item>
+
+   <!-- 底部间距 -->
    <item>
     <spacer name="verticalSpacer_bottom">
      <property name="orientation">
@@ -218,9 +503,12 @@
      </property>
     </spacer>
    </item>
+
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../res/register.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>registerBtn</sender>
