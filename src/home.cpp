@@ -203,10 +203,6 @@ void Home::onSettingsBtn()
 
 void Home::setUserProfile(const UserProfile &profile)
 {
-    // 更新主内容区的用户信息（保留原有逻辑）
-    ui->nicknameLabel->setText(profile.displayName.isEmpty() ? "欢迎回来" : profile.displayName);
-    ui->accountInfoLabel->setText("账号: " + profile.account);
-
     // 更新侧边栏的用户信息
     ui->sidebarNicknameLabel->setText(profile.displayName.isEmpty() ? "欢迎回来" : profile.displayName);
     ui->sidebarAccountLabel->setText("账号: " + profile.account);
