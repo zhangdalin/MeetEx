@@ -434,109 +434,39 @@ QPushButton:checked {
         <number>40</number>
        </property>
        <item>
-        <layout class="QVBoxLayout" name="userInfoLayout">
-         <property name="spacing">
-          <number>10</number>
-         </property>
-         <item>
-          <widget class="QLabel" name="avatarLabel">
-           <property name="minimumSize">
-            <size>
-             <width>64</width>
-             <height>64</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>64</width>
-             <height>64</height>
-            </size>
-           </property>
-           <property name="pixmap">
-            <pixmap resource="../res/home.qrc">:/assets/user.png</pixmap>
-           </property>
-           <property name="scaledContents">
-            <bool>true</bool>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="nicknameLabel">
-           <property name="font">
-            <font>
-             <pointsize>16</pointsize>
-             <bold>true</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>欢迎回来</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="accountInfoLabel">
-           <property name="font">
-            <font>
-             <pointsize>10</pointsize>
-            </font>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">color: #666666;</string>
-           </property>
-           <property name="text">
-            <string>账号: user123</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <spacer name="topSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <layout class="QGridLayout" name="functionGrid">
+        <layout class="QHBoxLayout" name="quickActionLayout">
          <property name="spacing">
           <number>20</number>
          </property>
-         <item row="0" column="0">
-          <widget class="QPushButton" name="joinmeetingBtn">
+         <item>
+          <spacer name="quickActionLeftSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="joinMeetingBtn">
            <property name="minimumSize">
             <size>
              <width>140</width>
-             <height>120</height>
+             <height>80</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
              <width>140</width>
-             <height>120</height>
+             <height>80</height>
             </size>
-           </property>
-           <property name="font">
-            <font>
-             <pointsize>12</pointsize>
-             <bold>true</bold>
-            </font>
            </property>
            <property name="styleSheet">
             <string notr="true">QPushButton {
     background-color: #ffffff;
-    border: 2px solid #e0e0e0;
+    border: 1px solid #e0e0e0;
     border-radius: 8px;
     color: #333333;
+    font-size: 14px;
+    font-weight: bold;
 }
 QPushButton:hover {
     background-color: #f0f7ff;
@@ -562,32 +492,28 @@ QPushButton:pressed {
            </property>
           </widget>
          </item>
-         <item row="0" column="1">
-          <widget class="QPushButton" name="quickmeetingBtn">
+         <item>
+          <widget class="QPushButton" name="quickMeetingBtn">
            <property name="minimumSize">
             <size>
              <width>140</width>
-             <height>120</height>
+             <height>80</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
              <width>140</width>
-             <height>120</height>
+             <height>80</height>
             </size>
-           </property>
-           <property name="font">
-            <font>
-             <pointsize>12</pointsize>
-             <bold>true</bold>
-            </font>
            </property>
            <property name="styleSheet">
             <string notr="true">QPushButton {
     background-color: #ffffff;
-    border: 2px solid #e0e0e0;
+    border: 1px solid #e0e0e0;
     border-radius: 8px;
     color: #333333;
+    font-size: 14px;
+    font-weight: bold;
 }
 QPushButton:hover {
     background-color: #f0f7ff;
@@ -613,32 +539,28 @@ QPushButton:pressed {
            </property>
           </widget>
          </item>
-         <item row="1" column="0">
-          <widget class="QPushButton" name="bookmeetingBtn">
+         <item>
+          <widget class="QPushButton" name="bookMeetingBtn">
            <property name="minimumSize">
             <size>
              <width>140</width>
-             <height>120</height>
+             <height>80</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
              <width>140</width>
-             <height>120</height>
+             <height>80</height>
             </size>
-           </property>
-           <property name="font">
-            <font>
-             <pointsize>12</pointsize>
-             <bold>true</bold>
-            </font>
            </property>
            <property name="styleSheet">
             <string notr="true">QPushButton {
     background-color: #ffffff;
-    border: 2px solid #e0e0e0;
+    border: 1px solid #e0e0e0;
     border-radius: 8px;
     color: #333333;
+    font-size: 14px;
+    font-weight: bold;
 }
 QPushButton:hover {
     background-color: #f0f7ff;
@@ -664,32 +586,28 @@ QPushButton:pressed {
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
-          <widget class="QPushButton" name="sharescreenBtn">
+         <item>
+          <widget class="QPushButton" name="shareScreenBtn">
            <property name="minimumSize">
             <size>
              <width>140</width>
-             <height>120</height>
+             <height>80</height>
             </size>
            </property>
            <property name="maximumSize">
             <size>
              <width>140</width>
-             <height>120</height>
+             <height>80</height>
             </size>
-           </property>
-           <property name="font">
-            <font>
-             <pointsize>12</pointsize>
-             <bold>true</bold>
-            </font>
            </property>
            <property name="styleSheet">
             <string notr="true">QPushButton {
     background-color: #ffffff;
-    border: 2px solid #e0e0e0;
+    border: 1px solid #e0e0e0;
     border-radius: 8px;
     color: #333333;
+    font-size: 14px;
+    font-weight: bold;
 }
 QPushButton:hover {
     background-color: #f0f7ff;
@@ -715,14 +633,41 @@ QPushButton:pressed {
            </property>
           </widget>
          </item>
+         <item>
+          <spacer name="quickActionRightSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </spacer>
+         </item>
         </layout>
        </item>
        <item>
-        <spacer name="bottomSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
+        <widget class="QLabel" name="meetingListTitle">
+         <property name="styleSheet">
+          <string notr="true">color: #333333; font-size: 16px; font-weight: bold;</string>
          </property>
-        </spacer>
+         <property name="text">
+          <string>即将开始的会议</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QListWidget" name="meetingListWidget">
+         <property name="styleSheet">
+          <string notr="true">QListWidget {
+    border: none;
+    background-color: #ffffff;
+}
+QListWidget::item {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 0px;
+}
+QListWidget::item:hover {
+    background-color: #fafafa;
+}</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -740,25 +685,25 @@ QPushButton:pressed {
  </resources>
  <connections>
   <connection>
-   <sender>joinmeetingBtn</sender>
+   <sender>joinMeetingBtn</sender>
    <signal>clicked()</signal>
    <receiver>Home</receiver>
    <slot>onJoinMeeting()</slot>
   </connection>
   <connection>
-   <sender>quickmeetingBtn</sender>
+   <sender>quickMeetingBtn</sender>
    <signal>clicked()</signal>
    <receiver>Home</receiver>
    <slot>onQuickMeeting()</slot>
   </connection>
   <connection>
-   <sender>bookmeetingBtn</sender>
+   <sender>bookMeetingBtn</sender>
    <signal>clicked()</signal>
    <receiver>Home</receiver>
    <slot>onBookMeeting()</slot>
   </connection>
   <connection>
-   <sender>sharescreenBtn</sender>
+   <sender>shareScreenBtn</sender>
    <signal>clicked()</signal>
    <receiver>Home</receiver>
    <slot>onShareScreen()</slot>
