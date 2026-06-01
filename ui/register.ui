@@ -85,15 +85,15 @@
       <string notr="true">QLabel#accountGroupLabel {
     background-color: #f5f5f5;
     color: #666666;
-    padding: 5px 15px;
+    padding: 5px 15px 5px 0px;
     border-radius: 3px;
 }</string>
      </property>
      <property name="text">
-      <string>━━━ 账户信息 ━━━</string>
+      <string>账户信息</string>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignLeft|Qt::AlignVCenter</set>
      </property>
     </widget>
    </item>
@@ -116,7 +116,7 @@
      <item row="0" column="0">
       <widget class="QLabel" name="accountLabel">
        <property name="text">
-        <string>账号:</string>
+        <string>账      号:</string>
        </property>
       </widget>
      </item>
@@ -130,7 +130,7 @@
      <item row="1" column="0">
       <widget class="QLabel" name="passwordLabel">
        <property name="text">
-        <string>密码:</string>
+        <string>密      码:</string>
        </property>
       </widget>
      </item>
@@ -192,15 +192,15 @@
       <string notr="true">QLabel#contactGroupLabel {
     background-color: #f5f5f5;
     color: #666666;
-    padding: 5px 15px;
+    padding: 5px 15px 5px 0px;
     border-radius: 3px;
 }</string>
      </property>
      <property name="text">
-      <string>━━━ 联系方式 ━━━</string>
+      <string>联系方式</string>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignLeft|Qt::AlignVCenter</set>
      </property>
     </widget>
    </item>
@@ -223,7 +223,7 @@
      <item row="0" column="0">
       <widget class="QLabel" name="emailLabel">
        <property name="text">
-        <string>邮箱:</string>
+        <string>邮      箱:</string>
        </property>
       </widget>
      </item>
@@ -237,7 +237,7 @@
      <item row="1" column="0">
       <widget class="QLabel" name="phoneLabel">
        <property name="text">
-        <string>手机号:</string>
+        <string>手 机 号:</string>
        </property>
       </widget>
      </item>
@@ -251,7 +251,7 @@
      <item row="2" column="0">
       <widget class="QLabel" name="codeLabel">
        <property name="text">
-        <string>验证码:</string>
+        <string>验 证 码:</string>
        </property>
       </widget>
      </item>
@@ -322,15 +322,15 @@ QPushButton:disabled {
       <string notr="true">QLabel#profileGroupLabel {
     background-color: #f5f5f5;
     color: #666666;
-    padding: 5px 15px;
+    padding: 5px 15px 5px 0px;
     border-radius: 3px;
 }</string>
      </property>
      <property name="text">
-      <string>━━━ 个人资料 ━━━</string>
+      <string>个人资料</string>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignLeft|Qt::AlignVCenter</set>
      </property>
     </widget>
    </item>
@@ -392,7 +392,7 @@ QPushButton:disabled {
        <item row="0" column="0">
         <widget class="QLabel" name="displayNameLabel">
          <property name="text">
-          <string>昵称:</string>
+          <string>昵      称:</string>
          </property>
         </widget>
        </item>
