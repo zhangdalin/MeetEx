@@ -3,7 +3,6 @@
 #include "collapsiblesection.h"
 #include "home.h"
 
-#include <QScrollArea>
 #include <QVBoxLayout>
 #include <QFormLayout>
 #include <QLineEdit>
@@ -12,7 +11,6 @@
 #include <QTimeEdit>
 #include <QTextEdit>
 #include <QCheckBox>
-#include <QLabel>
 #include <QMessageBox>
 #include <QSettings>
 #include <QScreen>
@@ -28,18 +26,17 @@ extern unique_ptr<QWidget> bookmeeting;
 MeetingBookingInfo::MeetingBookingInfo()
     : durationMinutes(60), passwordEnabled(false), waitingRoomEnabled(true)
     , joinPermission(0), autoMuteOnEntry(true), screenSharePermission(0)
-    , recordingPermission(0), meetingNumberType(0), addToOutlook(false)
-    , addToGoogle(false), addToSystemCalendar(false) {}
+    , recordingPermission(0), meetingNumberType(0) {}
 
 BookMeeting::BookMeeting(QWidget *parent)
-    : QWidget(parent), ui(new Ui::BookMeeting), basicInfoSection_(nullptr)
-    , attendeesSection_(nullptr), securitySection_(nullptr), settingsSection_(nullptr)
-    , advancedSection_(nullptr), hasUnsavedChanges_(false)
+    : QWidget(parent), ui(new Ui::BookMeeting)
+    , hasUnsavedChanges_(false)
 {
     ui->setupUi(this);
     setupUI();
-    setupSections();
+    setupCollapsibleSections();
     setupConnections();
+    loadOptions();
     loadDraft();
 }
 
@@ -48,330 +45,104 @@ BookMeeting::~BookMeeting() { delete ui; }
 void BookMeeting::setupUI()
 {
     setWindowTitle(tr("预定会议"));
-    setMinimumSize(500, 400);
-    resize(600, 500);
-    if (QScreen *screen = QGuiApplication::primaryScreen()) {
-        QRect g = screen->availableGeometry();
-        move((g.width() - width()) / 2, (g.height() - height()) / 2);
-    }
 
-    // 设置全局样式表
     setStyleSheet(R"(
-        /* QComboBox 下拉菜单样式 */
-        QComboBox {
-            background-color: #ffffff;
-            border: 1px solid #d0d0d0;
-            border-radius: 6px;
-            padding: 6px 12px;
-            min-height: 32px;
-            font-size: 13px;
-            color: #333333;
+        QLabel#basicGroupLabel, QLabel#attendeesGroupLabel {
+            background-color: #f5f5f5;
+            color: #666666;
+            padding: 5px 15px;
+            border-radius: 3px;
+            font-size: 10pt;
+            font-weight: bold;
         }
-        QComboBox:hover {
-            border-color: #4a90d9;
-            background-color: #f8fbff;
-        }
-        QComboBox:focus {
-            border-color: #4a90d9;
-            border-width: 1.5px;
-        }
-        QComboBox::drop-down {
-            subcontrol-origin: padding;
-            subcontrol-position: top right;
-            width: 28px;
-            border-left: 1px solid #e0e0e0;
-            border-top-right-radius: 6px;
-            border-bottom-right-radius: 6px;
-        }
-        QComboBox::drop-down:hover {
-            background-color: #e8f0f8;
-            border-left-color: #4a90d9;
-        }
-        QComboBox::down-arrow {
-            image: url(:/assets/chevron_down_02.png);
-            width: 12px;
-            height: 12px;
-        }
-        QComboBox::down-arrow:on {
-            top: 1px;
-        }
-        QComboBox QAbstractItemView {
-            background-color: #ffffff;
-            border: 1px solid #d0d0d0;
-            border-radius: 6px;
-            selection-background-color: #4a90d9;
-            selection-color: #ffffff;
-            padding: 4px;
-            outline: none;
-        }
-        QComboBox QAbstractItemView::item {
-            min-height: 28px;
-            padding: 4px 12px;
+        QLineEdit, QComboBox, QDateEdit, QTimeEdit, QTextEdit {
+            border: 1px solid #e0e0e0;
             border-radius: 4px;
-        }
-        QComboBox QAbstractItemView::item:hover {
-            background-color: #e8f0f8;
-            color: #333333;
-        }
-        QComboBox QAbstractItemView::item:selected {
-            background-color: #4a90d9;
-            color: #ffffff;
-        }
-
-        /* QScrollBar 滚动条样式 */
-        QScrollBar:vertical {
-            background-color: #f5f5f5;
-            width: 10px;
-            border-radius: 5px;
-        }
-        QScrollBar::handle:vertical {
-            background-color: #c0c0c0;
-            min-height: 30px;
-            border-radius: 5px;
-            margin: 2px;
-        }
-        QScrollBar::handle:vertical:hover {
-            background-color: #a0a0a0;
-        }
-        QScrollBar::handle:vertical:pressed {
-            background-color: #808080;
-        }
-        QScrollBar::add-line:vertical,
-        QScrollBar::sub-line:vertical {
-            height: 0px;
-        }
-        QScrollBar::add-page:vertical,
-        QScrollBar::sub-page:vertical {
-            background: none;
-        }
-        QScrollBar:horizontal {
-            background-color: #f5f5f5;
-            height: 10px;
-            border-radius: 5px;
-        }
-        QScrollBar::handle:horizontal {
-            background-color: #c0c0c0;
-            min-width: 30px;
-            border-radius: 5px;
-            margin: 2px;
-        }
-        QScrollBar::handle:horizontal:hover {
-            background-color: #a0a0a0;
-        }
-        QScrollBar::handle:horizontal:pressed {
-            background-color: #808080;
-        }
-        QScrollBar::add-line:horizontal,
-        QScrollBar::sub-line:horizontal {
-            width: 0px;
-        }
-        QScrollBar::add-page:horizontal,
-        QScrollBar::sub-page:horizontal {
-            background: none;
-        }
-
-        /* QCheckBox 复选框样式 */
-        QCheckBox {
-            spacing: 10px;
+            padding: 6px 10px;
             font-size: 13px;
-            color: #333333;
-            min-height: 24px;
-        }
-        QCheckBox::indicator {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            border: 2px solid #d0d0d0;
             background-color: #ffffff;
-        }
-        QCheckBox::indicator:hover {
-            border-color: #4a90d9;
-            background-color: #f8fbff;
-        }
-        QCheckBox::indicator:checked {
-            border-color: #4a90d9;
-            background-color: #4a90d9;
-            image: url(:/assets/checkbox_checked.png);
-        }
-        QCheckBox::indicator:unchecked {
-            image: url(:/assets/checkbox_unchecked.png);
-        }
-        QCheckBox::indicator:checked:hover {
-            background-color: #3a80c9;
-            border-color: #3a80c9;
-        }
-        QCheckBox::indicator:disabled {
-            border-color: #e0e0e0;
-            background-color: #f5f5f5;
-        }
-        QCheckBox::indicator:checked:disabled {
-            background-color: #b0b0b0;
-            border-color: #b0b0b0;
-        }
-
-        /* QLineEdit 输入框样式（保持一致性） */
-        QLineEdit {
-            background-color: #ffffff;
-            border: 1px solid #d0d0d0;
-            border-radius: 6px;
-            padding: 6px 12px;
             min-height: 32px;
-            font-size: 13px;
-            color: #333333;
         }
-        QLineEdit:hover {
-            border-color: #4a90d9;
-            background-color: #f8fbff;
-        }
-        QLineEdit:focus {
-            border-color: #4a90d9;
+        QLineEdit:focus, QComboBox:focus, QTextEdit:focus,
+        QDateEdit:focus, QTimeEdit:focus {
+            border-color: #0078d4;
             border-width: 1.5px;
         }
         QLineEdit::placeholder {
             color: #999999;
         }
-
-        /* QDateEdit, QTimeEdit 日期时间选择器样式 */
-        QDateEdit, QTimeEdit {
-            background-color: #ffffff;
-            border: 1px solid #d0d0d0;
+        QPushButton#bookNowBtn {
+            background-color: #0078d4;
+            border: none;
             border-radius: 6px;
-            padding: 6px 12px;
-            min-height: 32px;
+            padding: 8px 20px;
+            color: white;
             font-size: 13px;
-            color: #333333;
+            font-weight: bold;
+            min-height: 36px;
+            min-width: 80px;
         }
-        QDateEdit:hover, QTimeEdit:hover {
-            border-color: #4a90d9;
-            background-color: #f8fbff;
+        QPushButton#bookNowBtn:hover {
+            background-color: #006cbd;
         }
-        QDateEdit:focus, QTimeEdit:focus {
-            border-color: #4a90d9;
-            border-width: 1.5px;
-        }
-        QDateEdit::drop-down, QTimeEdit::drop-down {
-            subcontrol-origin: padding;
-            subcontrol-position: top right;
-            width: 28px;
-            border-left: 1px solid #e0e0e0;
-            border-top-right-radius: 6px;
-            border-bottom-right-radius: 6px;
-        }
-        QDateEdit::drop-down:hover, QTimeEdit::drop-down:hover {
-            background-color: #e8f0f8;
-            border-left-color: #4a90d9;
-        }
-        QDateEdit::down-arrow, QTimeEdit::down-arrow {
-            image: url(:/assets/calendar_01.png);
-            width: 14px;
-            height: 14px;
-        }
-        QTimeEdit::down-arrow {
-            image: url(:/assets/clock_01.png);
-        }
-
-        /* QTextEdit 多行文本框样式 */
-        QTextEdit {
+        QPushButton#saveDraftBtn {
             background-color: #ffffff;
-            border: 1px solid #d0d0d0;
+            border: 1px solid #0078d4;
             border-radius: 6px;
-            padding: 8px;
+            padding: 8px 20px;
+            color: #0078d4;
             font-size: 13px;
+            min-height: 36px;
+            min-width: 80px;
+        }
+        QPushButton#saveDraftBtn:hover {
+            background-color: #f0f7ff;
+        }
+        QPushButton#cancelBtn {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 8px 20px;
             color: #333333;
+            font-size: 13px;
+            min-height: 36px;
+            min-width: 80px;
         }
-        QTextEdit:hover {
-            border-color: #4a90d9;
-            background-color: #f8fbff;
-        }
-        QTextEdit:focus {
-            border-color: #4a90d9;
-            border-width: 1.5px;
+        QPushButton#cancelBtn:hover {
+            background-color: #f5f5f5;
         }
     )");
+
+    ui->bookNowBtn->setObjectName("bookNowBtn");
+    ui->saveDraftBtn->setObjectName("saveDraftBtn");
+    ui->cancelBtn->setObjectName("cancelBtn");
+
+    if (QScreen *screen = QGuiApplication::primaryScreen()) {
+        QRect g = screen->availableGeometry();
+        move((g.width() - 460) / 2, (g.height() - 620) / 2);
+    }
+    resize(460, 620);
+
+    ui->topicEdit->addAction(QIcon(":/assets/user.png"), QLineEdit::LeadingPosition);
+    ui->emailsEdit->addAction(QIcon(":/assets/email.png"), QLineEdit::LeadingPosition);
+
+    ui->dateEdit->setDate(QDate::currentDate());
+    ui->timeEdit->setTime(QTime::currentTime().addSecs(1800));
+    ui->dateEdit->setMinimumDate(QDate::currentDate());
 }
 
-void BookMeeting::setupSections()
+void BookMeeting::setupCollapsibleSections()
 {
-    QVBoxLayout *scrollLayout = qobject_cast<QVBoxLayout*>(ui->scrollContent->layout());
-    if (!scrollLayout) return;
-
-    basicInfoSection_ = new CollapsibleSection(tr("基本信息"), this);
-    basicInfoSection_->setExpanded(true);
-    QWidget *basicContent = new QWidget();
-    QFormLayout *basicForm = new QFormLayout(basicContent);
-    basicForm->setSpacing(12);
-
-    QLineEdit *topicEdit = new QLineEdit();
-    topicEdit->setObjectName("topicEdit");
-    topicEdit->setPlaceholderText(tr("请输入会议主题"));
-    basicForm->addRow(tr("会议主题 *"), topicEdit);
-
-    QHBoxLayout *timeLayout = new QHBoxLayout();
-    QDateEdit *dateEdit = new QDateEdit(QDate::currentDate());
-    dateEdit->setObjectName("dateEdit");
-    dateEdit->setCalendarPopup(true);
-    dateEdit->setMinimumDate(QDate::currentDate());
-    timeLayout->addWidget(dateEdit);
-    QTimeEdit *timeEdit = new QTimeEdit(QTime::currentTime().addSecs(1800));
-    timeEdit->setObjectName("timeEdit");
-    timeEdit->setDisplayFormat("HH:mm");
-    timeLayout->addWidget(timeEdit);
-    timeLayout->addStretch();
-    basicForm->addRow(tr("开始时间 *"), timeLayout);
-
-    QComboBox *durationCombo = new QComboBox();
-    durationCombo->setObjectName("durationCombo");
-    durationCombo->addItem(tr("15 分钟"), 15);
-    durationCombo->addItem(tr("30 分钟"), 30);
-    durationCombo->addItem(tr("45 分钟"), 45);
-    durationCombo->addItem(tr("60 分钟"), 60);
-    durationCombo->addItem(tr("90 分钟"), 90);
-    durationCombo->addItem(tr("120 分钟"), 120);
-    durationCombo->setCurrentIndex(3);
-    basicForm->addRow(tr("持续时间 *"), durationCombo);
-
-    QComboBox *tzCombo = new QComboBox();
-    tzCombo->setObjectName("timezoneCombo");
-    tzCombo->addItem(tr("(UTC+08:00) 北京"), "Asia/Shanghai");
-    tzCombo->addItem(tr("(UTC+09:00) 东京"), "Asia/Tokyo");
-    tzCombo->addItem(tr("(UTC+00:00) 伦敦"), "Europe/London");
-    tzCombo->addItem(tr("(UTC-05:00) 纽约"), "America/New_York");
-    basicForm->addRow(tr("时区"), tzCombo);
-
-    basicInfoSection_->setContent(basicContent);
-    scrollLayout->addWidget(basicInfoSection_);
-
-    connect(topicEdit, &QLineEdit::textChanged, this, [this]() {
-        hasUnsavedChanges_ = true;
-        updateSectionSummaries();
-    });
-
-    attendeesSection_ = new CollapsibleSection(tr("参会人员"), this);
-    attendeesSection_->setExpanded(true);
-    QWidget *attendeesContent = new QWidget();
-    QFormLayout *attendeesForm = new QFormLayout(attendeesContent);
-    attendeesForm->setSpacing(12);
-
-    QLineEdit *emailsEdit = new QLineEdit();
-    emailsEdit->setObjectName("emailsEdit");
-    emailsEdit->setPlaceholderText(tr("输入邮箱，用逗号或分号分隔"));
-    attendeesForm->addRow(tr("邀请"), emailsEdit);
-
-    QComboBox *roomCombo = new QComboBox();
-    roomCombo->setObjectName("roomCombo");
-    roomCombo->addItem(tr("不选择会议室"), "");
-    roomCombo->addItem(tr("会议室 A"), "room_a");
-    roomCombo->addItem(tr("会议室 B"), "room_b");
-    attendeesForm->addRow(tr("会议室"), roomCombo);
-
-    attendeesSection_->setContent(attendeesContent);
-    scrollLayout->addWidget(attendeesSection_);
+    QVBoxLayout *collapsibleLayout = qobject_cast<QVBoxLayout*>(ui->collapsibleContainer->layout());
+    if (!collapsibleLayout) return;
 
     securitySection_ = new CollapsibleSection(tr("会议安全"), this);
     securitySection_->setExpanded(false);
+
     QWidget *securityContent = new QWidget();
     QFormLayout *securityForm = new QFormLayout(securityContent);
     securityForm->setSpacing(12);
+    securityForm->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
 
     QCheckBox *passwordCheck = new QCheckBox(tr("启用会议密码"));
     passwordCheck->setObjectName("passwordCheck");
@@ -382,7 +153,9 @@ void BookMeeting::setupSections()
     passwordEdit->setPlaceholderText(tr("4-10位数字"));
     passwordEdit->setEnabled(false);
     passwordEdit->setEchoMode(QLineEdit::Password);
-    securityForm->addRow(tr("密码"), passwordEdit);
+    passwordEdit->addAction(QIcon(":/assets/lock.png"), QLineEdit::LeadingPosition);
+    securityForm->addRow(tr("密码:"), passwordEdit);
+
     connect(passwordCheck, &QCheckBox::toggled, passwordEdit, &QLineEdit::setEnabled);
 
     QCheckBox *waitingRoomCheck = new QCheckBox(tr("启用等候室"));
@@ -395,16 +168,18 @@ void BookMeeting::setupSections()
     permissionCombo->addItem(tr("所有人"), 0);
     permissionCombo->addItem(tr("登录用户"), 1);
     permissionCombo->addItem(tr("仅邀请者"), 2);
-    securityForm->addRow(tr("入会权限"), permissionCombo);
+    securityForm->addRow(tr("入会权限:"), permissionCombo);
 
     securitySection_->setContent(securityContent);
-    scrollLayout->addWidget(securitySection_);
+    collapsibleLayout->addWidget(securitySection_);
 
     settingsSection_ = new CollapsibleSection(tr("会议设置"), this);
     settingsSection_->setExpanded(false);
+
     QWidget *settingsContent = new QWidget();
     QFormLayout *settingsForm = new QFormLayout(settingsContent);
     settingsForm->setSpacing(12);
+    settingsForm->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
 
     QCheckBox *muteCheck = new QCheckBox(tr("参会者入会自动静音"));
     muteCheck->setObjectName("muteCheck");
@@ -415,39 +190,39 @@ void BookMeeting::setupSections()
     shareCombo->setObjectName("shareCombo");
     shareCombo->addItem(tr("所有人"), 0);
     shareCombo->addItem(tr("仅主持人"), 1);
-    settingsForm->addRow(tr("屏幕共享权限"), shareCombo);
+    settingsForm->addRow(tr("屏幕共享权限:"), shareCombo);
 
     QComboBox *recordCombo = new QComboBox();
     recordCombo->setObjectName("recordCombo");
     recordCombo->addItem(tr("仅主持人"), 0);
     recordCombo->addItem(tr("所有人"), 1);
-    settingsForm->addRow(tr("允许录制"), recordCombo);
+    settingsForm->addRow(tr("允许录制:"), recordCombo);
 
     settingsSection_->setContent(settingsContent);
-    scrollLayout->addWidget(settingsSection_);
+    collapsibleLayout->addWidget(settingsSection_);
 
     advancedSection_ = new CollapsibleSection(tr("高级选项"), this);
     advancedSection_->setExpanded(false);
+
     QWidget *advancedContent = new QWidget();
     QFormLayout *advancedForm = new QFormLayout(advancedContent);
     advancedForm->setSpacing(12);
+    advancedForm->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
 
     QComboBox *numberTypeCombo = new QComboBox();
     numberTypeCombo->setObjectName("numberTypeCombo");
     numberTypeCombo->addItem(tr("自动生成"), 0);
     numberTypeCombo->addItem(tr("使用个人会议号"), 1);
-    advancedForm->addRow(tr("会议号"), numberTypeCombo);
+    advancedForm->addRow(tr("会议号:"), numberTypeCombo);
 
     QTextEdit *descEdit = new QTextEdit();
     descEdit->setObjectName("descEdit");
     descEdit->setPlaceholderText(tr("添加会议描述（可选）"));
     descEdit->setMaximumHeight(80);
-    advancedForm->addRow(tr("描述"), descEdit);
+    advancedForm->addRow(tr("描述:"), descEdit);
 
     advancedSection_->setContent(advancedContent);
-    scrollLayout->addWidget(advancedSection_);
-
-    scrollLayout->addStretch();
+    collapsibleLayout->addWidget(advancedSection_);
 }
 
 void BookMeeting::setupConnections()
@@ -455,6 +230,34 @@ void BookMeeting::setupConnections()
     connect(ui->cancelBtn, &QPushButton::clicked, this, &BookMeeting::onCancelClicked);
     connect(ui->saveDraftBtn, &QPushButton::clicked, this, &BookMeeting::onSaveDraftClicked);
     connect(ui->bookNowBtn, &QPushButton::clicked, this, &BookMeeting::onBookNowClicked);
+
+    connect(ui->topicEdit, &QLineEdit::textChanged, this, [this]() { hasUnsavedChanges_ = true; });
+    connect(ui->emailsEdit, &QLineEdit::textChanged, this, [this]() { hasUnsavedChanges_ = true; });
+}
+
+void BookMeeting::updateSectionSummaries()
+{
+    // TODO: 实现更新各分组摘要信息的功能
+}
+
+void BookMeeting::loadOptions()
+{
+    ui->durationCombo->addItem(tr("15 分钟"), 15);
+    ui->durationCombo->addItem(tr("30 分钟"), 30);
+    ui->durationCombo->addItem(tr("45 分钟"), 45);
+    ui->durationCombo->addItem(tr("60 分钟"), 60);
+    ui->durationCombo->addItem(tr("90 分钟"), 90);
+    ui->durationCombo->addItem(tr("120 分钟"), 120);
+    ui->durationCombo->setCurrentIndex(3);
+
+    ui->timezoneCombo->addItem(tr("(UTC+08:00) 北京"), "Asia/Shanghai");
+    ui->timezoneCombo->addItem(tr("(UTC+09:00) 东京"), "Asia/Tokyo");
+    ui->timezoneCombo->addItem(tr("(UTC+00:00) 伦敦"), "Europe/London");
+    ui->timezoneCombo->addItem(tr("(UTC-05:00) 纽约"), "America/New_York");
+
+    ui->roomCombo->addItem(tr("不选择会议室"), "");
+    ui->roomCombo->addItem(tr("会议室 A"), "room_a");
+    ui->roomCombo->addItem(tr("会议室 B"), "room_b");
 }
 
 void BookMeeting::closeEvent(QCloseEvent *event)
@@ -503,62 +306,54 @@ void BookMeeting::onBookNowClicked()
 
 bool BookMeeting::validateForm()
 {
-    QLineEdit *topicEdit = findChild<QLineEdit*>("topicEdit");
-    if (!topicEdit || topicEdit->text().trimmed().isEmpty()) {
+    if (ui->topicEdit->text().trimmed().isEmpty()) {
         QMessageBox::warning(this, tr("验证失败"), tr("请输入会议主题"));
-        basicInfoSection_->setExpanded(true);
-        topicEdit->setFocus();
+        ui->topicEdit->setFocus();
         return false;
     }
-    QDateEdit *dateEdit = findChild<QDateEdit*>("dateEdit");
-    QTimeEdit *timeEdit = findChild<QTimeEdit*>("timeEdit");
-    if (dateEdit && timeEdit) {
-        QDateTime selected(dateEdit->date(), timeEdit->time());
-        if (selected < QDateTime::currentDateTime()) {
-            QMessageBox::warning(this, tr("验证失败"), tr("开始时间必须晚于当前时间"));
-            basicInfoSection_->setExpanded(true);
-            return false;
-        }
+
+    QDateTime selected(ui->dateEdit->date(), ui->timeEdit->time());
+    if (selected < QDateTime::currentDateTime()) {
+        QMessageBox::warning(this, tr("验证失败"), tr("开始时间必须晚于当前时间"));
+        return false;
     }
+
     return true;
 }
 
 MeetingBookingInfo BookMeeting::getBookingInfo() const
 {
     MeetingBookingInfo info;
-    if (QLineEdit *topicEdit = findChild<QLineEdit*>("topicEdit"))
-        info.topic = topicEdit->text();
-    if (QDateEdit *dateEdit = findChild<QDateEdit*>("dateEdit"))
-        if (QTimeEdit *timeEdit = findChild<QTimeEdit*>("timeEdit"))
-            info.startTime = QDateTime(dateEdit->date(), timeEdit->time());
-    if (QComboBox *durationCombo = findChild<QComboBox*>("durationCombo"))
-        info.durationMinutes = durationCombo->currentData().toInt();
-    if (QComboBox *tzCombo = findChild<QComboBox*>("timezoneCombo"))
-        info.timeZone = tzCombo->currentData().toString();
-    if (QLineEdit *emailsEdit = findChild<QLineEdit*>("emailsEdit"))
-        if (!emailsEdit->text().isEmpty())
-            info.inviteEmails = emailsEdit->text().split(QRegularExpression("[,;]"), Qt::SkipEmptyParts);
-    if (QComboBox *roomCombo = findChild<QComboBox*>("roomCombo"))
-        info.roomResource = roomCombo->currentData().toString();
-    if (QCheckBox *passwordCheck = findChild<QCheckBox*>("passwordCheck"))
-        if (QLineEdit *passwordEdit = findChild<QLineEdit*>("passwordEdit")) {
-            info.passwordEnabled = passwordCheck->isChecked();
-            info.password = passwordEdit->text();
-        }
-    if (QCheckBox *waitingRoomCheck = findChild<QCheckBox*>("waitingRoomCheck"))
+
+    info.topic = ui->topicEdit->text();
+    info.startTime = QDateTime(ui->dateEdit->date(), ui->timeEdit->time());
+    info.durationMinutes = ui->durationCombo->currentData().toInt();
+    info.timeZone = ui->timezoneCombo->currentData().toString();
+
+    info.inviteEmails = ui->emailsEdit->text().split(QRegularExpression("[,;]"), Qt::SkipEmptyParts);
+    info.roomResource = ui->roomCombo->currentData().toString();
+
+    if (QCheckBox *passwordCheck = securitySection_->content()->findChild<QCheckBox*>("passwordCheck"))
+        info.passwordEnabled = passwordCheck->isChecked();
+    if (QLineEdit *passwordEdit = securitySection_->content()->findChild<QLineEdit*>("passwordEdit"))
+        info.password = passwordEdit->text();
+    if (QCheckBox *waitingRoomCheck = securitySection_->content()->findChild<QCheckBox*>("waitingRoomCheck"))
         info.waitingRoomEnabled = waitingRoomCheck->isChecked();
-    if (QComboBox *permissionCombo = findChild<QComboBox*>("permissionCombo"))
+    if (QComboBox *permissionCombo = securitySection_->content()->findChild<QComboBox*>("permissionCombo"))
         info.joinPermission = permissionCombo->currentData().toInt();
-    if (QCheckBox *muteCheck = findChild<QCheckBox*>("muteCheck"))
+
+    if (QCheckBox *muteCheck = settingsSection_->content()->findChild<QCheckBox*>("muteCheck"))
         info.autoMuteOnEntry = muteCheck->isChecked();
-    if (QComboBox *shareCombo = findChild<QComboBox*>("shareCombo"))
+    if (QComboBox *shareCombo = settingsSection_->content()->findChild<QComboBox*>("shareCombo"))
         info.screenSharePermission = shareCombo->currentData().toInt();
-    if (QComboBox *recordCombo = findChild<QComboBox*>("recordCombo"))
+    if (QComboBox *recordCombo = settingsSection_->content()->findChild<QComboBox*>("recordCombo"))
         info.recordingPermission = recordCombo->currentData().toInt();
-    if (QComboBox *numberTypeCombo = findChild<QComboBox*>("numberTypeCombo"))
+
+    if (QComboBox *numberTypeCombo = advancedSection_->content()->findChild<QComboBox*>("numberTypeCombo"))
         info.meetingNumberType = numberTypeCombo->currentData().toInt();
-    if (QTextEdit *descEdit = findChild<QTextEdit*>("descEdit"))
+    if (QTextEdit *descEdit = advancedSection_->content()->findChild<QTextEdit*>("descEdit"))
         info.description = descEdit->toPlainText();
+
     return info;
 }
 
@@ -578,18 +373,16 @@ void BookMeeting::loadDraft()
 {
     QSettings settings("MeetEx", "BookMeeting");
     if (!settings.value("draft/hasData", false).toBool()) return;
-    if (QLineEdit *topicEdit = findChild<QLineEdit*>("topicEdit"))
-        topicEdit->setText(settings.value("draft/topic").toString());
-    if (QDateEdit *dateEdit = findChild<QDateEdit*>("dateEdit"))
-        dateEdit->setDate(settings.value("draft/startTime").toDateTime().date());
-    if (QTimeEdit *timeEdit = findChild<QTimeEdit*>("timeEdit"))
-        timeEdit->setTime(settings.value("draft/startTime").toDateTime().time());
-    if (QComboBox *durationCombo = findChild<QComboBox*>("durationCombo")) {
-        int index = durationCombo->findData(settings.value("draft/duration", 60).toInt());
-        if (index >= 0) durationCombo->setCurrentIndex(index);
-    }
-    if (QLineEdit *emailsEdit = findChild<QLineEdit*>("emailsEdit"))
-        emailsEdit->setText(settings.value("draft/emails").toString());
+
+    ui->topicEdit->setText(settings.value("draft/topic").toString());
+    ui->dateEdit->setDate(settings.value("draft/startTime").toDateTime().date());
+    ui->timeEdit->setTime(settings.value("draft/startTime").toDateTime().time());
+
+    int duration = settings.value("draft/duration", 60).toInt();
+    int index = ui->durationCombo->findData(duration);
+    if (index >= 0) ui->durationCombo->setCurrentIndex(index);
+
+    ui->emailsEdit->setText(settings.value("draft/emails").toString());
 }
 
 bool BookMeeting::hasDraft() const
@@ -598,24 +391,12 @@ bool BookMeeting::hasDraft() const
     return settings.value("draft/hasData", false).toBool();
 }
 
-void BookMeeting::updateSectionSummaries()
-{
-    QLineEdit *topicEdit = findChild<QLineEdit*>("topicEdit");
-    if (topicEdit && basicInfoSection_) {
-        basicInfoSection_->setSummary(topicEdit->text());
-    }
-}
-
 void BookMeeting::setBookingInfo(const MeetingBookingInfo &info)
 {
-    if (QLineEdit *topicEdit = findChild<QLineEdit*>("topicEdit"))
-        topicEdit->setText(info.topic);
-    if (QDateEdit *dateEdit = findChild<QDateEdit*>("dateEdit"))
-        dateEdit->setDate(info.startTime.date());
-    if (QTimeEdit *timeEdit = findChild<QTimeEdit*>("timeEdit"))
-        timeEdit->setTime(info.startTime.time());
-    if (QComboBox *durationCombo = findChild<QComboBox*>("durationCombo")) {
-        int index = durationCombo->findData(info.durationMinutes);
-        if (index >= 0) durationCombo->setCurrentIndex(index);
-    }
+    ui->topicEdit->setText(info.topic);
+    ui->dateEdit->setDate(info.startTime.date());
+    ui->timeEdit->setTime(info.startTime.time());
+
+    int index = ui->durationCombo->findData(info.durationMinutes);
+    if (index >= 0) ui->durationCombo->setCurrentIndex(index);
 }

@@ -84,7 +84,9 @@ private slots:
 private:
     void setupUI();
     void setupSections();
+    void setupCollapsibleSections();
     void setupConnections();
+    void loadOptions();
 
     Ui::BookMeeting *ui;
 
