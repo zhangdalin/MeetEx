@@ -8,7 +8,11 @@
       "mcp__plugin_ecc_playwright__browser_navigate",
       "Skill(superpowers:writing-plans)",
       "Skill(superpowers:executing-plans)",
-      "Skill(superpowers:finishing-a-development-branch)"
+      "Skill(superpowers:finishing-a-development-branch)",
+      "Skill(ecc:model-route)",
+      "WebFetch(domain:www.flaticon.com)",
+      "mcp__plugin_ecc_exa__web_search_exa",
+      "mcp__plugin_ecc_exa__web_fetch_exa"
     ]
   },
   "disabledHooks": [
