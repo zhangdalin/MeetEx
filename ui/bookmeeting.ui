@@ -38,7 +38,7 @@
    <item>
     <widget class="QScrollArea" name="scrollArea">
      <property name="frameShape">
-      <enum>QFrame::NoFrame</enum>
+      <enum>QFrame::Shape::NoFrame</enum>
      </property>
      <property name="widgetResizable">
       <bool>true</bool>
@@ -49,7 +49,7 @@
         <x>0</x>
         <y>0</y>
         <width>460</width>
-        <height>620</height>
+        <height>541</height>
        </rect>
       </property>
       <layout class="QVBoxLayout" name="scrollLayout">
@@ -69,274 +69,282 @@
         <number>10</number>
        </property>
        <item>
-        <spacer name="topSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-        </spacer>
-       </item>
-       <item>
         <widget class="QLabel" name="titleLabel">
-     <property name="font">
-      <font>
-       <pointsize>18</pointsize>
-       <bold>true</bold>
-      </font>
-     </property>
-     <property name="text">
-      <string>预定会议</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <spacer name="afterTitleSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <widget class="QLabel" name="basicGroupLabel">
-     <property name="font">
-      <font>
-       <pointsize>10</pointsize>
-       <bold>true</bold>
-      </font>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">QLabel {
-    background-color: #f5f5f5;
-    color: #666666;
-    padding: 5px 15px;
-    border-radius: 3px;
-}</string>
-     </property>
-     <property name="text">
-      <string>━━━ 基本信息 ━━━</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <layout class="QFormLayout" name="basicFormLayout">
-     <property name="labelAlignment">
-      <set>Qt::AlignRight|Qt::AlignVCenter</set>
-     </property>
-     <property name="formAlignment">
-      <set>Qt::AlignLeading|Qt::AlignTop</set>
-     </property>
-     <property name="horizontalSpacing">
-      <number>10</number>
-     </property>
-     <property name="verticalSpacing">
-      <number>12</number>
-     </property>
-     <item row="0" column="0">
-      <widget class="QLabel" name="topicLabel">
-       <property name="text">
-        <string>会议主题:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="topicEdit">
-       <property name="placeholderText">
-        <string>请输入会议主题</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="startTimeLabel">
-       <property name="text">
-        <string>开始时间:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <layout class="QHBoxLayout" name="startTimeLayout">
-       <property name="spacing">
-        <number>5</number>
-       </property>
-       <item>
-        <widget class="QDateEdit" name="dateEdit">
-         <property name="calendarPopup">
-          <bool>true</bool>
+         <property name="font">
+          <font>
+           <pointsize>18</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>预定会议</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignCenter</set>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QTimeEdit" name="timeEdit">
-         <property name="displayFormat">
-          <string>HH:mm</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="timeSpacer">
+        <spacer name="afterTitleSpacer">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>20</height>
+          </size>
          </property>
         </spacer>
        </item>
-      </layout>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="durationLabel">
-       <property name="text">
-        <string>持续时间:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QComboBox" name="durationCombo"/>
-     </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="timezoneLabel">
-       <property name="text">
-        <string>时区:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QComboBox" name="timezoneCombo"/>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <spacer name="afterBasicSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>15</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <widget class="QLabel" name="attendeesGroupLabel">
-     <property name="font">
-      <font>
-       <pointsize>10</pointsize>
-       <bold>true</bold>
-      </font>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">QLabel {
+       <item>
+        <widget class="QLabel" name="basicGroupLabel">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QLabel {
     background-color: #f5f5f5;
     color: #666666;
     padding: 5px 15px;
     border-radius: 3px;
 }</string>
-     </property>
-     <property name="text">
-      <string>━━━ 参会人员 ━━━</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <layout class="QFormLayout" name="attendeesFormLayout">
-     <property name="labelAlignment">
-      <set>Qt::AlignRight|Qt::AlignVCenter</set>
-     </property>
-     <property name="formAlignment">
-      <set>Qt::AlignLeading|Qt::AlignTop</set>
-     </property>
-     <property name="horizontalSpacing">
-      <number>10</number>
-     </property>
-     <property name="verticalSpacing">
-      <number>12</number>
-     </property>
-     <item row="0" column="0">
-      <widget class="QLabel" name="emailsLabel">
-       <property name="text">
-        <string>邀请邮箱:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="emailsEdit">
-       <property name="placeholderText">
-        <string>输入邮箱，用逗号或分号分隔</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="roomLabel">
-       <property name="text">
-        <string>会议室:</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QComboBox" name="roomCombo"/>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <spacer name="afterAttendeesSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>15</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item>
-    <widget class="QWidget" name="collapsibleContainer" native="true">
-     <layout class="QVBoxLayout" name="collapsibleLayout">
-      <property name="spacing">
-       <number>10</number>
-      </property>
-      <property name="leftMargin">
-       <number>0</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>0</number>
-      </property>
-      <property name="bottomMargin">
-       <number>0</number>
-      </property>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <spacer name="middleSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-    </spacer>
-   </item>
+         </property>
+         <property name="text">
+          <string>━━━ 基本信息 ━━━</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="basicFormLayout">
+         <property name="labelAlignment">
+          <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+         </property>
+         <property name="formAlignment">
+          <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
+         </property>
+         <property name="horizontalSpacing">
+          <number>10</number>
+         </property>
+         <property name="verticalSpacing">
+          <number>12</number>
+         </property>
+         <item row="0" column="0">
+          <widget class="QLabel" name="topicLabel">
+           <property name="text">
+            <string>会议主题:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="topicEdit">
+           <property name="placeholderText">
+            <string>请输入会议主题</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="startTimeLabel">
+           <property name="text">
+            <string>开始时间:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <layout class="QHBoxLayout" name="startTimeLayout">
+           <property name="spacing">
+            <number>5</number>
+           </property>
+           <item>
+            <widget class="QDateEdit" name="dateEdit">
+             <property name="calendarPopup">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QTimeEdit" name="timeEdit">
+             <property name="displayFormat">
+              <string>HH:mm</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="timeSpacer">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="durationLabel">
+           <property name="text">
+            <string>持续时间:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QComboBox" name="durationCombo"/>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="timezoneLabel">
+           <property name="text">
+            <string>时区:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QComboBox" name="timezoneCombo"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="afterBasicSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>15</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="attendeesGroupLabel">
+         <property name="font">
+          <font>
+           <pointsize>10</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QLabel {
+    background-color: #f5f5f5;
+    color: #666666;
+    padding: 5px 15px;
+    border-radius: 3px;
+}</string>
+         </property>
+         <property name="text">
+          <string>━━━ 参会人员 ━━━</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QFormLayout" name="attendeesFormLayout">
+         <property name="labelAlignment">
+          <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+         </property>
+         <property name="formAlignment">
+          <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
+         </property>
+         <property name="horizontalSpacing">
+          <number>10</number>
+         </property>
+         <property name="verticalSpacing">
+          <number>12</number>
+         </property>
+         <item row="0" column="0">
+          <widget class="QLabel" name="emailsLabel">
+           <property name="text">
+            <string>邀请邮箱:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="emailsEdit">
+           <property name="placeholderText">
+            <string>输入邮箱，用逗号或分号分隔</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="roomLabel">
+           <property name="text">
+            <string>会议室:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QComboBox" name="roomCombo"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="afterAttendeesSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>15</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QWidget" name="collapsibleContainer" native="true">
+         <layout class="QVBoxLayout" name="collapsibleLayout">
+          <property name="spacing">
+           <number>10</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="middleSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
       </layout>
      </widget>
     </widget>
    </item>
    <item>
     <layout class="QHBoxLayout" name="buttonLayout">
+     <property name="spacing">
+      <number>15</number>
+     </property>
      <property name="leftMargin">
       <number>25</number>
      </property>
@@ -349,13 +357,16 @@
      <property name="bottomMargin">
       <number>15</number>
      </property>
-     <property name="spacing">
-      <number>15</number>
-     </property>
      <item>
       <spacer name="leftButtonSpacer">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
        </property>
       </spacer>
      </item>
@@ -363,8 +374,8 @@
       <widget class="QPushButton" name="cancelBtn">
        <property name="minimumSize">
         <size>
-         <width>80</width>
-         <height>36</height>
+         <width>122</width>
+         <height>54</height>
         </size>
        </property>
        <property name="styleSheet">
@@ -391,8 +402,8 @@ QPushButton#cancelBtn:hover {
       <widget class="QPushButton" name="saveDraftBtn">
        <property name="minimumSize">
         <size>
-         <width>80</width>
-         <height>36</height>
+         <width>122</width>
+         <height>54</height>
         </size>
        </property>
        <property name="styleSheet">
@@ -419,8 +430,8 @@ QPushButton#saveDraftBtn:hover {
       <widget class="QPushButton" name="bookNowBtn">
        <property name="minimumSize">
         <size>
-         <width>80</width>
-         <height>36</height>
+         <width>120</width>
+         <height>52</height>
         </size>
        </property>
        <property name="styleSheet">
@@ -447,7 +458,13 @@ QPushButton#bookNowBtn:hover {
      <item>
       <spacer name="rightButtonSpacer">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
        </property>
       </spacer>
      </item>

@@ -2,13 +2,28 @@
 <ui version="4.0">
  <class>Login</class>
  <widget class="QWidget" name="Login">
+  <property name="windowModality">
+   <enum>Qt::WindowModality::ApplicationModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>420</width>
-    <height>600</height>
+    <width>400</width>
+    <height>350</height>
    </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>400</width>
+    <height>350</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>400</width>
+    <height>350</height>
+   </size>
   </property>
   <property name="windowTitle">
    <string>登录</string>
@@ -30,13 +45,6 @@
     <number>20</number>
    </property>
    <item>
-    <spacer name="verticalSpacer_top">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-    </spacer>
-   </item>
-   <item>
     <widget class="QLabel" name="titleLabel">
      <property name="font">
       <font>
@@ -48,14 +56,14 @@
       <string>登录 MeetEx</string>
      </property>
      <property name="alignment">
-      <set>Qt::AlignCenter</set>
+      <set>Qt::AlignmentFlag::AlignCenter</set>
      </property>
     </widget>
    </item>
    <item>
     <spacer name="verticalSpacer_afterTitle">
      <property name="orientation">
-      <enum>Qt::Vertical</enum>
+      <enum>Qt::Orientation::Vertical</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
@@ -78,10 +86,10 @@
        <item>
         <layout class="QFormLayout" name="accountFormLayout">
          <property name="labelAlignment">
-          <set>Qt::AlignRight|Qt::AlignVCenter</set>
+          <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
          </property>
          <property name="formAlignment">
-          <set>Qt::AlignLeading|Qt::AlignTop</set>
+          <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
          </property>
          <property name="horizontalSpacing">
           <number>10</number>
@@ -113,7 +121,7 @@
          <item row="1" column="1">
           <widget class="QLineEdit" name="passwordLineEdit">
            <property name="echoMode">
-            <enum>QLineEdit::Password</enum>
+            <enum>QLineEdit::EchoMode::Password</enum>
            </property>
            <property name="placeholderText">
             <string>请输入密码</string>
@@ -132,10 +140,10 @@
        <item>
         <layout class="QFormLayout" name="phoneFormLayout">
          <property name="labelAlignment">
-          <set>Qt::AlignRight|Qt::AlignVCenter</set>
+          <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
          </property>
          <property name="formAlignment">
-          <set>Qt::AlignLeading|Qt::AlignTop</set>
+          <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
          </property>
          <property name="horizontalSpacing">
           <number>10</number>
@@ -206,7 +214,7 @@ QPushButton:disabled {
    <item>
     <spacer name="verticalSpacer_beforeButton">
      <property name="orientation">
-      <enum>Qt::Vertical</enum>
+      <enum>Qt::Orientation::Vertical</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
@@ -248,7 +256,7 @@ QPushButton:pressed {
    <item>
     <spacer name="verticalSpacer_afterButton">
      <property name="orientation">
-      <enum>Qt::Vertical</enum>
+      <enum>Qt::Orientation::Vertical</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
@@ -266,7 +274,13 @@ QPushButton:pressed {
      <item>
       <spacer name="horizontalSpacer_left">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
        </property>
       </spacer>
      </item>
@@ -276,17 +290,17 @@ QPushButton:pressed {
         <string>&lt;a href=&quot;#forgot&quot;&gt;忘记密码？&lt;/a&gt;</string>
        </property>
        <property name="alignment">
-        <set>Qt::AlignCenter</set>
+        <set>Qt::AlignmentFlag::AlignCenter</set>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QLabel" name="separatorLabel">
-       <property name="text">
-        <string>|</string>
-       </property>
        <property name="styleSheet">
         <string notr="true">color: #cccccc;</string>
+       </property>
+       <property name="text">
+        <string>|</string>
        </property>
       </widget>
      </item>
@@ -296,14 +310,20 @@ QPushButton:pressed {
         <string>&lt;a href=&quot;#register&quot;&gt;去注册&lt;/a&gt;</string>
        </property>
        <property name="alignment">
-        <set>Qt::AlignCenter</set>
+        <set>Qt::AlignmentFlag::AlignCenter</set>
        </property>
       </widget>
      </item>
      <item>
       <spacer name="horizontalSpacer_right">
        <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+        <enum>Qt::Orientation::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
        </property>
       </spacer>
      </item>
@@ -312,7 +332,13 @@ QPushButton:pressed {
    <item>
     <spacer name="verticalSpacer_bottom">
      <property name="orientation">
-      <enum>Qt::Vertical</enum>
+      <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
      </property>
     </spacer>
    </item>
@@ -325,24 +351,64 @@ QPushButton:pressed {
    <signal>clicked()</signal>
    <receiver>Login</receiver>
    <slot>onLogin()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+   </hints>
   </connection>
   <connection>
    <sender>registerLinkLabel</sender>
    <signal>linkActivated(QString)</signal>
    <receiver>Login</receiver>
    <slot>onRegisterLink()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+   </hints>
   </connection>
   <connection>
    <sender>sendCodeBtn</sender>
    <signal>clicked()</signal>
    <receiver>Login</receiver>
    <slot>onSendCode()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+   </hints>
   </connection>
   <connection>
    <sender>forgotPasswordLabel</sender>
    <signal>linkActivated(QString)</signal>
    <receiver>Login</receiver>
    <slot>onForgotPassword()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>20</x>
+     <y>20</y>
+    </hint>
+   </hints>
   </connection>
  </connections>
  <slots>
