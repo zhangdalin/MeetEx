@@ -60,6 +60,7 @@ signals:
     void sigMeetingBooked(const MeetingBookingInfo &info);
     void sigDraftSaved();
     void sigCancelled();
+    void sigClosing();
 
 protected:
     void closeEvent(QCloseEvent *event) override;

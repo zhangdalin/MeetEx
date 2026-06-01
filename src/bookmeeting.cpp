@@ -17,6 +17,8 @@
 #include <QSettings>
 #include <QScreen>
 #include <QGuiApplication>
+#include <QCloseEvent>
+#include <QRegularExpression>
 
 using namespace std;
 
@@ -301,7 +303,7 @@ MeetingBookingInfo BookMeeting::getBookingInfo() const
         info.timeZone = tzCombo->currentData().toString();
     if (QLineEdit *emailsEdit = findChild<QLineEdit*>("emailsEdit"))
         if (!emailsEdit->text().isEmpty())
-            info.inviteEmails = emailsEdit->text().split(QRegExp("[,;]"), Qt::SkipEmptyParts);
+            info.inviteEmails = emailsEdit->text().split(QRegularExpression("[,;]"), Qt::SkipEmptyParts);
     if (QComboBox *roomCombo = findChild<QComboBox*>("roomCombo"))
         info.roomResource = roomCombo->currentData().toString();
     if (QCheckBox *passwordCheck = findChild<QCheckBox*>("passwordCheck"))
