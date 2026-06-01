@@ -54,6 +54,240 @@ void BookMeeting::setupUI()
         QRect g = screen->availableGeometry();
         move((g.width() - width()) / 2, (g.height() - height()) / 2);
     }
+
+    // 设置全局样式表
+    setStyleSheet(R"(
+        /* QComboBox 下拉菜单样式 */
+        QComboBox {
+            background-color: #ffffff;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            padding: 6px 12px;
+            min-height: 32px;
+            font-size: 13px;
+            color: #333333;
+        }
+        QComboBox:hover {
+            border-color: #4a90d9;
+            background-color: #f8fbff;
+        }
+        QComboBox:focus {
+            border-color: #4a90d9;
+            border-width: 1.5px;
+        }
+        QComboBox::drop-down {
+            subcontrol-origin: padding;
+            subcontrol-position: top right;
+            width: 28px;
+            border-left: 1px solid #e0e0e0;
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
+        }
+        QComboBox::drop-down:hover {
+            background-color: #e8f0f8;
+            border-left-color: #4a90d9;
+        }
+        QComboBox::down-arrow {
+            image: url(:/assets/chevron_down_02.png);
+            width: 12px;
+            height: 12px;
+        }
+        QComboBox::down-arrow:on {
+            top: 1px;
+        }
+        QComboBox QAbstractItemView {
+            background-color: #ffffff;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            selection-background-color: #4a90d9;
+            selection-color: #ffffff;
+            padding: 4px;
+            outline: none;
+        }
+        QComboBox QAbstractItemView::item {
+            min-height: 28px;
+            padding: 4px 12px;
+            border-radius: 4px;
+        }
+        QComboBox QAbstractItemView::item:hover {
+            background-color: #e8f0f8;
+            color: #333333;
+        }
+        QComboBox QAbstractItemView::item:selected {
+            background-color: #4a90d9;
+            color: #ffffff;
+        }
+
+        /* QScrollBar 滚动条样式 */
+        QScrollBar:vertical {
+            background-color: #f5f5f5;
+            width: 10px;
+            border-radius: 5px;
+        }
+        QScrollBar::handle:vertical {
+            background-color: #c0c0c0;
+            min-height: 30px;
+            border-radius: 5px;
+            margin: 2px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background-color: #a0a0a0;
+        }
+        QScrollBar::handle:vertical:pressed {
+            background-color: #808080;
+        }
+        QScrollBar::add-line:vertical,
+        QScrollBar::sub-line:vertical {
+            height: 0px;
+        }
+        QScrollBar::add-page:vertical,
+        QScrollBar::sub-page:vertical {
+            background: none;
+        }
+        QScrollBar:horizontal {
+            background-color: #f5f5f5;
+            height: 10px;
+            border-radius: 5px;
+        }
+        QScrollBar::handle:horizontal {
+            background-color: #c0c0c0;
+            min-width: 30px;
+            border-radius: 5px;
+            margin: 2px;
+        }
+        QScrollBar::handle:horizontal:hover {
+            background-color: #a0a0a0;
+        }
+        QScrollBar::handle:horizontal:pressed {
+            background-color: #808080;
+        }
+        QScrollBar::add-line:horizontal,
+        QScrollBar::sub-line:horizontal {
+            width: 0px;
+        }
+        QScrollBar::add-page:horizontal,
+        QScrollBar::sub-page:horizontal {
+            background: none;
+        }
+
+        /* QCheckBox 复选框样式 */
+        QCheckBox {
+            spacing: 10px;
+            font-size: 13px;
+            color: #333333;
+            min-height: 24px;
+        }
+        QCheckBox::indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 2px solid #d0d0d0;
+            background-color: #ffffff;
+        }
+        QCheckBox::indicator:hover {
+            border-color: #4a90d9;
+            background-color: #f8fbff;
+        }
+        QCheckBox::indicator:checked {
+            border-color: #4a90d9;
+            background-color: #4a90d9;
+            image: url(:/assets/checkbox_checked.png);
+        }
+        QCheckBox::indicator:unchecked {
+            image: url(:/assets/checkbox_unchecked.png);
+        }
+        QCheckBox::indicator:checked:hover {
+            background-color: #3a80c9;
+            border-color: #3a80c9;
+        }
+        QCheckBox::indicator:disabled {
+            border-color: #e0e0e0;
+            background-color: #f5f5f5;
+        }
+        QCheckBox::indicator:checked:disabled {
+            background-color: #b0b0b0;
+            border-color: #b0b0b0;
+        }
+
+        /* QLineEdit 输入框样式（保持一致性） */
+        QLineEdit {
+            background-color: #ffffff;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            padding: 6px 12px;
+            min-height: 32px;
+            font-size: 13px;
+            color: #333333;
+        }
+        QLineEdit:hover {
+            border-color: #4a90d9;
+            background-color: #f8fbff;
+        }
+        QLineEdit:focus {
+            border-color: #4a90d9;
+            border-width: 1.5px;
+        }
+        QLineEdit::placeholder {
+            color: #999999;
+        }
+
+        /* QDateEdit, QTimeEdit 日期时间选择器样式 */
+        QDateEdit, QTimeEdit {
+            background-color: #ffffff;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            padding: 6px 12px;
+            min-height: 32px;
+            font-size: 13px;
+            color: #333333;
+        }
+        QDateEdit:hover, QTimeEdit:hover {
+            border-color: #4a90d9;
+            background-color: #f8fbff;
+        }
+        QDateEdit:focus, QTimeEdit:focus {
+            border-color: #4a90d9;
+            border-width: 1.5px;
+        }
+        QDateEdit::drop-down, QTimeEdit::drop-down {
+            subcontrol-origin: padding;
+            subcontrol-position: top right;
+            width: 28px;
+            border-left: 1px solid #e0e0e0;
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
+        }
+        QDateEdit::drop-down:hover, QTimeEdit::drop-down:hover {
+            background-color: #e8f0f8;
+            border-left-color: #4a90d9;
+        }
+        QDateEdit::down-arrow, QTimeEdit::down-arrow {
+            image: url(:/assets/calendar_01.png);
+            width: 14px;
+            height: 14px;
+        }
+        QTimeEdit::down-arrow {
+            image: url(:/assets/clock_01.png);
+        }
+
+        /* QTextEdit 多行文本框样式 */
+        QTextEdit {
+            background-color: #ffffff;
+            border: 1px solid #d0d0d0;
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 13px;
+            color: #333333;
+        }
+        QTextEdit:hover {
+            border-color: #4a90d9;
+            background-color: #f8fbff;
+        }
+        QTextEdit:focus {
+            border-color: #4a90d9;
+            border-width: 1.5px;
+        }
+    )");
 }
 
 void BookMeeting::setupSections()

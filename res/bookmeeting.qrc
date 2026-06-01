@@ -97,5 +97,22 @@
         <file>assets/video_conf_2.png</file>
         <file>assets/virtual_event.png</file>
         <file>assets/wechat.png</file>
+        <file>assets/checkbox_checked.png</file>
+        <file>assets/checkbox_unchecked.png</file>
+        <file>assets/chevron_down_01.png</file>
+        <file>assets/chevron_down_02.png</file>
+        <file>assets/chevron_down_03.png</file>
+        <file>assets/calendar_01.png</file>
+        <file>assets/calendar_02.png</file>
+        <file>assets/calendar_03.png</file>
+        <file>assets/clock_01.png</file>
+        <file>assets/clock_02.png</file>
+        <file>assets/clock_03.png</file>
+        <file>assets/search_01.png</file>
+        <file>assets/search_02.png</file>
+        <file>assets/search_03.png</file>
+        <file>assets/user_01.png</file>
+        <file>assets/user_02.png</file>
+        <file>assets/user_03.png</file>
     </qresource>
 </RCC>
