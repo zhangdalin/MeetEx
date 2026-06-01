@@ -113,6 +113,12 @@
      <property name="verticalSpacing">
       <number>12</number>
      </property>
+     <property name="leftMargin">
+      <number>10</number>
+     </property>
+     <property name="rightMargin">
+      <number>10</number>
+     </property>
      <item row="0" column="0">
       <widget class="QLabel" name="accountLabel">
        <property name="text">
@@ -219,6 +225,12 @@
      </property>
      <property name="verticalSpacing">
       <number>12</number>
+     </property>
+     <property name="leftMargin">
+      <number>10</number>
+     </property>
+     <property name="rightMargin">
+      <number>10</number>
      </property>
      <item row="0" column="0">
       <widget class="QLabel" name="emailLabel">
@@ -388,6 +400,12 @@ QPushButton:disabled {
        </property>
        <property name="verticalSpacing">
         <number>12</number>
+       </property>
+       <property name="leftMargin">
+        <number>10</number>
+       </property>
+       <property name="rightMargin">
+        <number>10</number>
        </property>
        <item row="0" column="0">
         <widget class="QLabel" name="displayNameLabel">
