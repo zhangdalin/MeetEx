@@ -13,6 +13,24 @@
   <property name="windowTitle">
    <string>注册 MeetEx</string>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>420</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>420</width>
+    <height>600</height>
+   </size>
+  </property>
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
+  <property name="windowFlags">
+   <set>Qt::Dialog|Qt::WindowCloseButtonHint</set>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
     <number>0</number>
