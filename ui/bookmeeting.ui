@@ -24,26 +24,59 @@
     <number>0</number>
    </property>
    <property name="leftMargin">
-    <number>25</number>
+    <number>0</number>
    </property>
    <property name="topMargin">
-    <number>20</number>
+    <number>0</number>
    </property>
    <property name="rightMargin">
-    <number>25</number>
+    <number>0</number>
    </property>
    <property name="bottomMargin">
-    <number>20</number>
+    <number>0</number>
    </property>
    <item>
-    <spacer name="topSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
+    <widget class="QScrollArea" name="scrollArea">
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
      </property>
-    </spacer>
-   </item>
-   <item>
-    <widget class="QLabel" name="titleLabel">
+     <property name="widgetResizable">
+      <bool>true</bool>
+     </property>
+     <widget class="QWidget" name="scrollAreaWidgetContents">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>460</width>
+        <height>620</height>
+       </rect>
+      </property>
+      <layout class="QVBoxLayout" name="scrollLayout">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>25</number>
+       </property>
+       <property name="topMargin">
+        <number>20</number>
+       </property>
+       <property name="rightMargin">
+        <number>25</number>
+       </property>
+       <property name="bottomMargin">
+        <number>10</number>
+       </property>
+       <item>
+        <spacer name="topSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLabel" name="titleLabel">
      <property name="font">
       <font>
        <pointsize>18</pointsize>
@@ -298,8 +331,24 @@
      </property>
     </spacer>
    </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
    <item>
     <layout class="QHBoxLayout" name="buttonLayout">
+     <property name="leftMargin">
+      <number>25</number>
+     </property>
+     <property name="topMargin">
+      <number>10</number>
+     </property>
+     <property name="rightMargin">
+      <number>25</number>
+     </property>
+     <property name="bottomMargin">
+      <number>15</number>
+     </property>
      <property name="spacing">
       <number>15</number>
      </property>
@@ -318,6 +367,21 @@
          <height>36</height>
         </size>
        </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton#cancelBtn {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 8px 20px;
+    color: #333333;
+    font-size: 13px;
+    min-height: 36px;
+    min-width: 80px;
+}
+QPushButton#cancelBtn:hover {
+    background-color: #f5f5f5;
+}</string>
+       </property>
        <property name="text">
         <string>取消</string>
        </property>
@@ -330,6 +394,21 @@
          <width>80</width>
          <height>36</height>
         </size>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton#saveDraftBtn {
+    background-color: #ffffff;
+    border: 1px solid #0078d4;
+    border-radius: 6px;
+    padding: 8px 20px;
+    color: #0078d4;
+    font-size: 13px;
+    min-height: 36px;
+    min-width: 80px;
+}
+QPushButton#saveDraftBtn:hover {
+    background-color: #f0f7ff;
+}</string>
        </property>
        <property name="text">
         <string>保存草稿</string>
@@ -344,6 +423,22 @@
          <height>36</height>
         </size>
        </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton#bookNowBtn {
+    background-color: #0078d4;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 20px;
+    color: white;
+    font-size: 13px;
+    font-weight: bold;
+    min-height: 36px;
+    min-width: 80px;
+}
+QPushButton#bookNowBtn:hover {
+    background-color: #006cbd;
+}</string>
+       </property>
        <property name="text">
         <string>立即预定</string>
        </property>
@@ -357,13 +452,6 @@
       </spacer>
      </item>
     </layout>
-   </item>
-   <item>
-    <spacer name="bottomSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-    </spacer>
    </item>
   </layout>
  </widget>

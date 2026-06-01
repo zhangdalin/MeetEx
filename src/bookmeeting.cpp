@@ -6,10 +6,8 @@
 #include <QVBoxLayout>
 #include <QFormLayout>
 #include <QLineEdit>
-#include <QComboBox>
-#include <QDateEdit>
-#include <QTimeEdit>
 #include <QTextEdit>
+#include <QComboBox>
 #include <QCheckBox>
 #include <QMessageBox>
 #include <QSettings>
@@ -44,88 +42,17 @@ BookMeeting::~BookMeeting() { delete ui; }
 
 void BookMeeting::setupUI()
 {
-    setWindowTitle(tr("预定会议"));
-
-    setStyleSheet(R"(
-        QLabel#basicGroupLabel, QLabel#attendeesGroupLabel {
-            background-color: #f5f5f5;
-            color: #666666;
-            padding: 5px 15px;
-            border-radius: 3px;
-            font-size: 10pt;
-            font-weight: bold;
-        }
-        QLineEdit, QComboBox, QDateEdit, QTimeEdit, QTextEdit {
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            padding: 6px 10px;
-            font-size: 13px;
-            background-color: #ffffff;
-            min-height: 32px;
-        }
-        QLineEdit:focus, QComboBox:focus, QTextEdit:focus,
-        QDateEdit:focus, QTimeEdit:focus {
-            border-color: #0078d4;
-            border-width: 1.5px;
-        }
-        QLineEdit::placeholder {
-            color: #999999;
-        }
-        QPushButton#bookNowBtn {
-            background-color: #0078d4;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 20px;
-            color: white;
-            font-size: 13px;
-            font-weight: bold;
-            min-height: 36px;
-            min-width: 80px;
-        }
-        QPushButton#bookNowBtn:hover {
-            background-color: #006cbd;
-        }
-        QPushButton#saveDraftBtn {
-            background-color: #ffffff;
-            border: 1px solid #0078d4;
-            border-radius: 6px;
-            padding: 8px 20px;
-            color: #0078d4;
-            font-size: 13px;
-            min-height: 36px;
-            min-width: 80px;
-        }
-        QPushButton#saveDraftBtn:hover {
-            background-color: #f0f7ff;
-        }
-        QPushButton#cancelBtn {
-            background-color: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            padding: 8px 20px;
-            color: #333333;
-            font-size: 13px;
-            min-height: 36px;
-            min-width: 80px;
-        }
-        QPushButton#cancelBtn:hover {
-            background-color: #f5f5f5;
-        }
-    )");
-
-    ui->bookNowBtn->setObjectName("bookNowBtn");
-    ui->saveDraftBtn->setObjectName("saveDraftBtn");
-    ui->cancelBtn->setObjectName("cancelBtn");
-
+    // 窗口居中（需要运行时计算屏幕尺寸）
     if (QScreen *screen = QGuiApplication::primaryScreen()) {
         QRect g = screen->availableGeometry();
-        move((g.width() - 460) / 2, (g.height() - 620) / 2);
+        move((g.width() - width()) / 2, (g.height() - height()) / 2);
     }
-    resize(460, 620);
 
+    // 给输入框添加图标
     ui->topicEdit->addAction(QIcon(":/assets/user.png"), QLineEdit::LeadingPosition);
     ui->emailsEdit->addAction(QIcon(":/assets/email.png"), QLineEdit::LeadingPosition);
 
+    // 设置日期时间默认值
     ui->dateEdit->setDate(QDate::currentDate());
     ui->timeEdit->setTime(QTime::currentTime().addSecs(1800));
     ui->dateEdit->setMinimumDate(QDate::currentDate());
