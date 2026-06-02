@@ -410,11 +410,30 @@
                <height>10</height>
               </size>
              </property>
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="maximum">
               <number>100</number>
              </property>
              <property name="value">
               <number>0</number>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QProgressBar {
+    background-color: #e9ecef;
+    border-radius: 5px;
+    border: none;
+    text-align: center;
+}
+QProgressBar::chunk {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #0078d4, stop:0.5 #2b88d8, stop:1 #0078d4);
+    border-radius: 5px;
+}</string>
              </property>
              <property name="textVisible">
               <bool>false</bool>
