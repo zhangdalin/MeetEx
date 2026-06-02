@@ -22,9 +22,6 @@ JoinMeeting::JoinMeeting(QWidget *parent)
     , ui(new Ui::JoinMeeting)
     , isVideoPreviewRunning_(false)
     , audioLevelTimer_(nullptr)
-    , currentAudioLevel_(0)
-    , peakLevel_(0)
-    , peakHoldCounter_(0)
 {
     ui->setupUi(this);
 
@@ -97,16 +94,6 @@ void JoinMeeting::closeEvent(QCloseEvent *event)
 
     emit sigClosing();
     event->accept();
-}
-
-void JoinMeeting::resizeEvent(QResizeEvent *event)
-{
-    QWidget::resizeEvent(event);
-
-    // 窗口大小变化时更新峰值标记位置
-    if (ui->peakLevelLabel && ui->peakLevelLabel->isVisible()) {
-        updatePeakIndicator();
-    }
 }
 
 void JoinMeeting::loadSettings()
@@ -323,66 +310,6 @@ void JoinMeeting::onAudioDeviceChanged(int index)
 void JoinMeeting::updateAudioLevel()
 {
     // TODO: 从 MediaEngine 获取实时音频电平
-    // 模拟音频电平 (0-100)
-    currentAudioLevel_ = std::rand() % 60 + 10;  // 10-70 范围
-
-    // 更新进度条
-    ui->audioLevelBar->setValue(currentAudioLevel_);
-
-    // 峰值检测逻辑
-    if (currentAudioLevel_ > peakLevel_) {
-        // 新峰值
-        peakLevel_ = currentAudioLevel_;
-        peakHoldCounter_ = PEAK_HOLD_DURATION;  // 重置保持计数器
-    } else if (peakHoldCounter_ > 0) {
-        // 保持峰值，递减计数器
-        peakHoldCounter_ -= 100;  // 减去更新间隔 (100ms)
-    } else {
-        // 峰值跟随下降
-        peakLevel_ = currentAudioLevel_;
-    }
-
-    // 峰值标记显示已禁用
-    // updatePeakIndicator();
-}
-
-void JoinMeeting::updatePeakIndicator()
-{
-    // 获取进度条几何信息
-    int barWidth = ui->audioLevelBar->width();
-    int barHeight = ui->audioLevelBar->height();
-
-    // 计算峰值标记位置（相对于进度条）
-    int peakPos = (peakLevel_ * barWidth) / 100;
-
-    // 限制位置在进度条范围内
-    peakPos = std::min(peakPos, barWidth - 3);  // 减去标记宽度
-    peakPos = std::max(peakPos, 0);
-
-    // 计算透明度
-    float opacity = 0.0f;
-    if (peakHoldCounter_ > 0) {
-        // 峰值保持期间，透明度从 0.8 线性衰减
-        opacity = 0.8f * static_cast<float>(peakHoldCounter_) / PEAK_HOLD_DURATION;
-    } else {
-        // 峰值跟随模式，低透明度
-        opacity = 0.3f;
-    }
-
-    // 更新峰值标记样式和位置
-    if (opacity > 0.05f) {
-        // 设置位置（相对于父布局，需要计算绝对位置）
-        QPoint barPos = ui->audioLevelBar->mapToParent(QPoint(0, 0));
-        ui->peakLevelLabel->move(barPos.x() + peakPos, barPos.y());
-
-        // 设置透明度（通过 rgba）
-        int alpha = static_cast<int>(opacity * 255);
-        QString style = QString("background-color: rgba(16, 110, 190, %1); border-radius: 2px;")
-                        .arg(alpha);
-        ui->peakLevelLabel->setStyleSheet(style);
-        ui->peakLevelLabel->setFixedSize(3, barHeight);
-        ui->peakLevelLabel->setVisible(true);
-    } else {
-        ui->peakLevelLabel->setVisible(false);
-    }
+    int level = std::rand() % 50;
+    ui->audioLevelBar->setValue(level);
 }

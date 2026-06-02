@@ -42,7 +42,6 @@ signals:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
-    void resizeEvent(QResizeEvent *event) override;
 
 private slots:
     // 按钮点击
@@ -57,7 +56,6 @@ private slots:
     void onVideoDeviceChanged(int index);
     void onAudioDeviceChanged(int index);
     void updateAudioLevel();
-    void updatePeakIndicator();
 
 private:
     void setupUI();
@@ -82,12 +80,6 @@ private:
 
     // 定时器（音频电平更新）
     QTimer *audioLevelTimer_;
-
-    // 音频峰值检测
-    int currentAudioLevel_;                           // 当前音频电平 (0-100)
-    int peakLevel_;                                   // 峰值电平 (0-100)
-    int peakHoldCounter_;                             // 峰值保持计数器 (ms)
-    static constexpr int PEAK_HOLD_DURATION = 300;    // 峰值保持时长 (ms)
 };
 
 #endif // JOINMEETING_H
