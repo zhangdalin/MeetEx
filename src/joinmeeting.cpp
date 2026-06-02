@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QDebug>
 #include <cstdlib>
+#include <algorithm>
 
 using namespace std;
 
@@ -21,6 +22,9 @@ JoinMeeting::JoinMeeting(QWidget *parent)
     , ui(new Ui::JoinMeeting)
     , isVideoPreviewRunning_(false)
     , audioLevelTimer_(nullptr)
+    , currentAudioLevel_(0)
+    , peakLevel_(0)
+    , peakHoldCounter_(0)
 {
     ui->setupUi(this);
 
