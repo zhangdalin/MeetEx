@@ -58,8 +58,6 @@ private slots:
     void updateAudioLevel();
 
 private:
-    void setupUI();
-    void setupConnections();
     void loadSettings();
     void saveSettings();
     void saveToHistory(const QString &meetingNumber);

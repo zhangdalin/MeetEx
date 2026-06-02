@@ -305,18 +305,12 @@
            <item>
             <widget class="QLabel" name="videoDeviceLabel">
              <property name="text">
-              <string>视频输入设备:</string>
+              <string>视频设备:</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QLabel" name="videoDeviceIcon">
-             <property name="pixmap">
-              <pixmap resource="../res/joinmeeting.qrc">:/assets/camera2.png</pixmap>
-             </property>
-             <property name="scaledContents">
-              <bool>true</bool>
-             </property>
              <property name="minimumSize">
               <size>
                <width>16</width>
@@ -329,10 +323,23 @@
                <height>16</height>
               </size>
              </property>
+             <property name="pixmap">
+              <pixmap resource="../res/joinmeeting.qrc">:/assets/camera2.png</pixmap>
+             </property>
+             <property name="scaledContents">
+              <bool>true</bool>
+             </property>
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="videoDeviceCombo"/>
+            <widget class="QComboBox" name="videoDeviceCombo">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+            </widget>
            </item>
            <item>
             <spacer name="videoSpacer">
@@ -349,6 +356,12 @@
            </item>
            <item>
             <widget class="QPushButton" name="videoSettingsBtn">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
              <property name="text">
               <string>视频设置</string>
              </property>
@@ -373,18 +386,12 @@
            <item>
             <widget class="QLabel" name="audioDeviceLabel">
              <property name="text">
-              <string>音频输入设备:</string>
+              <string>音频设备:</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QLabel" name="audioDeviceIcon">
-             <property name="pixmap">
-              <pixmap resource="../res/joinmeeting.qrc">:/assets/microphone5.png</pixmap>
-             </property>
-             <property name="scaledContents">
-              <bool>true</bool>
-             </property>
              <property name="minimumSize">
               <size>
                <width>16</width>
@@ -397,24 +404,54 @@
                <height>16</height>
               </size>
              </property>
+             <property name="pixmap">
+              <pixmap resource="../res/joinmeeting.qrc">:/assets/microphone5.png</pixmap>
+             </property>
+             <property name="scaledContents">
+              <bool>true</bool>
+             </property>
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="audioDeviceCombo"/>
-           </item>
-           <item>
-            <widget class="QProgressBar" name="audioLevelBar">
-             <property name="minimumSize">
-              <size>
-               <width>100</width>
-               <height>10</height>
-              </size>
-             </property>
+            <widget class="QComboBox" name="audioDeviceCombo">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QProgressBar" name="audioLevelBar">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>22</height>
+              </size>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QProgressBar {
+    border: 1px solid rgba(75, 87, 105, 180);
+    border-radius: 3px;
+    background: transparent;
+    }
+QProgressBar::chunk {
+border-radius: 2px;
+background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #27C93F, stop:1 #0B8A2C);
+}</string>
              </property>
              <property name="maximum">
               <number>100</number>
@@ -422,37 +459,33 @@
              <property name="value">
               <number>0</number>
              </property>
-             <property name="styleSheet">
-              <string notr="true">QProgressBar {
-    background-color: #e9ecef;
-    border-radius: 5px;
-    border: none;
-    text-align: center;
-}
-QProgressBar::chunk {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #0078d4, stop:0.5 #2b88d8, stop:1 #0078d4);
-    border-radius: 5px;
-}</string>
-             </property>
              <property name="textVisible">
               <bool>false</bool>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Orientation::Vertical</enum>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QPushButton" name="testSpeakerBtn">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>16777215</height>
+              </size>
              </property>
              <property name="layoutDirection">
               <enum>Qt::LayoutDirection::RightToLeft</enum>
              </property>
              <property name="text">
-              <string>测试</string>
+              <string/>
              </property>
              <property name="icon">
               <iconset resource="../res/joinmeeting.qrc">

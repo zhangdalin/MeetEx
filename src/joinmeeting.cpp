@@ -5,7 +5,6 @@
 #include <QMessageBox>
 #include <QDebug>
 #include <cstdlib>
-#include <algorithm>
 
 using namespace std;
 
@@ -25,13 +24,40 @@ JoinMeeting::JoinMeeting(QWidget *parent)
 {
     ui->setupUi(this);
 
+
+    // 设置密码输入框初始隐藏
+    ui->passwordLabel->setVisible(false);
+    ui->passwordEdit->setVisible(false);
+
+    // 设置会议号输入掩码：000 000 000 格式，空格作为占位符
+    if (ui->meetingNumberCombo->lineEdit()) {
+        ui->meetingNumberCombo->lineEdit()->setInputMask("000 000 000; ");
+        ui->meetingNumberCombo->lineEdit()->setPlaceholderText("000 000 000");
+    }
+
+    // 初始化设备预览（直接显示，不折叠）
+    loadVideoDevices();
+    loadAudioDevices();
+    startVideoPreview();
+
     // 创建音频电平定器
     audioLevelTimer_ = new QTimer(this);
     audioLevelTimer_->setInterval(100); // 100ms 更新一次
     connect(audioLevelTimer_, &QTimer::timeout, this, &JoinMeeting::updateAudioLevel);
+    audioLevelTimer_->start();
 
-    setupUI();
-    setupConnections();
+        // 个人会议号
+    connect(ui->usePersonalIdBtn, &QPushButton::clicked,
+            this, &JoinMeeting::onUsePersonalId);
+    // 测试扬声器
+    connect(ui->testSpeakerBtn, &QPushButton::clicked,
+            this, &JoinMeeting::onTestSpeaker);
+    // 设备切换
+    connect(ui->videoDeviceCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &JoinMeeting::onVideoDeviceChanged);
+    connect(ui->audioDeviceCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &JoinMeeting::onAudioDeviceChanged);
+
     loadSettings();
     loadHistory();
 }
@@ -40,44 +66,6 @@ JoinMeeting::~JoinMeeting()
 {
     stopVideoPreview();
     delete ui;
-}
-
-void JoinMeeting::setupUI()
-{
-    // 设置密码输入框初始隐藏
-    ui->passwordLabel->setVisible(false);
-    ui->passwordEdit->setVisible(false);
-
-    // 设置会议号输入掩码：0000-0000-0000 格式，空格作为占位符
-    if (ui->meetingNumberCombo->lineEdit()) {
-        ui->meetingNumberCombo->lineEdit()->setInputMask("0000-0000-0000; ");
-        ui->meetingNumberCombo->lineEdit()->setPlaceholderText("0000-0000-0000");
-    }
-
-    // 初始化设备预览（直接显示，不折叠）
-    loadVideoDevices();
-    loadAudioDevices();
-    startVideoPreview();
-    if (audioLevelTimer_) {
-        audioLevelTimer_->start();
-    }
-}
-
-void JoinMeeting::setupConnections()
-{
-    // 个人会议号
-    connect(ui->usePersonalIdBtn, &QPushButton::clicked,
-            this, &JoinMeeting::onUsePersonalId);
-
-    // 测试扬声器
-    connect(ui->testSpeakerBtn, &QPushButton::clicked,
-            this, &JoinMeeting::onTestSpeaker);
-
-    // 设备切换
-    connect(ui->videoDeviceCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &JoinMeeting::onVideoDeviceChanged);
-    connect(ui->audioDeviceCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &JoinMeeting::onAudioDeviceChanged);
 }
 
 void JoinMeeting::closeEvent(QCloseEvent *event)
@@ -210,7 +198,7 @@ JoinMeetingInfo JoinMeeting::getJoinInfo() const
     JoinMeetingInfo info;
     // 获取会议号并移除连字符，保留纯数字
     QString meetingNumber = ui->meetingNumberCombo->currentText().trimmed();
-    meetingNumber.remove('-');
+    meetingNumber.remove(' ');
     info.meetingNumber = meetingNumber;
     info.password = ui->passwordEdit->text();
     info.displayName = ui->displayNameEdit->text().trimmed();
