@@ -195,7 +195,7 @@ void Login::onSendCode()
     updateSendCodeButton();
     countdownTimer_->start(1000);
 
-    // 调用后端 API 发送验证码
+    // 调用后端 API 获取验证码
     AuthService::instance().sendSmsCode(phone, "login");
 }
 
@@ -207,7 +207,7 @@ void Login::updateSendCodeButton()
     } else {
         countdownTimer_->stop();
         ui->sendCodeBtn->setEnabled(true);
-        ui->sendCodeBtn->setText("发送验证码");
+        ui->sendCodeBtn->setText("获取验证码");
     }
 }
 
@@ -225,7 +225,7 @@ void Login::onCodeSendFailed(const QString &error)
         countdownTimer_->stop();
     }
     ui->sendCodeBtn->setEnabled(true);
-    ui->sendCodeBtn->setText("发送验证码");
+    ui->sendCodeBtn->setText("获取验证码");
 }
 
 bool Login::validatePhone() const

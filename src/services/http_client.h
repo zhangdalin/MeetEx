@@ -58,7 +58,7 @@ private:
 
     // AUTH-006: 请求重试队列
     QList<PendingRequest> pendingRequests_;
-    bool autoRefreshEnabled_ = true;
+    bool autoRefreshEnabled_ = false;  // 默认禁用，登录成功后启用
     bool isWaitingForRefresh_ = false;
 
     void handleReply(QNetworkReply *reply, std::function<void(const QJsonObject &, bool)> callback);

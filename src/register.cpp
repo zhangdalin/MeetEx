@@ -55,18 +55,18 @@ Register::Register(QWidget *parent)
 
     // 确认密码框添加眼睛图标
     QToolButton *confirmEyeBtn = new QToolButton(this);
-    confirmEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
+    confirmEyeBtn->setIcon(QIcon(":/assets/eye.png"));
     confirmEyeBtn->setCursor(Qt::PointingHandCursor);
     confirmEyeBtn->setStyleSheet("QToolButton { border: none; padding: 2px; }");
     QWidgetAction *confirmEyeAction = new QWidgetAction(this);
     confirmEyeAction->setDefaultWidget(confirmEyeBtn);
     ui->confirmPasswordLineEdit->addAction(confirmEyeAction, QLineEdit::TrailingPosition);
     connect(confirmEyeBtn, &QToolButton::pressed, this, [this, confirmEyeBtn]() {
-        confirmEyeBtn->setIcon(QIcon(":/assets/eye.png"));
+        confirmEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
         ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Normal);
     });
     connect(confirmEyeBtn, &QToolButton::released, this, [this, confirmEyeBtn]() {
-        confirmEyeBtn->setIcon(QIcon(":/assets/eye_off.png"));
+        confirmEyeBtn->setIcon(QIcon(":/assets/eye.png"));
         ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
     });
 
@@ -188,7 +188,7 @@ void Register::onSendCode()
     updateSendCodeButton();
     countdownTimer_->start(1000);
 
-    // 调用后端 API 发送验证码
+    // 调用后端 API 获取验证码
     AuthService::instance().sendSmsCode(phone, "register");
 }
 
@@ -200,7 +200,7 @@ void Register::updateSendCodeButton()
     } else {
         countdownTimer_->stop();
         ui->sendCodeBtn->setEnabled(true);
-        ui->sendCodeBtn->setText("发送验证码");
+        ui->sendCodeBtn->setText("获取验证码");
     }
 }
 
@@ -234,7 +234,7 @@ void Register::onCodeSendFailed(const QString &error)
     QMessageBox::warning(this, "发送失败", error);
     countdownTimer_->stop();
     ui->sendCodeBtn->setEnabled(true);
-    ui->sendCodeBtn->setText("发送验证码");
+    ui->sendCodeBtn->setText("获取验证码");
 }
 
 bool Register::validateAccount()
@@ -259,7 +259,7 @@ bool Register::validateEmail()
 bool Register::validatePhone()
 {
     QString phone = ui->phoneLineEdit->text().trimmed();
-    if (phone.isEmpty()) return true;
+    if (phone.isEmpty()) return false;
     QRegularExpression regex("^1[3-9]\\d{9}$");
     return regex.match(phone).hasMatch();
 }

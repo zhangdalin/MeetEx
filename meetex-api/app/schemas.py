@@ -56,6 +56,12 @@ class PhoneLoginRequest(BaseModel):
     code: str = Field(..., min_length=4, max_length=6)
 
 
+class SendSmsRequest(BaseModel):
+    """Send SMS verification code request."""
+    phone: str = Field(..., pattern=r"^1[3-9]\d{9}$")
+    purpose: str = Field(..., description="验证码用途: login, register, reset_password")
+
+
 class TokenData(BaseModel):
     """Token response data."""
     access_token: str

@@ -1,0 +1,163 @@
+<h2>AudioLevelBar 现代简约风格设计</h2>
+<p class="subtitle">选择你喜欢的音频电平指示器样式</p>
+
+<div class="cards">
+  <div class="card" data-choice="minimal-solid" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 30px; background: #f8f9fa; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+      <!-- 设计 A: 极简纯色条 -->
+      <div style="font-size: 12px; color: #666; margin-bottom: 5px;">极简纯色条</div>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 200px;">
+        <span style="font-size: 11px; color: #999;">🎤</span>
+        <div style="flex: 1; height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden;">
+          <div style="width: 65%; height: 100%; background: #0078d4; border-radius: 3px;"></div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 200px;">
+        <span style="font-size: 11px; color: #999;">🎤</span>
+        <div style="flex: 1; height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden;">
+          <div style="width: 30%; height: 100%; background: #0078d4; border-radius: 3px;"></div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 200px;">
+        <span style="font-size: 11px; color: #999;">🎤</span>
+        <div style="flex: 1; height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden;">
+          <div style="width: 90%; height: 100%; background: #0078d4; border-radius: 3px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>设计 A: 极简纯色条</h3>
+      <p>细条形设计（6px 高度），单一蓝色（#0078d4），无渐变，最纯粹的简约风格。类似 Zoom 的音频指示器。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="subtle-gradient" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 30px; background: #f8f9fa; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+      <!-- 设计 B: 微妙渐变条 -->
+      <div style="font-size: 12px; color: #666; margin-bottom: 5px;">微妙渐变条</div>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 200px;">
+        <span style="font-size: 11px; color: #999;">🎤</span>
+        <div style="flex: 1; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
+          <div style="width: 65%; height: 100%; background: linear-gradient(90deg, #0078d4 0%, #106ebe 100%); border-radius: 4px;"></div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 200px;">
+        <span style="font-size: 11px; color: #999;">🎤</span>
+        <div style="flex: 1; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
+          <div style="width: 30%; height: 100%; background: linear-gradient(90deg, #0078d4 0%, #106ebe 100%); border-radius: 4px;"></div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 200px;">
+        <span style="font-size: 11px; color: #999;">🎤</span>
+        <div style="flex: 1; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
+          <div style="width: 90%; height: 100%; background: linear-gradient(90deg, #0078d4 0%, #106ebe 100%); border-radius: 4px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>设计 B: 微妙渐变条</h3>
+      <p>稍粗的设计（8px 高度），蓝色微妙渐变，增加一点视觉层次感。适合喜欢细微变化的场景。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="rounded-pill" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 30px; background: #f8f9fa; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+      <!-- 设计 C: 圆角胶囊条 -->
+      <div style="font-size: 12px; color: #666; margin-bottom: 5px;">圆角胶囊条</div>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 200px;">
+        <span style="font-size: 11px; color: #999;">🎤</span>
+        <div style="flex: 1; height: 10px; background: #e9ecef; border-radius: 10px; overflow: hidden;">
+          <div style="width: 65%; height: 100%; background: linear-gradient(90deg, #0078d4 0%, #2b88d8 50%, #0078d4 100%); border-radius: 10px;"></div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 200px;">
+        <span style="font-size: 11px; color: #999;">🎤</span>
+        <div style="flex: 1; height: 10px; background: #e9ecef; border-radius: 10px; overflow: hidden;">
+          <div style="width: 30%; height: 100%; background: linear-gradient(90deg, #0078d4 0%, #2b88d8 50%, #0078d4 100%); border-radius: 10px;"></div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 200px;">
+        <span style="font-size: 11px; color: #999;">🎤</span>
+        <div style="flex: 1; height: 10px; background: #e9ecef; border-radius: 10px; overflow: hidden;">
+          <div style="width: 90%; height: 100%; background: linear-gradient(90deg, #0078d4 0%, #2b88d8 50%, #0078d4 100%); border-radius: 10px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>设计 C: 圆角胶囊条</h3>
+      <p>更粗的胶囊形状（10px 高度，全圆角），轻微的光泽渐变效果。现代感更强，视觉存在感更明显。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="thin-underline" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 30px; background: #f8f9fa; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+      <!-- 设计 D: 细线下划线 -->
+      <div style="font-size: 12px; color: #666; margin-bottom: 5px;">细线下划线</div>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 200px;">
+        <span style="font-size: 11px; color: #999;">🎤</span>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 11px; color: #333;">默认麦克风</div>
+          <div style="height: 3px; background: #e9ecef; border-radius: 2px; overflow: hidden;">
+            <div style="width: 65%; height: 100%; background: #0078d4; border-radius: 2px;"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 200px;">
+        <span style="font-size: 11px; color: #999;">🎤</span>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 11px; color: #333;">USB 麦克风</div>
+          <div style="height: 3px; background: #e9ecef; border-radius: 2px; overflow: hidden;">
+            <div style="width: 30%; height: 100%; background: #0078d4; border-radius: 2px;"></div>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; width: 100%; max-width: 200px;">
+        <span style="font-size: 11px; color: #999;">🎤</span>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 11px; color: #333;">麦克风 (Realtek)</div>
+          <div style="height: 3px; background: #e9ecef; border-radius: 2px; overflow: hidden;">
+            <div style="width: 90%; height: 100%; background: #0078d4; border-radius: 2px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>设计 D: 细线下划线</h3>
+      <p>超细线设计（3px 高度），作为设备名称的下划线存在。最极简的方案，几乎不占用额外空间。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>技术规格参考</h3>
+  <div class="options" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+    <div class="option" data-choice="animation-smooth" data-multiselect onclick="toggleSelect(this)">
+      <div class="letter">✓</div>
+      <div class="content">
+        <h4>平滑动画</h4>
+        <p>数值变化时使用 100ms 过渡动画，避免跳变</p>
+      </div>
+    </div>
+    <div class="option" data-choice="peak-hold" data-multiselect onclick="toggleSelect(this)">
+      <div class="letter">✓</div>
+      <div class="content">
+        <h4>峰值保持</h4>
+        <p>显示一个小标记指示最近的最大音量，300ms 后衰减</p>
+      </div>
+    </div>
+    <div class="option" data-choice="no-border" data-multiselect onclick="toggleSelect(this)">
+      <div class="letter">✓</div>
+      <div class="content">
+        <h4>无边框设计</h4>
+        <p>不使用外边框，仅通过背景色对比区分</p>
+      </div>
+    </div>
+    <div class="option" data-choice="disable-gray" data-multiselect onclick="toggleSelect(this)">
+      <div class="letter">✓</div>
+      <div class="content">
+        <h4>禁用变灰</h4>
+        <p>麦克风禁用时进度条变为灰色（#999999）</p>
+      </div>
+    </div>
+  </div>
+</div>

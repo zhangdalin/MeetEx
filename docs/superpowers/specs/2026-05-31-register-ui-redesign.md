@@ -22,7 +22,7 @@
 | 昵称输入 | `displayNameLineEdit` | - |
 | 邮箱输入 | `emailLineEdit` | - |
 | 手机号输入 | `phoneLineEdit` | - |
-| 发送验证码按钮 | `sendCodeBtn` | `onSendCode()` |
+| 获取验证码按钮 | `sendCodeBtn` | `onSendCode()` |
 | 验证码输入 | `codeLineEdit` | - |
 | 头像URL输入 | `avatarLineEdit` | - |
 | 注册按钮 | `registerBtn` | `onRegister()` |
@@ -126,7 +126,7 @@
 
 #### 4.4.1 验证码区域
 
-手机号和发送验证码按钮内嵌布局：
+手机号和获取验证码按钮内嵌布局：
 
 ```
 ┌─────────────────────────────────────┐
@@ -200,7 +200,7 @@ QLineEdit::placeholder {
 }
 ```
 
-### 5.3 发送验证码按钮样式
+### 5.3 获取验证码按钮样式
 
 ```css
 QPushButton#sendCodeBtn {

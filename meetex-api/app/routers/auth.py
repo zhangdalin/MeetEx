@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models import User
-from app.schemas import LoginRequest, PhoneLoginRequest, RefreshRequest, LoginResponse, UserCreate
+from app.schemas import LoginRequest, PhoneLoginRequest, RefreshRequest, LoginResponse, UserCreate, SendSmsRequest
 from app.auth_utils import (
     authenticate_user,
     create_jwt_token,
@@ -226,3 +226,22 @@ async def refresh_token(
             "user": user_to_response(user)
         }
     )
+
+
+@router.post("/sms/send")
+async def send_sms_code(
+    request: SendSmsRequest,
+    session: AsyncSession = Depends(get_db)
+):
+    """Send SMS verification code endpoint.
+
+    For development, always returns success with code "123456".
+    In production, should integrate with actual SMS service.
+    """
+    # TODO: Integrate with actual SMS service for production
+    # For now, just return success
+    return {
+        "code": 200,
+        "message": "验证码已发送",
+        "data": None
+    }

@@ -63,6 +63,9 @@ void AuthService::login(const QString &account, const QString &password) {
             HttpClient::instance().setHeader("Authorization",
                 QString("Bearer %1").arg(currentToken_.accessToken));
 
+            // 登录成功后启用自动刷新
+            HttpClient::instance().setAutoRefreshEnabled(true);
+
             emit sigLoginSuccess(currentUser_);
         });
 }
@@ -202,6 +205,10 @@ void AuthService::logout() {
     isLoggedIn_ = false;
     clearAuthData();
     HttpClient::instance().clearHeaders();
+
+    // 登出时禁用自动刷新
+    HttpClient::instance().setAutoRefreshEnabled(false);
+
     emit sigLoggedOut();
 }
 
