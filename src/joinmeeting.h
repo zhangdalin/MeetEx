@@ -37,7 +37,6 @@ public:
 
 signals:
     void sigJoinMeeting(const JoinMeetingInfo &info);  // 加入会议
-    void sigCancelled();                                 // 取消
     void sigClosing();                                   // 窗口关闭
 
 protected:

@@ -157,7 +157,7 @@
          <item row="0" column="1">
           <layout class="QHBoxLayout" name="meetingNumberLayout">
            <property name="spacing">
-            <number>8</number>
+            <number>5</number>
            </property>
            <item>
             <widget class="QComboBox" name="meetingNumberCombo">
@@ -294,7 +294,7 @@
          <item>
           <layout class="QHBoxLayout" name="videoDeviceLayout">
            <property name="spacing">
-            <number>5</number>
+            <number>2</number>
            </property>
            <property name="leftMargin">
             <number>0</number>
@@ -342,6 +342,25 @@
             </widget>
            </item>
            <item>
+            <widget class="QPushButton" name="videoSettingsBtn">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>设置</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="videoSpacer">
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
@@ -354,31 +373,18 @@
              </property>
             </spacer>
            </item>
-           <item>
-            <widget class="QPushButton" name="videoSettingsBtn">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>视频设置</string>
-             </property>
-            </widget>
-           </item>
           </layout>
          </item>
          <item>
           <layout class="QHBoxLayout" name="audioDeviceLayout">
            <property name="spacing">
-            <number>5</number>
+            <number>2</number>
            </property>
            <property name="leftMargin">
             <number>0</number>
            </property>
            <property name="topMargin">
-            <number>10</number>
+            <number>0</number>
            </property>
            <property name="rightMargin">
             <number>0</number>
@@ -425,20 +431,20 @@
            <item>
             <widget class="QProgressBar" name="audioLevelBar">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
              <property name="minimumSize">
               <size>
-               <width>0</width>
-               <height>0</height>
+               <width>10</width>
+               <height>22</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>16777215</width>
+               <width>10</width>
                <height>22</height>
               </size>
              </property>
@@ -494,6 +500,19 @@ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #27C93F, stop:1 #0B8A
             </widget>
            </item>
            <item>
+            <widget class="QPushButton" name="audioSettingsBtn">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>设置</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="audioSpacer">
              <property name="orientation">
               <enum>Qt::Orientation::Horizontal</enum>
@@ -505,13 +524,6 @@ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #27C93F, stop:1 #0B8A
               </size>
              </property>
             </spacer>
-           </item>
-           <item>
-            <widget class="QPushButton" name="audioSettingsBtn">
-             <property name="text">
-              <string>音频设置</string>
-             </property>
-            </widget>
            </item>
           </layout>
          </item>
@@ -776,7 +788,6 @@ QPushButton#joinMeetingBtn:hover {
  <slots>
   <slot>onJoinMeeting()</slot>
   <slot>onCancelClicked()</slot>
-  <slot>onToggleDevicePreview()</slot>
   <slot>onUsePersonalId()</slot>
   <slot>onVideoSettings()</slot>
   <slot>onAudioSettings()</slot>

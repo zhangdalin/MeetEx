@@ -63,8 +63,10 @@ void Home::onJoinMeeting()
     if (!joinmeeting) {
         joinmeeting = make_unique<JoinMeeting>();
         joinmeeting->show();
+
+        // 连接关闭信号：窗口被关闭或取消（X按钮或加入会议后自动关闭）
         connect(static_cast<JoinMeeting*>(joinmeeting.get()), &JoinMeeting::sigClosing, this, [this]{
-            qInfo() << QThread::currentThread() << __FUNCTION__ << "join meeting windows closed";
+            qInfo() << QThread::currentThread() << __FUNCTION__ << "join meeting window cancelled/closed";
             joinmeeting.reset();
         });
     }

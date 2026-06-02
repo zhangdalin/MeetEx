@@ -29,10 +29,9 @@ JoinMeeting::JoinMeeting(QWidget *parent)
     ui->passwordLabel->setVisible(false);
     ui->passwordEdit->setVisible(false);
 
-    // 设置会议号输入掩码：000 000 000 格式，空格作为占位符
+    // 设置会议号输入掩码：000000000 格式，空格作为占位符
     if (ui->meetingNumberCombo->lineEdit()) {
-        ui->meetingNumberCombo->lineEdit()->setInputMask("000 000 000; ");
-        ui->meetingNumberCombo->lineEdit()->setPlaceholderText("000 000 000");
+        ui->meetingNumberCombo->lineEdit()->setPlaceholderText("000000000");
     }
 
     // 初始化设备预览（直接显示，不折叠）
@@ -71,15 +70,6 @@ JoinMeeting::~JoinMeeting()
 void JoinMeeting::closeEvent(QCloseEvent *event)
 {
     saveSettings();
-
-    // 保留原有逻辑
-    bool join_state = !getJoinInfo().meetingNumber.isEmpty();
-    if (!inmeeting && join_state) {
-        home->onInMeeting();
-    } else if (inmeeting && join_state) {
-        inmeeting->activateWindow();
-    }
-
     emit sigClosing();
     event->accept();
 }
@@ -164,8 +154,6 @@ void JoinMeeting::onJoinMeeting()
 
 void JoinMeeting::onCancelClicked()
 {
-    saveSettings();
-    emit sigCancelled();
     close();
 }
 
@@ -173,7 +161,7 @@ void JoinMeeting::onCancelClicked()
 void JoinMeeting::onUsePersonalId()
 {
     // TODO: 从用户信息中获取个人会议号
-    QString personalId = "123456789012";
+    QString personalId = "123456789";
     ui->meetingNumberCombo->setCurrentText(personalId);
 }
 

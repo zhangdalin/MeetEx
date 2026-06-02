@@ -808,12 +808,6 @@ QPushButton#joinMeetingBtn:hover {
    <slot>onJoinMeeting()</slot>
   </connection>
   <connection>
-   <sender>devicePreviewToggleBtn</sender>
-   <signal>clicked()</signal>
-   <receiver>JoinMeeting</receiver>
-   <slot>onToggleDevicePreview()</slot>
-  </connection>
-  <connection>
    <sender>usePersonalIdBtn</sender>
    <signal>clicked()</signal>
    <receiver>JoinMeeting</receiver>
@@ -835,7 +829,6 @@ QPushButton#joinMeetingBtn:hover {
  <slots>
   <slot>onJoinMeeting()</slot>
   <slot>onCancelClicked()</slot>
-  <slot>onToggleDevicePreview()</slot>
   <slot>onUsePersonalId()</slot>
   <slot>onVideoSettings()</slot>
   <slot>onAudioSettings()</slot>
@@ -913,7 +906,6 @@ private slots:
     // 按钮点击
     void onJoinMeeting();
     void onCancelClicked();
-    void onToggleDevicePreview();
     void onUsePersonalId();
     void onVideoSettings();
     void onAudioSettings();
@@ -1016,10 +1008,6 @@ void JoinMeeting::setupUI()
 
 void JoinMeeting::setupConnections()
 {
-    // 设备预览展开/折叠
-    connect(ui->devicePreviewToggleBtn, &QPushButton::clicked,
-            this, &JoinMeeting::onToggleDevicePreview);
-    
     // 个人会议号
     connect(ui->usePersonalIdBtn, &QPushButton::clicked,
             this, &JoinMeeting::onUsePersonalId);
@@ -1181,32 +1169,11 @@ void JoinMeeting::onCancelClicked()
     emit sigCancelled();
 }
 
-void JoinMeeting::onToggleDevicePreview()
-{
-    isDevicePreviewExpanded_ = !isDevicePreviewExpanded_;
-    ui->devicePreviewContent->setVisible(isDevicePreviewExpanded_);
-    
-    // 更新按钮文本
-    QString text = isDevicePreviewExpanded_ 
-        ? "━━━ 设备预览 [折叠 ▲] ━━━"
-        : "━━━ 设备预览 [展开 ▼] ━━━";
-    ui->devicePreviewToggleBtn->setText(text);
-    
-    // 启动或停止视频预览
-    if (isDevicePreviewExpanded_) {
-        loadVideoDevices();
-        loadAudioDevices();
-        startVideoPreview();
-    } else {
-        stopVideoPreview();
-    }
-}
-
 void JoinMeeting::onUsePersonalId()
 {
     // TODO: 从用户信息中获取个人会议号
     // 暂时使用占位符
-    QString personalId = "1234567890"; // 应从用户配置中读取
+    QString personalId = "123456789"; // 应从用户配置中读取
     ui->meetingNumberCombo->setCurrentText(personalId);
 }
 
