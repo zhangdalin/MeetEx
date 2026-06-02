@@ -342,8 +342,8 @@ void JoinMeeting::updateAudioLevel()
         peakLevel_ = currentAudioLevel_;
     }
 
-    // 更新峰值标记显示
-    updatePeakIndicator();
+    // 峰值标记显示已禁用
+    // updatePeakIndicator();
 }
 
 void JoinMeeting::updatePeakIndicator()
