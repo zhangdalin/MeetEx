@@ -441,6 +441,28 @@ QProgressBar::chunk {
             </widget>
            </item>
            <item>
+            <widget class="QLabel" name="peakLevelLabel">
+             <property name="minimumSize">
+              <size>
+               <width>3</width>
+               <height>10</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>3</width>
+               <height>10</height>
+              </size>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">background-color: #106ebe; border-radius: 2px;</string>
+             </property>
+             <property name="visible">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QPushButton" name="testSpeakerBtn">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
