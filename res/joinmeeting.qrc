@@ -99,5 +99,7 @@
         <file>assets/wechat.png</file>
         <file>assets/speaker.png</file>
         <file>assets/microphone.png</file>
+        <file>assets/camera2.png</file>
+        <file>assets/microphone5.png</file>
     </qresource>
 </RCC>
