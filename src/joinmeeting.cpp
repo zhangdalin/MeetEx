@@ -99,6 +99,16 @@ void JoinMeeting::closeEvent(QCloseEvent *event)
     event->accept();
 }
 
+void JoinMeeting::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+
+    // 窗口大小变化时更新峰值标记位置
+    if (ui->peakLevelLabel && ui->peakLevelLabel->isVisible()) {
+        updatePeakIndicator();
+    }
+}
+
 void JoinMeeting::loadSettings()
 {
     QSettings settings("MeetEx", "JoinMeeting");
